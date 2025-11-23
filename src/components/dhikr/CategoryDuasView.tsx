@@ -1,0 +1,143 @@
+// Просмотр дуа внутри категории
+
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Search, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { DuaCard } from "./DuaCard";
+import { DuaCardV2 } from "./DuaCardV2";
+import { eReplikaAPI } from "@/lib/api";
+import { cn } from "@/lib/utils";
+
+interface Dua {
+  id: string;
+  arabic: string;
+  transcription: string;
+  russianTranscription?: string;
+  translation: string;
+  reference?: string;
+  audioUrl?: string | null;
+  number?: number;
+}
+
+interface CategoryDuasViewProps {
+  categoryId: string;
+  categoryName: string;
+  onBack: () => void;
+}
+
+export const CategoryDuasView = ({ categoryId, categoryName, onBack }: CategoryDuasViewProps) => {
+  const [duas, setDuas] = useState<Dua[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDua, setSelectedDua] = useState<Dua | null>(null);
+
+  useEffect(() => {
+    loadCategoryDuas();
+  }, [categoryId]);
+
+  const loadCategoryDuas = async () => {
+    setLoading(true);
+    try {
+      const allDuas = await eReplikaAPI.getDuas();
+      const categoryDuas = allDuas
+        .filter((dua: any) => {
+          const catId = dua.category_id || dua.category || "general";
+          return catId === categoryId;
+        })
+        .map((dua: any, index: number) => ({
+          id: dua.id,
+          arabic: dua.arabic || dua.text_arabic || "",
+          transcription: dua.transcription || dua.text_transcription || "",
+          russianTranscription: dua.russian_transcription || dua.russianTranscription,
+          translation: dua.translation || dua.text_translation || dua.name_english || "",
+          reference: dua.reference || dua.hadith_reference,
+          audioUrl: dua.audio_url || dua.audioUrl || null,
+          number: index + 1,
+        }));
+
+      setDuas(categoryDuas);
+    } catch (error) {
+      console.error("Error loading category duas:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-muted-foreground">Загрузка...</div>
+      </div>
+    );
+  }
+
+  if (selectedDua) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSelectedDua(null)}
+            className="h-8 w-8"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="text-lg font-semibold">{selectedDua.translation}</h2>
+        </div>
+        <DuaCardV2 dua={selectedDua} number={selectedDua.number} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Заголовок */}
+      <div className="relative h-32 rounded-2xl overflow-hidden bg-gradient-to-br from-primary/30 to-primary/10">
+        <div className="absolute inset-0 bg-black/10" />
+        <div className="relative h-full flex flex-col justify-end p-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            className="absolute top-3 left-3 h-8 w-8 text-foreground hover:bg-white/20"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-xl font-bold text-foreground">{categoryName}</h1>
+        </div>
+      </div>
+
+      {/* Счетчик */}
+      <div className="px-4">
+        <p className="text-sm text-muted-foreground">Всего: {duas.length}</p>
+      </div>
+
+      {/* Список дуа */}
+      <div className="space-y-1 px-4 pb-4">
+        {duas.map((dua) => (
+          <Card
+            key={dua.id}
+            className="bg-white border-border/50 hover:bg-secondary/50 transition-colors cursor-pointer rounded-lg"
+            onClick={() => setSelectedDua(dua)}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <span className="text-sm font-semibold text-muted-foreground flex-shrink-0">
+                    {dua.number}.
+                  </span>
+                  <p className="text-sm font-medium flex-1">{dua.translation}</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+};
+
