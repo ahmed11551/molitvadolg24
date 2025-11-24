@@ -180,26 +180,26 @@ export const CalculatorSection = () => {
     return (
       <div className="space-y-6 animate-in fade-in-50 duration-500">
         <Card className="bg-gradient-card shadow-medium border-border/50">
-          <CardHeader>
+          <CardHeader className="px-3 sm:px-6">
             <div className="flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-primary" />
-              <CardTitle>Калькулятор пропущенных намазов</CardTitle>
+              <Calculator className="w-5 h-5 text-primary shrink-0" />
+              <CardTitle className="text-lg sm:text-xl break-words">Калькулятор пропущенных намазов</CardTitle>
             </div>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm break-words">
               Выберите способ расчета пропущенных намазов
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-3 sm:px-6">
             <Button
               onClick={() => setMode("manual")}
               size="lg"
               variant="outline"
-              className="w-full h-auto p-4 sm:p-6 flex items-start gap-3 hover:bg-primary/5 transition-all border-2 hover:border-primary/30"
+              className="w-full h-auto p-3 sm:p-6 flex items-start gap-2 sm:gap-3 hover:bg-primary/5 transition-all border-2 hover:border-primary/30"
             >
               <CheckSquare className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0 mt-0.5" />
-              <div className="flex-1 text-left min-w-0">
-                <div className="font-semibold text-base sm:text-lg leading-tight">Я знаю количество пропущенных</div>
-                <div className="text-xs sm:text-sm text-muted-foreground mt-1.5 leading-relaxed break-words">
+              <div className="flex-1 text-left min-w-0 overflow-hidden">
+                <div className="font-semibold text-sm sm:text-lg leading-tight break-words">Я знаю количество пропущенных</div>
+                <div className="text-[11px] sm:text-sm text-muted-foreground mt-1 sm:mt-1.5 leading-relaxed break-words">
                   Введите количество пропущенных намазов вручную по каждому виду
                 </div>
               </div>
@@ -209,12 +209,12 @@ export const CalculatorSection = () => {
               onClick={() => setMode("calculator")}
               size="lg"
               variant="outline"
-              className="w-full h-auto p-4 sm:p-6 flex items-start gap-3 hover:bg-primary/5 transition-all border-2 hover:border-primary/30"
+              className="w-full h-auto p-3 sm:p-6 flex items-start gap-2 sm:gap-3 hover:bg-primary/5 transition-all border-2 hover:border-primary/30"
             >
               <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0 mt-0.5" />
-              <div className="flex-1 text-left min-w-0">
-                <div className="font-semibold text-base sm:text-lg leading-tight">Помощь посчитать</div>
-                <div className="text-xs sm:text-sm text-muted-foreground mt-1.5 leading-relaxed break-words">
+              <div className="flex-1 text-left min-w-0 overflow-hidden">
+                <div className="font-semibold text-sm sm:text-lg leading-tight break-words">Помощь посчитать</div>
+                <div className="text-[11px] sm:text-sm text-muted-foreground mt-1 sm:mt-1.5 leading-relaxed break-words">
                   Автоматический расчет на основе даты рождения и других параметров
                 </div>
               </div>

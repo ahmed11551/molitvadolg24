@@ -121,7 +121,7 @@ const Index = () => {
       <WelcomeDialog onNavigateToCalculator={handleNavigateToCalculator} />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-4 sm:py-6 max-w-5xl pb-24 sm:pb-6">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl pb-24 sm:pb-6 w-full overflow-x-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Enhanced Tabs Container */}
           <div className="relative mb-6 overflow-visible">
@@ -132,30 +132,33 @@ const Index = () => {
               ref={tabsListRef}
               className={cn(
                 "relative flex w-full h-auto items-center",
-                "px-3 sm:px-4 py-2.5 gap-2 sm:gap-2.5",
+                "px-2 sm:px-4 py-2.5 gap-1.5 sm:gap-2.5",
                 "overflow-x-auto overflow-y-visible",
                 "bg-white/95 backdrop-blur-md",
                 "rounded-2xl border border-border/60",
                 "shadow-lg shadow-primary/5",
                 "scroll-smooth snap-x snap-proximity",
                 "min-h-[48px] sm:min-h-[52px]",
-                "tabs-scroll-container"
+                "tabs-scroll-container",
+                "no-scrollbar"
               )}
               style={{ 
                 WebkitOverflowScrolling: 'touch',
                 touchAction: 'pan-x',
-                overscrollBehaviorX: 'auto'
+                overscrollBehaviorX: 'contain',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
               }}
             >
               <TabsTrigger 
                 value="plan"
                 className={cn(
                   "flex-shrink-0 flex items-center justify-center",
-                  "w-auto min-w-fit px-5 sm:px-6 py-2.5 sm:py-3",
+                  "w-auto min-w-fit px-3 sm:px-6 py-2 sm:py-3",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-xs sm:text-sm font-semibold",
+                  "text-[11px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -181,11 +184,11 @@ const Index = () => {
                 value="progress"
                 className={cn(
                   "flex-shrink-0 flex items-center justify-center",
-                  "w-auto min-w-fit px-5 sm:px-6 py-2.5 sm:py-3",
+                  "w-auto min-w-fit px-3 sm:px-6 py-2 sm:py-3",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-xs sm:text-sm font-semibold",
+                  "text-[11px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -211,11 +214,11 @@ const Index = () => {
                 value="travel"
                 className={cn(
                   "flex-shrink-0 flex items-center justify-center",
-                  "w-auto min-w-fit px-5 sm:px-6 py-2.5 sm:py-3",
+                  "w-auto min-w-fit px-3 sm:px-6 py-2 sm:py-3",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-xs sm:text-sm font-semibold",
+                  "text-[11px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -241,11 +244,11 @@ const Index = () => {
                 value="reports"
                 className={cn(
                   "flex-shrink-0 flex items-center justify-center",
-                  "w-auto min-w-fit px-5 sm:px-6 py-2.5 sm:py-3",
+                  "w-auto min-w-fit px-3 sm:px-6 py-2 sm:py-3",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-xs sm:text-sm font-semibold",
+                  "text-[11px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -271,11 +274,11 @@ const Index = () => {
                 value="calculator"
                 className={cn(
                   "flex-shrink-0 flex items-center justify-center",
-                  "w-auto min-w-fit px-5 sm:px-6 py-2.5 sm:py-3",
+                  "w-auto min-w-fit px-3 sm:px-6 py-2 sm:py-3",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-xs sm:text-sm font-semibold",
+                  "text-[11px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -301,11 +304,11 @@ const Index = () => {
                 value="goals"
                 className={cn(
                   "flex-shrink-0 flex items-center justify-center",
-                  "w-auto min-w-fit px-5 sm:px-6 py-2.5 sm:py-3",
+                  "w-auto min-w-fit px-3 sm:px-6 py-2 sm:py-3",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-xs sm:text-sm font-semibold",
+                  "text-[11px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
