@@ -142,7 +142,7 @@ export default function SpiritualPath() {
     <div className="min-h-screen bg-gradient-hero pb-20 sm:pb-0">
       <MainHeader />
       
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl pb-24 sm:pb-6 w-full overflow-x-hidden">
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-5xl pb-24 sm:pb-6 w-full overflow-x-hidden">
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2 mb-2">
@@ -177,8 +177,8 @@ export default function SpiritualPath() {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "absolute left-2 top-1/2 -translate-y-1/2 z-30",
-                  "h-9 w-9 rounded-full",
+                  "absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-30",
+                  "h-8 w-8 sm:h-9 sm:w-9 rounded-full",
                   "bg-white/95 backdrop-blur-md shadow-lg",
                   "border border-primary/20",
                   "hover:bg-white hover:shadow-xl hover:scale-110",
@@ -193,7 +193,7 @@ export default function SpiritualPath() {
                   }
                 }}
               >
-                <ChevronLeft className="h-4 w-4 text-primary group-hover:text-primary/80 transition-colors" />
+                <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary group-hover:text-primary/80 transition-colors" />
               </Button>
             )}
 
@@ -203,8 +203,8 @@ export default function SpiritualPath() {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "absolute right-2 top-1/2 -translate-y-1/2 z-30",
-                  "h-9 w-9 rounded-full",
+                  "absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-30",
+                  "h-8 w-8 sm:h-9 sm:w-9 rounded-full",
                   "bg-white/95 backdrop-blur-md shadow-lg",
                   "border border-primary/20",
                   "hover:bg-white hover:shadow-xl hover:scale-110",
@@ -219,30 +219,30 @@ export default function SpiritualPath() {
                   }
                 }}
               >
-                <ChevronRight className="h-4 w-4 text-primary group-hover:text-primary/80 transition-colors" />
+                <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary group-hover:text-primary/80 transition-colors" />
               </Button>
             )}
 
             {/* Улучшенные градиентные индикаторы прокрутки */}
             {showLeftGradient && (
-              <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-background via-background/95 to-transparent z-20 pointer-events-none transition-opacity duration-300" />
+              <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-20 bg-gradient-to-r from-background via-background/95 to-transparent z-20 pointer-events-none transition-opacity duration-300" />
             )}
             {showRightGradient && (
-              <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-background via-background/95 to-transparent z-20 pointer-events-none transition-opacity duration-300" />
+              <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-20 bg-gradient-to-l from-background via-background/95 to-transparent z-20 pointer-events-none transition-opacity duration-300" />
             )}
             
             <TabsList 
               ref={tabsListRef}
               className={cn(
                 "relative flex items-center",
-                "px-3 sm:px-5 py-2.5 gap-2 sm:gap-3",
+                "px-2 sm:px-5 py-2 sm:py-2.5 gap-1.5 sm:gap-3",
                 "overflow-x-auto overflow-y-hidden",
                 "bg-white/95 backdrop-blur-xl",
                 "rounded-3xl",
                 "shadow-xl shadow-primary/10",
                 "border border-primary/15",
                 "scroll-smooth snap-x snap-mandatory",
-                "min-h-[52px] sm:min-h-[56px]",
+                "min-h-[48px] sm:min-h-[56px]",
                 "no-scrollbar",
                 "w-full",
                 "max-w-full"
@@ -255,8 +255,8 @@ export default function SpiritualPath() {
                 msOverflowStyle: 'none',
                 display: 'flex',
                 flexWrap: 'nowrap',
-                paddingLeft: showLeftGradient ? '3rem' : undefined,
-                paddingRight: showRightGradient ? '3rem' : undefined
+                paddingLeft: showLeftGradient ? '2.5rem' : '0.5rem',
+                paddingRight: showRightGradient ? '2.5rem' : '0.5rem'
               }}
             >
               {[
@@ -272,9 +272,9 @@ export default function SpiritualPath() {
                   key={tab.value}
                   value={tab.value}
                   className={cn(
-                    "flex-shrink-0 flex items-center gap-2 sm:gap-2.5",
-                    "px-4 sm:px-5 py-2.5",
-                    "text-sm sm:text-base font-medium",
+                    "flex-shrink-0 flex items-center gap-1.5 sm:gap-2.5",
+                    "px-3 sm:px-5 py-2 sm:py-2.5",
+                    "text-xs sm:text-base font-medium",
                     "rounded-2xl",
                     "transition-all duration-300 ease-out",
                     "whitespace-nowrap",
@@ -291,7 +291,7 @@ export default function SpiritualPath() {
                     "data-[state=active]:before:absolute data-[state=active]:before:inset-0 data-[state=active]:before:rounded-2xl data-[state=active]:before:bg-gradient-to-br data-[state=active]:before:from-white/20 data-[state=active]:before:to-transparent data-[state=active]:before:pointer-events-none"
                   )}
                 >
-                  <tab.icon className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" />
+                  <tab.icon className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 shrink-0" />
                   <span>{tab.label}</span>
                 </TabsTrigger>
               ))}

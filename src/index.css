@@ -305,6 +305,8 @@ All colors MUST be HSL.
     flex-wrap: nowrap !important;
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 0 !important;
+    position: relative !important;
   }
 
   [role="tab"] {
