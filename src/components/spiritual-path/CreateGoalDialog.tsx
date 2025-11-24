@@ -441,20 +441,23 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
           </div>
 
           {/* Даты */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Дата начала</Label>
+              <Label className="text-sm leading-tight break-words">Дата начала</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
+                      "overflow-hidden text-ellipsis whitespace-nowrap",
                       !startDate && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "PPP") : "Выберите дату"}
+                    <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                    <span className="truncate">
+                      {startDate ? format(startDate, "dd.MM.yyyy") : "Выберите дату"}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -468,18 +471,23 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
               </Popover>
             </div>
             <div className="space-y-2">
-              <Label>Дата окончания {period === "custom" && "*"}</Label>
+              <Label className="text-sm leading-tight break-words">
+                Дата окончания {period === "custom" && "*"}
+              </Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
+                      "overflow-hidden text-ellipsis whitespace-nowrap",
                       !endDate && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "PPP") : "Выберите дату"}
+                    <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                    <span className="truncate">
+                      {endDate ? format(endDate, "dd.MM.yyyy") : "Выберите дату"}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">

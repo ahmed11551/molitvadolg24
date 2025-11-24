@@ -289,49 +289,22 @@ All colors MUST be HSL.
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Prevent text clipping in tabs */
+  /* Компактная навигация с горизонтальной прокруткой */
   [role="tablist"] {
     overflow-x: auto !important;
-    overflow-y: visible !important;
+    overflow-y: hidden !important;
     -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--primary) / 0.5) hsl(var(--primary) / 0.1);
-    scroll-behavior: smooth;
-    overscroll-behavior-x: auto !important;
-    overscroll-behavior-y: none;
-    /* Show scrollbar on hover and when scrolling */
-    scrollbar-gutter: stable;
-    /* Enable scrolling in both directions */
-    direction: ltr;
-    /* Ensure scroll works */
+    scroll-behavior: smooth !important;
+    overscroll-behavior-x: contain !important;
+    overscroll-behavior-y: none !important;
     touch-action: pan-x !important;
+    direction: ltr !important;
     will-change: scroll-position;
-  }
-
-  [role="tablist"]::-webkit-scrollbar {
-    height: 8px;
-  }
-
-  [role="tablist"]::-webkit-scrollbar-track {
-    background: hsl(var(--primary) / 0.1);
-    border-radius: 4px;
-    margin: 0 8px;
-  }
-
-  [role="tablist"]::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.5);
-    border-radius: 4px;
-    transition: background 0.2s ease, height 0.2s ease;
-    border: 1px solid hsl(var(--primary) / 0.2);
-  }
-
-  [role="tablist"]::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.7);
-    height: 10px;
-  }
-
-  [role="tablist"]::-webkit-scrollbar-thumb:active {
-    background: hsl(var(--primary) / 0.8);
+    scroll-snap-type: x mandatory;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   [role="tab"] {
@@ -339,8 +312,11 @@ All colors MUST be HSL.
     text-overflow: clip !important;
     white-space: nowrap !important;
     flex-shrink: 0 !important;
+    flex-grow: 0 !important;
     min-width: fit-content !important;
     width: auto !important;
+    scroll-snap-align: start;
+    display: inline-flex !important;
   }
 
   [role="tab"] span {
@@ -349,18 +325,6 @@ All colors MUST be HSL.
     overflow: visible !important;
     text-overflow: clip !important;
     white-space: nowrap !important;
-  }
-
-  /* Smooth scrolling for tabs container */
-  .tabs-scroll-container {
-    scroll-behavior: smooth !important;
-    -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-x: contain !important;
-    overscroll-behavior-y: none !important;
-    touch-action: pan-x !important;
-    direction: ltr !important;
-    /* Ensure scroll position can go to 0 */
-    scroll-snap-type: x proximity;
   }
 
   /* Hide scrollbar for tabs */

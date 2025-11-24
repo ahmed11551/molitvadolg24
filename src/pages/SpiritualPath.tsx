@@ -1,28 +1,33 @@
 // Страница "Мой Духовный Путь"
 
+import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GoalsByCategory } from "@/components/spiritual-path/GoalsByCategory";
 import { GoalFeed } from "@/components/spiritual-path/GoalFeed";
 import { CreateGoalDialog } from "@/components/spiritual-path/CreateGoalDialog";
 import { SmartGoalTemplates } from "@/components/spiritual-path/SmartGoalTemplates";
-import { useState, useEffect } from "react";
+import { StreaksDisplay } from "@/components/spiritual-path/StreaksDisplay";
+import { BadgesDisplay } from "@/components/spiritual-path/BadgesDisplay";
+import { QazaCalculator } from "@/components/spiritual-path/QazaCalculator";
+import { GroupGoals } from "@/components/spiritual-path/GroupGoals";
+import { AIReports } from "@/components/spiritual-path/AIReports";
+import { SmartNotifications } from "@/components/spiritual-path/SmartNotifications";
 import { spiritualPathAPI } from "@/lib/api";
 import type { Goal } from "@/types/spiritual-path";
 import { Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StreaksDisplay } from "@/components/spiritual-path/StreaksDisplay";
-import { BadgesDisplay } from "@/components/spiritual-path/BadgesDisplay";
-import { QazaCalculator } from "@/components/spiritual-path/QazaCalculator";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { cn } from "@/lib/utils";
-import { Target, Trophy, TrendingUp, BarChart3, Users, Calculator } from "lucide-react";
+import { Target, Trophy, TrendingUp, BarChart3, Users, Calculator, Bell } from "lucide-react";
 
 export default function SpiritualPath() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("goals");
+  const tabsListRef = useRef<HTMLDivElement>(null);
+  const [showLeftGradient, setShowLeftGradient] = useState(false);
+  const [showRightGradient, setShowRightGradient] = useState(true);
 
   useEffect(() => {
     loadGoals();
@@ -39,6 +44,81 @@ export default function SpiritualPath() {
       setLoading(false);
     }
   };
+
+  // Проверка возможности прокрутки и обновление градиентов
+  const updateGradients = () => {
+    if (tabsListRef.current) {
+      const container = tabsListRef.current;
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      
+      setShowLeftGradient(scrollLeft > 0);
+      setShowRightGradient(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  // Автоматическая прокрутка к активной вкладке
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (tabsListRef.current) {
+        const activeTabElement = tabsListRef.current.querySelector(
+          `[data-state="active"]`
+        ) as HTMLElement;
+        if (activeTabElement) {
+          const container = tabsListRef.current;
+          const tabLeft = activeTabElement.offsetLeft;
+          const tabWidth = activeTabElement.offsetWidth;
+          const containerWidth = container.offsetWidth;
+          const scrollLeft = container.scrollLeft;
+          
+          const padding = 16;
+          const tabRight = tabLeft + tabWidth;
+          const visibleLeft = scrollLeft;
+          const visibleRight = scrollLeft + containerWidth;
+          
+          const isFullyVisible = tabLeft >= visibleLeft + padding && tabRight <= visibleRight - padding;
+          
+          if (!isFullyVisible) {
+            let scrollTo = scrollLeft;
+            if (tabLeft < visibleLeft + padding) {
+              scrollTo = Math.max(0, tabLeft - padding);
+            } else if (tabRight > visibleRight - padding) {
+              scrollTo = tabRight - containerWidth + padding;
+            }
+            
+            if (Math.abs(scrollTo - scrollLeft) > 1) {
+              container.scrollTo({
+                left: scrollTo,
+                behavior: "smooth",
+              });
+            }
+          }
+        }
+        updateGradients();
+      }
+    }, 150);
+
+    return () => clearTimeout(timeoutId);
+  }, [activeTab]);
+
+  // Обновление градиентов при прокрутке и изменении размера
+  useEffect(() => {
+    const container = tabsListRef.current;
+    if (!container) return;
+
+    // Инициализация градиентов с небольшой задержкой для корректного расчета размеров
+    const initTimeout = setTimeout(() => {
+      updateGradients();
+    }, 100);
+    
+    container.addEventListener('scroll', updateGradients, { passive: true });
+    window.addEventListener('resize', updateGradients);
+
+    return () => {
+      clearTimeout(initTimeout);
+      container.removeEventListener('scroll', updateGradients);
+      window.removeEventListener('resize', updateGradients);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-hero pb-20 sm:pb-0">
@@ -67,129 +147,190 @@ export default function SpiritualPath() {
           </CreateGoalDialog>
         </div>
 
-        <Tabs defaultValue="goals" className="w-full">
-          <div className="relative mb-6 overflow-visible">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 rounded-2xl blur-xl opacity-50 -z-10" />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {/* Красивая навигация с горизонтальной прокруткой */}
+          <div className="relative mb-6">
+            {/* Градиентные индикаторы прокрутки */}
+            {showLeftGradient && (
+              <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none transition-opacity duration-300" />
+            )}
+            {showRightGradient && (
+              <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none transition-opacity duration-300" />
+            )}
             
             <TabsList 
+              ref={tabsListRef}
               className={cn(
-                "relative flex w-full h-auto items-center",
-                "px-1 sm:px-4 py-2 sm:py-2.5 gap-0.5 sm:gap-2.5",
-                "overflow-x-auto overflow-y-visible",
-                "bg-white/95 backdrop-blur-md",
-                "rounded-2xl border border-border/60",
-                "shadow-lg shadow-primary/5",
-                "scroll-smooth snap-x snap-proximity",
-                "min-h-[44px] sm:min-h-[52px]",
+                "relative flex items-center",
+                "px-4 py-2 gap-2",
+                "overflow-x-auto overflow-y-hidden",
+                "bg-gradient-to-r from-white via-white to-white",
+                "rounded-2xl",
+                "shadow-md shadow-primary/5",
+                "border border-primary/10",
+                "scroll-smooth snap-x snap-mandatory",
+                "min-h-[48px]",
                 "no-scrollbar",
-                "sm:justify-start"
+                "w-full",
+                "max-w-full"
               )}
+              style={{ 
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-x',
+                overscrollBehaviorX: 'contain',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                display: 'flex',
+                flexWrap: 'nowrap'
+              }}
             >
               <TabsTrigger 
                 value="goals"
                 className={cn(
-                  "flex items-center justify-center gap-1 sm:gap-2",
-                  "flex-1 sm:flex-none sm:w-auto sm:min-w-fit",
-                  "px-1 sm:px-6 py-1.5 sm:py-3",
-                  "text-center rounded-xl",
+                  "flex-shrink-0 flex items-center gap-2",
+                  "px-4 py-2",
+                  "text-sm font-medium",
+                  "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
-                  "overflow-visible"
+                  "relative",
+                  "text-foreground/60 bg-transparent",
+                  "hover:text-foreground hover:bg-primary/8",
+                  "active:scale-95",
+                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
+                  "data-[state=active]:text-white",
+                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
+                  "data-[state=active]:scale-105",
+                  "data-[state=active]:font-semibold"
                 )}
               >
-                <Target className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                <Target className="w-4 h-4 shrink-0" />
                 <span>Цели</span>
               </TabsTrigger>
               
               <TabsTrigger 
                 value="streaks"
                 className={cn(
-                  "flex items-center justify-center gap-1 sm:gap-2",
-                  "flex-1 sm:flex-none sm:w-auto sm:min-w-fit",
-                  "px-1 sm:px-6 py-1.5 sm:py-3",
-                  "text-center rounded-xl",
+                  "flex-shrink-0 flex items-center gap-2",
+                  "px-4 py-2",
+                  "text-sm font-medium",
+                  "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
-                  "overflow-visible"
+                  "relative",
+                  "text-foreground/60 bg-transparent",
+                  "hover:text-foreground hover:bg-primary/8",
+                  "active:scale-95",
+                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
+                  "data-[state=active]:text-white",
+                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
+                  "data-[state=active]:scale-105",
+                  "data-[state=active]:font-semibold"
                 )}
               >
-                <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                <TrendingUp className="w-4 h-4 shrink-0" />
                 <span>Серии</span>
               </TabsTrigger>
               
               <TabsTrigger 
                 value="badges"
                 className={cn(
-                  "flex items-center justify-center gap-1 sm:gap-2",
-                  "flex-1 sm:flex-none sm:w-auto sm:min-w-fit",
-                  "px-1 sm:px-6 py-1.5 sm:py-3",
-                  "text-center rounded-xl",
+                  "flex-shrink-0 flex items-center gap-2",
+                  "px-4 py-2",
+                  "text-sm font-medium",
+                  "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
-                  "overflow-visible"
+                  "relative",
+                  "text-foreground/60 bg-transparent",
+                  "hover:text-foreground hover:bg-primary/8",
+                  "active:scale-95",
+                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
+                  "data-[state=active]:text-white",
+                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
+                  "data-[state=active]:scale-105",
+                  "data-[state=active]:font-semibold"
                 )}
               >
-                <Trophy className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                <Trophy className="w-4 h-4 shrink-0" />
                 <span>Бейджи</span>
               </TabsTrigger>
               
               <TabsTrigger 
                 value="analytics"
                 className={cn(
-                  "flex items-center justify-center gap-1 sm:gap-2",
-                  "flex-1 sm:flex-none sm:w-auto sm:min-w-fit",
-                  "px-1 sm:px-6 py-1.5 sm:py-3",
-                  "text-center rounded-xl",
+                  "flex-shrink-0 flex items-center gap-2",
+                  "px-4 py-2",
+                  "text-sm font-medium",
+                  "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
-                  "overflow-visible"
+                  "relative",
+                  "text-foreground/60 bg-transparent",
+                  "hover:text-foreground hover:bg-primary/8",
+                  "active:scale-95",
+                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
+                  "data-[state=active]:text-white",
+                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
+                  "data-[state=active]:scale-105",
+                  "data-[state=active]:font-semibold"
                 )}
               >
-                <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                <BarChart3 className="w-4 h-4 shrink-0" />
                 <span>Аналитика</span>
               </TabsTrigger>
               
               <TabsTrigger 
                 value="groups"
                 className={cn(
-                  "flex items-center justify-center gap-1 sm:gap-2",
-                  "flex-1 sm:flex-none sm:w-auto sm:min-w-fit",
-                  "px-1 sm:px-6 py-1.5 sm:py-3",
-                  "text-center rounded-xl",
+                  "flex-shrink-0 flex items-center gap-2",
+                  "px-4 py-2",
+                  "text-sm font-medium",
+                  "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
-                  "overflow-visible"
+                  "relative",
+                  "text-foreground/60 bg-transparent",
+                  "hover:text-foreground hover:bg-primary/8",
+                  "active:scale-95",
+                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
+                  "data-[state=active]:text-white",
+                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
+                  "data-[state=active]:scale-105",
+                  "data-[state=active]:font-semibold"
                 )}
               >
-                <Users className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                <Users className="w-4 h-4 shrink-0" />
                 <span>Группы</span>
               </TabsTrigger>
               
               <TabsTrigger 
                 value="qaza"
                 className={cn(
-                  "flex items-center justify-center gap-1 sm:gap-2",
-                  "flex-1 sm:flex-none sm:w-auto sm:min-w-fit",
-                  "px-1 sm:px-6 py-1.5 sm:py-3",
-                  "text-center rounded-xl",
+                  "flex-shrink-0 flex items-center gap-2",
+                  "px-4 py-2",
+                  "text-sm font-medium",
+                  "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
-                  "overflow-visible"
+                  "relative",
+                  "text-foreground/60 bg-transparent",
+                  "hover:text-foreground hover:bg-primary/8",
+                  "active:scale-95",
+                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
+                  "data-[state=active]:text-white",
+                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
+                  "data-[state=active]:scale-105",
+                  "data-[state=active]:font-semibold"
                 )}
               >
-                <Calculator className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                <Calculator className="w-4 h-4 shrink-0" />
                 <span>Каза</span>
               </TabsTrigger>
             </TabsList>
@@ -228,17 +369,11 @@ export default function SpiritualPath() {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <div className="text-center py-12 text-muted-foreground">
-              <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Раздел аналитики в разработке</p>
-            </div>
+            <AIReports />
           </TabsContent>
 
           <TabsContent value="groups">
-            <div className="text-center py-12 text-muted-foreground">
-              <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Раздел групповых целей в разработке</p>
-            </div>
+            <GroupGoals goals={goals} onRefresh={loadGoals} />
           </TabsContent>
 
           <TabsContent value="qaza">

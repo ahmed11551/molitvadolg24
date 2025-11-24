@@ -255,20 +255,23 @@ export const QazaCalculator = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Дата рождения</Label>
+                  <Label className="text-sm leading-tight break-words">Дата рождения</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal",
+                          "overflow-hidden text-ellipsis whitespace-nowrap",
                           !birthDate && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {birthDate ? format(birthDate, "PPP") : "Выберите дату"}
+                        <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                        <span className="truncate">
+                          {birthDate ? format(birthDate, "dd.MM.yyyy") : "Выберите дату"}
+                        </span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -284,18 +287,21 @@ export const QazaCalculator = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Дата начала практики намаза</Label>
+                  <Label className="text-sm leading-tight break-words">Дата начала практики намаза</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal",
+                          "overflow-hidden text-ellipsis whitespace-nowrap",
                           !prayerStartDate && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {prayerStartDate ? format(prayerStartDate, "PPP") : "Выберите дату"}
+                        <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                        <span className="truncate">
+                          {prayerStartDate ? format(prayerStartDate, "dd.MM.yyyy") : "Выберите дату"}
+                        </span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">

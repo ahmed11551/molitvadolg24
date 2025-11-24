@@ -239,18 +239,21 @@ export const EditGoalDialog = ({
 
           {/* Дата начала */}
           <div className="space-y-2">
-            <Label>Дата начала</Label>
+            <Label className="text-sm leading-tight break-words">Дата начала</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal",
+                    "overflow-hidden text-ellipsis whitespace-nowrap",
                     !startDate && "text-muted-foreground"
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "PPP", { locale: ru }) : "Выберите дату"}
+                  <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                  <span className="truncate">
+                    {startDate ? format(startDate, "dd.MM.yyyy", { locale: ru }) : "Выберите дату"}
+                  </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
@@ -267,18 +270,21 @@ export const EditGoalDialog = ({
           {/* Дата окончания (если не бессрочная) */}
           {period === "custom" && (
             <div className="space-y-2">
-              <Label>Дата окончания</Label>
+              <Label className="text-sm leading-tight break-words">Дата окончания</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
+                      "overflow-hidden text-ellipsis whitespace-nowrap",
                       !endDate && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "PPP", { locale: ru }) : "Выберите дату"}
+                    <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                    <span className="truncate">
+                      {endDate ? format(endDate, "dd.MM.yyyy", { locale: ru }) : "Выберите дату"}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
