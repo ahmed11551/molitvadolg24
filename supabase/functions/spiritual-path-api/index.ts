@@ -263,10 +263,24 @@ async function handleUpdateGoal(
     throw error;
   }
 
-  return new Response(JSON.stringify(data), {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  // Если цель завершена, проверяем бейджи
+  let newBadges: any[] = [];
+  if (data.status === "completed") {
+    const today = new Date().toISOString().split("T")[0];
+    await updateStreaks(supabase, userId, data, today);
+    newBadges = await checkAndAwardBadges(supabase, userId, data);
+  }
+
+  return new Response(
+    JSON.stringify({
+      ...data,
+      new_badges: newBadges,
+    }),
+    {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
+  );
 }
 
 // DELETE /goals/{id} - Удалить цель
@@ -315,6 +329,7 @@ async function handleCounterSync(
 
   const progressUpdates = [];
   const today = date || new Date().toISOString().split("T")[0];
+  const newBadges: any[] = [];
 
   for (const goal of goals || []) {
     // Добавляем прогресс для цели
@@ -363,10 +378,26 @@ async function handleCounterSync(
         progressUpdates.push({ goal_id: goal.id, value: value });
       }
     }
+
+    // Обновляем current_value цели
+    const newCurrentValue = (goal.current_value || 0) + value;
+    await supabase
+      .from("goals")
+      .update({ current_value: newCurrentValue })
+      .eq("id", goal.id);
+
+    // Обновляем streaks и проверяем бейджи
+    await updateStreaks(supabase, userId, goal, today);
+    const badges = await checkAndAwardBadges(supabase, userId, goal);
+    newBadges.push(...badges);
   }
 
   return new Response(
-    JSON.stringify({ success: true, updated_goals: progressUpdates }),
+    JSON.stringify({
+      success: true,
+      updated_goals: progressUpdates,
+      new_badges: newBadges,
+    }),
     {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -389,7 +420,7 @@ async function handleAddProgress(
   // Проверяем, что цель принадлежит пользователю
   const { data: goal, error: goalError } = await supabase
     .from("goals")
-    .select("user_id")
+    .select("*")
     .eq("id", goalId)
     .single();
 
@@ -445,10 +476,27 @@ async function handleAddProgress(
     result = data;
   }
 
-  return new Response(JSON.stringify(result), {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  // Обновляем current_value цели
+  const newCurrentValue = (goal.current_value || 0) + value;
+  await supabase
+    .from("goals")
+    .update({ current_value: newCurrentValue })
+    .eq("id", goalId);
+
+  // Обновляем streaks и проверяем бейджи
+  await updateStreaks(supabase, userId, goal, progressDate);
+  const newBadges = await checkAndAwardBadges(supabase, userId, goal);
+
+  return new Response(
+    JSON.stringify({
+      ...result,
+      new_badges: newBadges,
+    }),
+    {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
+  );
 }
 
 // GET /badges - Получить бейджи пользователя
@@ -684,6 +732,338 @@ async function handleCalculateQaza(
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+// Вспомогательная функция: Обновление streaks
+async function updateStreaks(
+  supabase: any,
+  userId: string,
+  goal: any,
+  progressDate: string
+) {
+  const today = new Date(progressDate);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+  // Проверяем, выполнена ли цель за сегодня
+  const { data: todayProgress } = await supabase
+    .from("goal_progress")
+    .select("value")
+    .eq("goal_id", goal.id)
+    .eq("user_id", userId)
+    .eq("date", progressDate)
+    .single();
+
+  const isGoalCompletedToday = todayProgress && todayProgress.value >= goal.target_value;
+
+  // Обновляем категорийный streak
+  if (isGoalCompletedToday && goal.category) {
+    const { data: categoryStreak } = await supabase
+      .from("streaks")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("streak_type", "category")
+      .eq("category", goal.category)
+      .single();
+
+    if (categoryStreak) {
+      const lastActivity = new Date(categoryStreak.last_activity_date);
+      const daysDiff = Math.floor((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
+
+      let newStreak = categoryStreak.current_streak;
+      if (daysDiff === 0) {
+        // Уже обновлено сегодня
+      } else if (daysDiff === 1) {
+        // Продолжаем серию
+        newStreak = categoryStreak.current_streak + 1;
+      } else {
+        // Сбрасываем серию
+        newStreak = 1;
+      }
+
+      await supabase
+        .from("streaks")
+        .update({
+          current_streak: newStreak,
+          longest_streak: Math.max(categoryStreak.longest_streak, newStreak),
+          last_activity_date: progressDate,
+        })
+        .eq("id", categoryStreak.id);
+    } else {
+      // Создаем новый категорийный streak
+      await supabase.from("streaks").insert({
+        user_id: userId,
+        streak_type: "category",
+        category: goal.category,
+        current_streak: 1,
+        longest_streak: 1,
+        last_activity_date: progressDate,
+      });
+    }
+  }
+
+  // Обновляем daily streak (проверяем все активные цели)
+  const { data: allActiveGoals } = await supabase
+    .from("goals")
+    .select("id, target_value")
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  if (allActiveGoals && allActiveGoals.length > 0) {
+    // Проверяем, выполнены ли все цели за сегодня
+    let allGoalsCompleted = true;
+    for (const activeGoal of allActiveGoals) {
+      const { data: goalProgress } = await supabase
+        .from("goal_progress")
+        .select("value")
+        .eq("goal_id", activeGoal.id)
+        .eq("user_id", userId)
+        .eq("date", progressDate)
+        .single();
+
+      if (!goalProgress || goalProgress.value < activeGoal.target_value) {
+        allGoalsCompleted = false;
+        break;
+      }
+    }
+
+    if (allGoalsCompleted) {
+      const { data: dailyStreak } = await supabase
+        .from("streaks")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("streak_type", "daily_all")
+        .single();
+
+      if (dailyStreak) {
+        const lastActivity = new Date(dailyStreak.last_activity_date);
+        const daysDiff = Math.floor((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
+
+        let newStreak = dailyStreak.current_streak;
+        if (daysDiff === 0) {
+          // Уже обновлено сегодня
+        } else if (daysDiff === 1) {
+          // Продолжаем серию
+          newStreak = dailyStreak.current_streak + 1;
+        } else {
+          // Сбрасываем серию
+          newStreak = 1;
+        }
+
+        await supabase
+          .from("streaks")
+          .update({
+            current_streak: newStreak,
+            longest_streak: Math.max(dailyStreak.longest_streak, newStreak),
+            last_activity_date: progressDate,
+          })
+          .eq("id", dailyStreak.id);
+      } else {
+        // Создаем новый daily streak
+        await supabase.from("streaks").insert({
+          user_id: userId,
+          streak_type: "daily_all",
+          current_streak: 1,
+          longest_streak: 1,
+          last_activity_date: progressDate,
+        });
+      }
+    }
+  }
+}
+
+// Вспомогательная функция: Проверка и выдача бейджей
+async function checkAndAwardBadges(
+  supabase: any,
+  userId: string,
+  goal: any
+): Promise<any[]> {
+  const newBadges: any[] = [];
+
+  // 1. Проверка prayer_consistency (для целей категории prayer)
+  if (goal.category === "prayer") {
+    const { data: prayerStreak } = await supabase
+      .from("streaks")
+      .select("current_streak")
+      .eq("user_id", userId)
+      .eq("streak_type", "category")
+      .eq("category", "prayer")
+      .single();
+
+    if (prayerStreak) {
+      const streakDays = prayerStreak.current_streak;
+      const levels = [
+        { days: 30, level: "copper" },
+        { days: 90, level: "silver" },
+        { days: 180, level: "gold" },
+      ];
+
+      for (const { days, level } of levels) {
+        if (streakDays >= days) {
+          // Проверяем, есть ли уже такой бейдж
+          const { data: existingBadge } = await supabase
+            .from("badges")
+            .select("*")
+            .eq("user_id", userId)
+            .eq("badge_type", "prayer_consistency")
+            .eq("level", level)
+            .single();
+
+          if (!existingBadge) {
+            // Выдаем бейдж
+            const { data: badge } = await supabase
+              .from("badges")
+              .insert({
+                user_id: userId,
+                badge_type: "prayer_consistency",
+                level: level,
+                goal_id: goal.id,
+              })
+              .select()
+              .single();
+
+            if (badge) newBadges.push(badge);
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Проверка quran_completion (для целей категории quran)
+  if (goal.category === "quran") {
+    // Проверяем, достигнута ли цель (604 страницы = весь Коран)
+    if (goal.current_value >= 604) {
+      const { data: existingBadge } = await supabase
+        .from("badges")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("badge_type", "quran_completion")
+        .single();
+
+      if (!existingBadge) {
+        const { data: badge } = await supabase
+          .from("badges")
+          .insert({
+            user_id: userId,
+            badge_type: "quran_completion",
+            level: "gold", // Коран - всегда золотой
+            goal_id: goal.id,
+          })
+          .select()
+          .single();
+
+        if (badge) newBadges.push(badge);
+      }
+    }
+  }
+
+  // 3. Проверка zikr_consistency (1000+ зикров за месяц)
+  if (goal.category === "zikr") {
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    const monthAgoStr = monthAgo.toISOString().split("T")[0];
+
+    const { data: monthlyProgress } = await supabase
+      .from("goal_progress")
+      .select("value")
+      .eq("goal_id", goal.id)
+      .eq("user_id", userId)
+      .gte("date", monthAgoStr);
+
+    if (monthlyProgress) {
+      const totalZikr = monthlyProgress.reduce((sum, p) => sum + (p.value || 0), 0);
+      if (totalZikr >= 1000) {
+        const { data: existingBadge } = await supabase
+          .from("badges")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("badge_type", "zikr_consistency")
+          .eq("level", "gold")
+          .single();
+
+        if (!existingBadge) {
+          const { data: badge } = await supabase
+            .from("badges")
+            .insert({
+              user_id: userId,
+              badge_type: "zikr_consistency",
+              level: "gold",
+              goal_id: goal.id,
+            })
+            .select()
+            .single();
+
+          if (badge) newBadges.push(badge);
+        }
+      }
+    }
+  }
+
+  // 4. Проверка streak_master (серия 100+ дней)
+  const { data: dailyStreak } = await supabase
+    .from("streaks")
+    .select("current_streak")
+    .eq("user_id", userId)
+    .eq("streak_type", "daily_all")
+    .single();
+
+  if (dailyStreak && dailyStreak.current_streak >= 100) {
+    const { data: existingBadge } = await supabase
+      .from("badges")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("badge_type", "streak_master")
+      .eq("level", "gold")
+      .single();
+
+    if (!existingBadge) {
+      const { data: badge } = await supabase
+        .from("badges")
+        .insert({
+          user_id: userId,
+          badge_type: "streak_master",
+          level: "gold",
+        })
+        .select()
+        .single();
+
+      if (badge) newBadges.push(badge);
+    }
+  }
+
+  // 5. Проверка goal_achiever (выполнение 10+ целей)
+  const { count: completedCount } = await supabase
+    .from("goals")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("status", "completed");
+
+  if (completedCount && completedCount >= 10) {
+    const { data: existingBadge } = await supabase
+      .from("badges")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("badge_type", "goal_achiever")
+      .eq("level", "gold")
+      .single();
+
+    if (!existingBadge) {
+      const { data: badge } = await supabase
+        .from("badges")
+        .insert({
+          user_id: userId,
+          badge_type: "goal_achiever",
+          level: "gold",
+        })
+        .select()
+        .single();
+
+      if (badge) newBadges.push(badge);
+    }
+  }
+
+  return newBadges;
 }
 
 

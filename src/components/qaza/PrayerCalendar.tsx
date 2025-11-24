@@ -82,7 +82,7 @@ export const PrayerCalendar = () => {
 
   const getDateKey = (date: Date) => format(date, "yyyy-MM-dd");
 
-  const addQazaToCalendar = (date: Date, prayerType: string, count: number = 1) => {
+  const addQazaToCalendar = async (date: Date, prayerType: string, count: number = 1) => {
     const dateKey = getDateKey(date);
     const currentEntry = entries[dateKey] || {
       date: dateKey,
