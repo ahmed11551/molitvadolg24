@@ -128,86 +128,30 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-5xl pb-24 sm:pb-6 w-full overflow-x-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Профессиональная навигация с улучшенным дизайном */}
+          {/* Простая и удобная навигация */}
           <div className="relative mb-6">
-            {/* Фоновое свечение для глубины */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 rounded-3xl blur-2xl opacity-60 -z-10" />
-            
-            {/* Кнопка прокрутки влево */}
+            {/* Градиентные индикаторы прокрутки */}
             {showLeftGradient && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-30",
-                  "h-8 w-8 sm:h-9 sm:w-9 rounded-full",
-                  "bg-white/95 backdrop-blur-md shadow-lg",
-                  "border border-primary/20",
-                  "hover:bg-white hover:shadow-xl hover:scale-110",
-                  "active:scale-95",
-                  "transition-all duration-300",
-                  "group"
-                )}
-                onClick={() => {
-                  if (tabsListRef.current) {
-                    const scrollAmount = tabsListRef.current.clientWidth * 0.7;
-                    tabsListRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-                  }
-                }}
-              >
-                <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary group-hover:text-primary/80 transition-colors" />
-              </Button>
-            )}
-
-            {/* Кнопка прокрутки вправо */}
-            {showRightGradient && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-30",
-                  "h-8 w-8 sm:h-9 sm:w-9 rounded-full",
-                  "bg-white/95 backdrop-blur-md shadow-lg",
-                  "border border-primary/20",
-                  "hover:bg-white hover:shadow-xl hover:scale-110",
-                  "active:scale-95",
-                  "transition-all duration-300",
-                  "group"
-                )}
-                onClick={() => {
-                  if (tabsListRef.current) {
-                    const scrollAmount = tabsListRef.current.clientWidth * 0.7;
-                    tabsListRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-                  }
-                }}
-              >
-                <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary group-hover:text-primary/80 transition-colors" />
-              </Button>
-            )}
-
-            {/* Улучшенные градиентные индикаторы прокрутки */}
-            {showLeftGradient && (
-              <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-20 bg-gradient-to-r from-background via-background/95 to-transparent z-20 pointer-events-none transition-opacity duration-300" />
+              <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
             )}
             {showRightGradient && (
-              <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-20 bg-gradient-to-l from-background via-background/95 to-transparent z-20 pointer-events-none transition-opacity duration-300" />
+              <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
             )}
             
             <TabsList 
               ref={tabsListRef}
               className={cn(
                 "relative flex items-center",
-                "px-2 sm:px-5 py-2 sm:py-2.5 gap-1.5 sm:gap-3",
+                "px-1 py-1.5 gap-1",
                 "overflow-x-auto overflow-y-hidden",
-                "bg-white/95 backdrop-blur-xl",
-                "rounded-3xl",
-                "shadow-xl shadow-primary/10",
-                "border border-primary/15",
-                "scroll-smooth snap-x snap-mandatory",
-                "min-h-[48px] sm:min-h-[56px]",
+                "bg-white/80 backdrop-blur-sm",
+                "rounded-xl",
+                "shadow-sm",
+                "border border-border/50",
+                "scroll-smooth",
+                "min-h-[44px]",
                 "no-scrollbar",
-                "w-full",
-                "max-w-full"
+                "w-full"
               )}
               style={{ 
                 WebkitOverflowScrolling: 'touch',
@@ -216,9 +160,7 @@ const Index = () => {
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
                 display: 'flex',
-                flexWrap: 'nowrap',
-                paddingLeft: showLeftGradient ? '2.5rem' : '0.5rem',
-                paddingRight: showRightGradient ? '2.5rem' : '0.5rem'
+                flexWrap: 'nowrap'
               }}
             >
               {[
@@ -235,22 +177,16 @@ const Index = () => {
                   value={tab.value}
                   className={cn(
                     "flex-shrink-0",
-                    "px-3 sm:px-5 py-2 sm:py-2.5",
-                    "text-xs sm:text-base font-medium",
-                    "rounded-2xl",
-                    "transition-all duration-300 ease-out",
+                    "px-3 py-1.5",
+                    "text-sm font-medium",
+                    "rounded-lg",
+                    "transition-all duration-200",
                     "whitespace-nowrap",
-                    "snap-start",
-                    "relative",
-                    "text-foreground/70 bg-transparent",
-                    "hover:text-foreground hover:bg-primary/10",
-                    "active:scale-[0.97]",
-                    "data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:via-primary data-[state=active]:to-primary/90",
+                    "text-foreground/70",
+                    "hover:text-foreground hover:bg-muted/50",
+                    "data-[state=active]:bg-primary",
                     "data-[state=active]:text-white",
-                    "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/40",
-                    "data-[state=active]:scale-[1.02]",
-                    "data-[state=active]:font-semibold",
-                    "data-[state=active]:before:absolute data-[state=active]:before:inset-0 data-[state=active]:before:rounded-2xl data-[state=active]:before:bg-gradient-to-br data-[state=active]:before:from-white/20 data-[state=active]:before:to-transparent data-[state=active]:before:pointer-events-none"
+                    "data-[state=active]:shadow-sm"
                   )}
                 >
                   {tab.label}
