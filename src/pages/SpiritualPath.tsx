@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { cn } from "@/lib/utils";
-import { Target, Trophy, TrendingUp, BarChart3, Users, Calculator, Bell, ChevronLeft, ChevronRight } from "lucide-react";
+import { Target, Trophy, TrendingUp, BarChart3, Users, Calculator, Bell } from "lucide-react";
 
 export default function SpiritualPath() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -83,9 +83,9 @@ export default function SpiritualPath() {
         ) as HTMLElement;
         if (activeTabElement) {
           const container = tabsListRef.current;
-          const tabLeft = activeTabElement.offsetLeft;
+          const tabLeft = activeTabElement.offsetLeft - container.offsetLeft;
           const tabWidth = activeTabElement.offsetWidth;
-          const containerWidth = container.offsetWidth;
+          const containerWidth = container.clientWidth;
           const scrollLeft = container.scrollLeft;
           
           const padding = 16;
@@ -166,72 +166,74 @@ export default function SpiritualPath() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Простая и удобная навигация */}
-          <div className="relative mb-6">
+          {/* Навигация с правильной горизонтальной прокруткой */}
+          <div className="relative mb-6 w-full overflow-hidden">
             {/* Градиентные индикаторы прокрутки */}
             {showLeftGradient && (
-              <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none" />
             )}
             {showRightGradient && (
-              <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
             )}
             
-            <TabsList 
+            <div 
               ref={tabsListRef}
               className={cn(
-                "relative flex items-center",
-                "px-1 py-1.5 gap-1",
+                "flex items-center",
                 "overflow-x-auto overflow-y-hidden",
-                "bg-white/80 backdrop-blur-sm",
-                "rounded-xl",
-                "shadow-sm",
-                "border border-border/50",
                 "scroll-smooth",
-                "min-h-[44px]",
                 "no-scrollbar",
-                "w-full"
+                "w-full",
+                "-mx-2 px-2"
               )}
               style={{ 
                 WebkitOverflowScrolling: 'touch',
                 touchAction: 'pan-x',
                 overscrollBehaviorX: 'contain',
                 scrollbarWidth: 'none',
-                msOverflowStyle: 'none',
-                display: 'flex',
-                flexWrap: 'nowrap'
+                msOverflowStyle: 'none'
               }}
             >
-              {[
-                { value: "goals", label: "Цели", icon: Target },
-                { value: "streaks", label: "Серии", icon: TrendingUp },
-                { value: "badges", label: "Бейджи", icon: Trophy },
-                { value: "analytics", label: "Аналитика", icon: BarChart3 },
-                { value: "groups", label: "Группы", icon: Users },
-                { value: "qaza", label: "Каза", icon: Calculator },
-                { value: "notifications", label: "Уведомления", icon: Bell },
-              ].map((tab) => (
-                <TabsTrigger 
-                  key={tab.value}
-                  value={tab.value}
-                  className={cn(
-                    "flex-shrink-0 flex items-center gap-1.5",
-                    "px-3 py-1.5",
-                    "text-sm font-medium",
-                    "rounded-lg",
-                    "transition-all duration-200",
-                    "whitespace-nowrap",
-                    "text-foreground/70",
-                    "hover:text-foreground hover:bg-muted/50",
-                    "data-[state=active]:bg-primary",
-                    "data-[state=active]:text-white",
-                    "data-[state=active]:shadow-sm"
-                  )}
-                >
-                  <tab.icon className="w-4 h-4 shrink-0" />
-                  <span>{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+              <TabsList 
+                className={cn(
+                  "inline-flex items-center",
+                  "h-10 px-1 gap-1",
+                  "bg-muted/50",
+                  "rounded-lg",
+                  "p-1",
+                  "min-w-max"
+                )}
+              >
+                {[
+                  { value: "goals", label: "Цели", icon: Target },
+                  { value: "streaks", label: "Серии", icon: TrendingUp },
+                  { value: "badges", label: "Бейджи", icon: Trophy },
+                  { value: "analytics", label: "Аналитика", icon: BarChart3 },
+                  { value: "groups", label: "Группы", icon: Users },
+                  { value: "qaza", label: "Каза", icon: Calculator },
+                  { value: "notifications", label: "Уведомления", icon: Bell },
+                ].map((tab) => (
+                  <TabsTrigger 
+                    key={tab.value}
+                    value={tab.value}
+                    className={cn(
+                      "flex-shrink-0 flex items-center gap-1.5",
+                      "px-3 py-1.5",
+                      "text-sm font-medium",
+                      "rounded-md",
+                      "transition-all",
+                      "whitespace-nowrap",
+                      "data-[state=active]:bg-background",
+                      "data-[state=active]:text-foreground",
+                      "data-[state=active]:shadow-sm"
+                    )}
+                  >
+                    <tab.icon className="w-4 h-4 shrink-0" />
+                    <span>{tab.label}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
           </div>
 
           <TabsContent value="goals">

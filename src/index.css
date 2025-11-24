@@ -289,44 +289,27 @@ All colors MUST be HSL.
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Компактная навигация с горизонтальной прокруткой */
+  /* Правильная горизонтальная прокрутка для навигации */
   [role="tablist"] {
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
-    scroll-behavior: smooth !important;
-    overscroll-behavior-x: contain !important;
-    overscroll-behavior-y: none !important;
-    touch-action: pan-x !important;
-    direction: ltr !important;
-    will-change: scroll-position;
-    scroll-snap-type: x mandatory;
-    display: flex !important;
+    display: inline-flex !important;
     flex-wrap: nowrap !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    position: relative !important;
+    min-width: max-content !important;
+    width: auto !important;
   }
 
   [role="tab"] {
-    overflow: visible !important;
-    text-overflow: clip !important;
-    white-space: nowrap !important;
     flex-shrink: 0 !important;
     flex-grow: 0 !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
     min-width: fit-content !important;
     width: auto !important;
-    scroll-snap-align: start;
-    display: inline-flex !important;
   }
 
   [role="tab"] span {
     display: inline-block !important;
-    width: auto !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
     white-space: nowrap !important;
+    overflow: visible !important;
   }
 
   /* Hide scrollbar for tabs */
