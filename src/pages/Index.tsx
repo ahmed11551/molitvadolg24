@@ -13,6 +13,8 @@ import { RemindersManager } from "@/components/qaza/RemindersManager";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { WelcomeDialog } from "@/components/qaza/WelcomeDialog";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Index = () => {
@@ -20,6 +22,24 @@ const Index = () => {
   const tabsListRef = useRef<HTMLDivElement>(null);
   const [showLeftGradient, setShowLeftGradient] = useState(false);
   const [showRightGradient, setShowRightGradient] = useState(true);
+
+  // Проверка возможности прокрутки при загрузке
+  useEffect(() => {
+    const checkScroll = () => {
+      if (tabsListRef.current) {
+        const container = tabsListRef.current;
+        const { scrollWidth, clientWidth } = container;
+        const canScroll = scrollWidth > clientWidth;
+        setShowRightGradient(canScroll);
+      }
+    };
+    
+    // Проверяем сразу и после небольшой задержки
+    checkScroll();
+    const timeout = setTimeout(checkScroll, 200);
+    
+    return () => clearTimeout(timeout);
+  }, []);
 
   const handleNavigateToCalculator = () => {
     setActiveTab("calculator");
@@ -108,21 +128,69 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl pb-24 sm:pb-6 w-full overflow-x-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Красивая навигация с горизонтальной прокруткой */}
+          {/* Улучшенная навигация с кнопками прокрутки */}
           <div className="relative mb-6">
+            {/* Кнопка прокрутки влево */}
+            {showLeftGradient && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "absolute left-0 top-1/2 -translate-y-1/2 z-20",
+                  "h-10 w-10 rounded-full",
+                  "bg-white/90 backdrop-blur-sm shadow-md",
+                  "border border-primary/20",
+                  "hover:bg-white hover:shadow-lg",
+                  "transition-all duration-200"
+                )}
+                onClick={() => {
+                  if (tabsListRef.current) {
+                    const scrollAmount = tabsListRef.current.clientWidth * 0.7;
+                    tabsListRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                  }
+                }}
+              >
+                <ChevronLeft className="h-5 w-5 text-primary" />
+              </Button>
+            )}
+
+            {/* Кнопка прокрутки вправо */}
+            {showRightGradient && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "absolute right-0 top-1/2 -translate-y-1/2 z-20",
+                  "h-10 w-10 rounded-full",
+                  "bg-white/90 backdrop-blur-sm shadow-md",
+                  "border border-primary/20",
+                  "hover:bg-white hover:shadow-lg",
+                  "transition-all duration-200"
+                )}
+                onClick={() => {
+                  if (tabsListRef.current) {
+                    const scrollAmount = tabsListRef.current.clientWidth * 0.7;
+                    tabsListRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                  }
+                }}
+              >
+                <ChevronRight className="h-5 w-5 text-primary" />
+              </Button>
+            )}
+
             {/* Градиентные индикаторы прокрутки */}
             {showLeftGradient && (
-              <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none transition-opacity duration-300" />
+              <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-background via-background/90 to-transparent z-10 pointer-events-none transition-opacity duration-300" />
             )}
             {showRightGradient && (
-              <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none transition-opacity duration-300" />
+              <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-background via-background/90 to-transparent z-10 pointer-events-none transition-opacity duration-300" />
             )}
             
             <TabsList 
               ref={tabsListRef}
               className={cn(
                 "relative flex items-center",
-                "px-4 py-2 gap-2",
+                "px-2 sm:px-4 py-2 gap-1.5 sm:gap-2",
                 "overflow-x-auto overflow-y-hidden",
                 "bg-gradient-to-r from-white via-white to-white",
                 "rounded-2xl",
@@ -141,15 +209,41 @@ const Index = () => {
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
                 display: 'flex',
-                flexWrap: 'nowrap'
+                flexWrap: 'nowrap',
+                paddingLeft: showLeftGradient ? '2.5rem' : undefined,
+                paddingRight: showRightGradient ? '2.5rem' : undefined
               }}
             >
               <TabsTrigger 
                 value="plan"
                 className={cn(
                   "flex-shrink-0",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
+                  "rounded-xl",
+                  "transition-all duration-300 ease-out",
+                  "whitespace-nowrap",
+                  "snap-start",
+                  "relative",
+                  "text-foreground/60 bg-transparent",
+                  "hover:text-foreground hover:bg-primary/8",
+                  "active:scale-95",
+                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
+                  "data-[state=active]:text-white",
+                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
+                  "data-[state=active]:scale-105",
+                  "data-[state=active]:font-semibold"
+                )}
+              >
+                План
+              </TabsTrigger>
+              
+              <TabsTrigger 
+                value="plan"
+                className={cn(
+                  "flex-shrink-0",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
@@ -172,8 +266,8 @@ const Index = () => {
                 value="progress"
                 className={cn(
                   "flex-shrink-0",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
@@ -196,8 +290,8 @@ const Index = () => {
                 value="travel"
                 className={cn(
                   "flex-shrink-0",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
@@ -220,8 +314,8 @@ const Index = () => {
                 value="reports"
                 className={cn(
                   "flex-shrink-0",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
@@ -244,8 +338,8 @@ const Index = () => {
                 value="calculator"
                 className={cn(
                   "flex-shrink-0",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
@@ -268,8 +362,8 @@ const Index = () => {
                 value="goals"
                 className={cn(
                   "flex-shrink-0",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
@@ -292,8 +386,8 @@ const Index = () => {
                 value="calendar"
                 className={cn(
                   "flex-shrink-0",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",

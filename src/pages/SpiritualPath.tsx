@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { cn } from "@/lib/utils";
-import { Target, Trophy, TrendingUp, BarChart3, Users, Calculator, Bell } from "lucide-react";
+import { Target, Trophy, TrendingUp, BarChart3, Users, Calculator, Bell, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function SpiritualPath() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -28,6 +28,24 @@ export default function SpiritualPath() {
   const tabsListRef = useRef<HTMLDivElement>(null);
   const [showLeftGradient, setShowLeftGradient] = useState(false);
   const [showRightGradient, setShowRightGradient] = useState(true);
+
+  // Проверка возможности прокрутки при загрузке
+  useEffect(() => {
+    const checkScroll = () => {
+      if (tabsListRef.current) {
+        const container = tabsListRef.current;
+        const { scrollWidth, clientWidth } = container;
+        const canScroll = scrollWidth > clientWidth;
+        setShowRightGradient(canScroll);
+      }
+    };
+    
+    // Проверяем сразу и после небольшой задержки
+    checkScroll();
+    const timeout = setTimeout(checkScroll, 200);
+    
+    return () => clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
     loadGoals();
@@ -148,21 +166,69 @@ export default function SpiritualPath() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Красивая навигация с горизонтальной прокруткой */}
+          {/* Улучшенная навигация с кнопками прокрутки */}
           <div className="relative mb-6">
+            {/* Кнопка прокрутки влево */}
+            {showLeftGradient && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "absolute left-0 top-1/2 -translate-y-1/2 z-20",
+                  "h-10 w-10 rounded-full",
+                  "bg-white/90 backdrop-blur-sm shadow-md",
+                  "border border-primary/20",
+                  "hover:bg-white hover:shadow-lg",
+                  "transition-all duration-200"
+                )}
+                onClick={() => {
+                  if (tabsListRef.current) {
+                    const scrollAmount = tabsListRef.current.clientWidth * 0.7;
+                    tabsListRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                  }
+                }}
+              >
+                <ChevronLeft className="h-5 w-5 text-primary" />
+              </Button>
+            )}
+
+            {/* Кнопка прокрутки вправо */}
+            {showRightGradient && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "absolute right-0 top-1/2 -translate-y-1/2 z-20",
+                  "h-10 w-10 rounded-full",
+                  "bg-white/90 backdrop-blur-sm shadow-md",
+                  "border border-primary/20",
+                  "hover:bg-white hover:shadow-lg",
+                  "transition-all duration-200"
+                )}
+                onClick={() => {
+                  if (tabsListRef.current) {
+                    const scrollAmount = tabsListRef.current.clientWidth * 0.7;
+                    tabsListRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                  }
+                }}
+              >
+                <ChevronRight className="h-5 w-5 text-primary" />
+              </Button>
+            )}
+
             {/* Градиентные индикаторы прокрутки */}
             {showLeftGradient && (
-              <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none transition-opacity duration-300" />
+              <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-background via-background/90 to-transparent z-10 pointer-events-none transition-opacity duration-300" />
             )}
             {showRightGradient && (
-              <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none transition-opacity duration-300" />
+              <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-background via-background/90 to-transparent z-10 pointer-events-none transition-opacity duration-300" />
             )}
             
             <TabsList 
               ref={tabsListRef}
               className={cn(
                 "relative flex items-center",
-                "px-4 py-2 gap-2",
+                "px-2 sm:px-4 py-2 gap-1.5 sm:gap-2",
                 "overflow-x-auto overflow-y-hidden",
                 "bg-gradient-to-r from-white via-white to-white",
                 "rounded-2xl",
@@ -181,15 +247,17 @@ export default function SpiritualPath() {
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
                 display: 'flex',
-                flexWrap: 'nowrap'
+                flexWrap: 'nowrap',
+                paddingLeft: showLeftGradient ? '2.5rem' : undefined,
+                paddingRight: showRightGradient ? '2.5rem' : undefined
               }}
             >
               <TabsTrigger 
                 value="goals"
                 className={cn(
-                  "flex-shrink-0 flex items-center gap-2",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "flex-shrink-0 flex items-center gap-1.5 sm:gap-2",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
@@ -205,16 +273,16 @@ export default function SpiritualPath() {
                   "data-[state=active]:font-semibold"
                 )}
               >
-                <Target className="w-4 h-4 shrink-0" />
+                <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span>Цели</span>
               </TabsTrigger>
               
               <TabsTrigger 
                 value="streaks"
                 className={cn(
-                  "flex-shrink-0 flex items-center gap-2",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "flex-shrink-0 flex items-center gap-1.5 sm:gap-2",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
@@ -230,16 +298,16 @@ export default function SpiritualPath() {
                   "data-[state=active]:font-semibold"
                 )}
               >
-                <TrendingUp className="w-4 h-4 shrink-0" />
+                <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span>Серии</span>
               </TabsTrigger>
               
               <TabsTrigger 
                 value="badges"
                 className={cn(
-                  "flex-shrink-0 flex items-center gap-2",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "flex-shrink-0 flex items-center gap-1.5 sm:gap-2",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
@@ -255,16 +323,16 @@ export default function SpiritualPath() {
                   "data-[state=active]:font-semibold"
                 )}
               >
-                <Trophy className="w-4 h-4 shrink-0" />
+                <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span>Бейджи</span>
               </TabsTrigger>
               
               <TabsTrigger 
                 value="analytics"
                 className={cn(
-                  "flex-shrink-0 flex items-center gap-2",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "flex-shrink-0 flex items-center gap-1.5 sm:gap-2",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
@@ -280,16 +348,16 @@ export default function SpiritualPath() {
                   "data-[state=active]:font-semibold"
                 )}
               >
-                <BarChart3 className="w-4 h-4 shrink-0" />
+                <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span>Аналитика</span>
               </TabsTrigger>
               
               <TabsTrigger 
                 value="groups"
                 className={cn(
-                  "flex-shrink-0 flex items-center gap-2",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "flex-shrink-0 flex items-center gap-1.5 sm:gap-2",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
@@ -305,16 +373,16 @@ export default function SpiritualPath() {
                   "data-[state=active]:font-semibold"
                 )}
               >
-                <Users className="w-4 h-4 shrink-0" />
+                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span>Группы</span>
               </TabsTrigger>
               
               <TabsTrigger 
                 value="qaza"
                 className={cn(
-                  "flex-shrink-0 flex items-center gap-2",
-                  "px-4 py-2",
-                  "text-sm font-medium",
+                  "flex-shrink-0 flex items-center gap-1.5 sm:gap-2",
+                  "px-3 sm:px-4 py-2",
+                  "text-xs sm:text-sm font-medium",
                   "rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
@@ -330,7 +398,7 @@ export default function SpiritualPath() {
                   "data-[state=active]:font-semibold"
                 )}
               >
-                <Calculator className="w-4 h-4 shrink-0" />
+                <Calculator className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span>Каза</span>
               </TabsTrigger>
             </TabsList>
