@@ -10,6 +10,7 @@ import { DuaCard } from "./DuaCard";
 import { CategoryDuasView } from "./CategoryDuasView";
 import { DuaSearch } from "./DuaSearch";
 import { eReplikaAPI } from "@/lib/api";
+import { getAvailableItemsByCategory } from "@/lib/dhikr-data";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -55,7 +56,44 @@ export const DuaSectionV2 = () => {
   const loadDuas = async () => {
     setLoading(true);
     try {
-      const data = await eReplikaAPI.getDuas();
+      // Используем getAvailableItemsByCategory с fallback на локальные данные
+      let data: any[] = [];
+      
+      try {
+        // Сначала пробуем получить из API
+        const apiData = await eReplikaAPI.getDuas();
+        if (apiData && apiData.length > 0) {
+          data = apiData;
+        } else {
+          // Если API вернул пустой массив, используем fallback
+          const fallbackData = await getAvailableItemsByCategory("dua");
+          data = fallbackData.map(item => ({
+            id: item.id,
+            arabic: item.arabic || "",
+            transcription: item.transcription || "",
+            russianTranscription: item.russianTranscription,
+            translation: item.translation || "",
+            reference: item.reference,
+            audioUrl: item.audioUrl || null,
+            category: "general",
+          }));
+        }
+      } catch (apiError) {
+        // Если API недоступен, используем fallback
+        console.warn("API недоступен, используем локальные данные:", apiError);
+        const fallbackData = await getAvailableItemsByCategory("dua");
+        data = fallbackData.map(item => ({
+          id: item.id,
+          arabic: item.arabic || "",
+          transcription: item.transcription || "",
+          russianTranscription: item.russianTranscription,
+          translation: item.translation || "",
+          reference: item.reference,
+          audioUrl: item.audioUrl || null,
+          category: "general",
+        }));
+      }
+
       setDuas(data);
 
       // Группируем по категориям
@@ -89,6 +127,9 @@ export const DuaSectionV2 = () => {
       setCategories(cats);
     } catch (error) {
       console.error("Error loading duas:", error);
+      // В случае ошибки показываем хотя бы пустые категории
+      setCategories([]);
+      setDuas([]);
     } finally {
       setLoading(false);
     }
@@ -244,6 +285,18 @@ export const DuaSectionV2 = () => {
         </TabsList>
 
         <TabsContent value="categories" className="mt-6 space-y-6">
+          {/* Сообщение если нет данных */}
+          {categories.length === 0 && !loading && (
+            <Card className="bg-gradient-card border-border/50">
+              <CardContent className="p-6 text-center">
+                <p className="text-muted-foreground mb-2">Дуа временно недоступны</p>
+                <p className="text-sm text-muted-foreground">
+                  Пожалуйста, проверьте подключение к интернету или попробуйте позже
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Сегодняшний Dua */}
           {todayDua && (
             <Card className="bg-gradient-card border-border/50">

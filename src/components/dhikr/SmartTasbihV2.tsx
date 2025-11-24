@@ -100,21 +100,48 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
       // Инициализация офлайн-очереди
       await initOfflineQueue();
 
-      // Загрузка состояния
-      const bootstrap = await smartTasbihAPI.bootstrap();
-      setActiveGoal(bootstrap.active_goal || null);
-      setDailyAzkar(bootstrap.daily_azkar || null);
-
-      // Если есть активная цель, начинаем сессию
-      if (bootstrap.active_goal) {
-        await startSessionForGoal(bootstrap.active_goal);
-      }
-
-      // Загружаем цели из spiritual-path модуля
+      // Загружаем цели из spiritual-path модуля (нужно для goalId)
       await loadSpiritualPathGoals();
 
-      // Синхронизация офлайн-событий
-      await syncOfflineQueue();
+      // Если передан goalId, пытаемся найти цель в spiritual-path
+      if (goalId) {
+        try {
+          const goal = spiritualPathGoals.find(g => g.id === goalId);
+          if (goal && goal.category === "zikr") {
+            // Создаем цель для smart-tasbih на основе spiritual-path цели
+            const tasbihGoal: TasbihGoal = {
+              id: goal.id,
+              category: goal.item_category || "dua",
+              item_id: goal.item_id,
+              goal_type: "recite",
+              target_count: goal.target_value || 33,
+              progress: goal.current_value || 0,
+              prayer_segment: "none",
+            };
+            setActiveGoal(tasbihGoal);
+            await startSessionForGoal(tasbihGoal);
+          }
+        } catch (error) {
+          console.error("Error loading goal by ID:", error);
+        }
+      }
+
+      // Загрузка состояния
+      try {
+        const bootstrap = await smartTasbihAPI.bootstrap();
+        // Если goalId не был передан, используем активную цель из bootstrap
+        if (!goalId && bootstrap.active_goal) {
+          setActiveGoal(bootstrap.active_goal);
+          await startSessionForGoal(bootstrap.active_goal);
+        }
+        setDailyAzkar(bootstrap.daily_azkar || null);
+      } catch (error) {
+        console.error("Error bootstrapping:", error);
+        // Продолжаем работу даже если bootstrap не удался
+      }
+
+      // Синхронизация офлайн-событий (не блокируем загрузку)
+      syncOfflineQueue().catch(err => console.error("Error syncing offline queue:", err));
     } catch (error) {
       console.error("Error initializing:", error);
     } finally {
@@ -704,6 +731,38 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
               }
               className="h-3"
             />
+
+            {/* Информация о связанных целях из spiritual-path */}
+            {linkedGoals.length > 0 && (
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <Target className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-primary mb-1">
+                      Это засчитается в ваши цели:
+                    </p>
+                    {linkedGoals.map((goal) => {
+                      const progressPercent = goal.target_value > 0
+                        ? Math.min(100, Math.round((goal.current_value / goal.target_value) * 100))
+                        : 0;
+                      return (
+                        <div key={goal.id} className="mb-2 last:mb-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs font-medium truncate flex-1">
+                              "{goal.title}"
+                            </p>
+                            <span className="text-xs text-muted-foreground ml-2">
+                              {progressPercent}%
+                            </span>
+                          </div>
+                          <Progress value={progressPercent} className="h-1.5" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Кнопки действий */}
             <div className="space-y-2">

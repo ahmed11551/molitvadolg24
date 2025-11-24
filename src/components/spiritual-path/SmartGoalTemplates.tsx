@@ -51,8 +51,9 @@ export const SmartGoalTemplates = ({ onTemplateSelected }: { onTemplateSelected?
     const suggestions: SmartTemplate[] = [];
 
     try {
-      // Получаем существующие цели
+      // Получаем существующие цели (активные и завершенные)
       const existingGoals = await spiritualPathAPI.getGoals("active");
+      const completedGoals = await spiritualPathAPI.getGoals("completed");
       
       // Анализ прогресса по каза намазам
       if (userData?.repayment_progress?.completed_prayers) {
@@ -174,11 +175,131 @@ export const SmartGoalTemplates = ({ onTemplateSelected }: { onTemplateSelected?
         }
       }
 
+      // Анализ завершенных целей для понимания успешных паттернов
+      if (completedGoals.length > 0) {
+        // Находим наиболее успешные категории
+        const categorySuccess = completedGoals.reduce((acc: Record<string, number>, goal) => {
+          acc[goal.category] = (acc[goal.category] || 0) + 1;
+          return acc;
+        }, {});
+
+        // Предлагаем продолжить успешные практики
+        const mostSuccessfulCategory = Object.entries(categorySuccess)
+          .sort(([, a], [, b]) => (b as number) - (a as number))[0];
+
+        if (mostSuccessfulCategory && !existingGoals.some(g => g.category === mostSuccessfulCategory[0])) {
+          const [category, count] = mostSuccessfulCategory;
+          const categoryLabels: Record<string, string> = {
+            prayer: "намазов",
+            quran: "страниц Корана",
+            zikr: "зикров",
+            sadaqa: "раз садаки",
+            knowledge: "уроков",
+            names_of_allah: "имен Аллаха",
+          };
+
+          suggestions.push({
+            id: `continue_${category}`,
+            title: `Продолжить практику ${categoryLabels[category] || category}`,
+            description: `Вы успешно завершили ${count} ${count === 1 ? "цель" : "целей"} в этой категории. Продолжайте в том же духе!`,
+            category: category,
+            target_value: category === "quran" ? 604 : category === "prayer" ? 30 : 99,
+            period: category === "quran" ? "year" : category === "prayer" ? "month" : "infinite",
+            reason: `Ваш успех в этой категории показывает, что вы на правильном пути. Продолжайте развиваться!`,
+            priority: "high",
+            suggested_daily_plan: category === "quran" ? 1 : category === "prayer" ? 1 : undefined,
+          });
+        }
+      }
+
+      // Анализ активности: если пользователь стабильно читает Коран
+      const recentQuranGoals = completedGoals
+        .filter(g => g.category === "quran")
+        .sort((a, b) => {
+          const dateA = new Date(a.updated_at || a.created_at).getTime();
+          const dateB = new Date(b.updated_at || b.created_at).getTime();
+          return dateB - dateA;
+        })
+        .slice(0, 3);
+
+      if (recentQuranGoals.length > 0 && quranGoals.length === 0) {
+        // Вычисляем средний темп чтения
+        const avgPagesPerDay = recentQuranGoals.reduce((sum, goal) => {
+          const days = goal.end_date && goal.start_date
+            ? Math.ceil((new Date(goal.end_date).getTime() - new Date(goal.start_date).getTime()) / (1000 * 60 * 60 * 24))
+            : 30;
+          return sum + (goal.target_value / days);
+        }, 0) / recentQuranGoals.length;
+
+        if (avgPagesPerDay > 0 && avgPagesPerDay < 2) {
+          suggestions.push({
+            id: "quran_consistent",
+            title: `Читать ${Math.round(avgPagesPerDay * 10) / 10} страниц Корана в день`,
+            description: `Я вижу, вы стабильно читаете примерно ${Math.round(avgPagesPerDay * 10) / 10} страницы в день. Хотите поставить цель прочитать весь Коран за ${Math.ceil(604 / avgPagesPerDay)} дней?`,
+            category: "quran",
+            target_value: 604,
+            period: "year",
+            reason: `На основе вашей истории, вы читаете примерно ${Math.round(avgPagesPerDay * 10) / 10} страниц в день. Это отличный темп для завершения Корана за год!`,
+            priority: "high",
+            suggested_daily_plan: Math.ceil(avgPagesPerDay),
+          });
+        }
+      }
+
+      // Предложение на основе слабых сторон
+      const allCategories = ["prayer", "quran", "zikr", "sadaqa", "knowledge", "names_of_allah"];
+      const categoriesWithGoals = new Set([...existingGoals, ...completedGoals].map(g => g.category));
+      const missingCategories = allCategories.filter(cat => !categoriesWithGoals.has(cat));
+
+      if (missingCategories.length > 0) {
+        // Предлагаем начать с наиболее важных категорий
+        const priorityOrder = ["prayer", "zikr", "quran", "sadaqa", "knowledge", "names_of_allah"];
+        const nextCategory = priorityOrder.find(cat => missingCategories.includes(cat));
+
+        if (nextCategory) {
+          const categoryData: Record<string, { title: string; value: number; period: string; plan?: number }> = {
+            prayer: { title: "30 намазов за месяц", value: 30, period: "month", plan: 1 },
+            zikr: { title: "Ежедневные азкары", value: 99, period: "infinite" },
+            quran: { title: "1 страница Корана в день", value: 604, period: "year", plan: 1 },
+            sadaqa: { title: "Садака 4 раза в месяц", value: 4, period: "month" },
+            knowledge: { title: "Изучать знания", value: 30, period: "month", plan: 1 },
+            names_of_allah: { title: "Выучить 99 имен Аллаха", value: 99, period: "infinite" },
+          };
+
+          const data = categoryData[nextCategory];
+          if (data) {
+            suggestions.push({
+              id: `start_${nextCategory}`,
+              title: data.title,
+              description: `Расширьте свой духовный путь, добавив практику в категории "${getCategoryLabel(nextCategory)}".`,
+              category: nextCategory,
+              target_value: data.value,
+              period: data.period,
+              reason: `Добавление разнообразия в ваши духовные практики поможет всестороннему росту.`,
+              priority: "medium",
+              suggested_daily_plan: data.plan,
+            });
+          }
+        }
+      }
+
     } catch (error) {
       console.error("Error analyzing user behavior:", error);
     }
 
     return suggestions;
+  };
+
+  const getCategoryLabel = (category: string): string => {
+    const labels: Record<string, string> = {
+      prayer: "Намаз",
+      quran: "Коран",
+      zikr: "Зикр",
+      sadaqa: "Садака",
+      knowledge: "Знания",
+      names_of_allah: "99 имен Аллаха",
+    };
+    return labels[category] || category;
   };
 
   const handleApplyTemplate = async (template: SmartTemplate) => {

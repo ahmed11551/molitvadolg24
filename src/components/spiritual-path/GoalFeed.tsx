@@ -33,6 +33,7 @@ import {
   getGoalStatusText,
   getDaysUntilDeadline,
   recalculateDailyPlan,
+  shouldRecalculateDailyPlan,
 } from "@/lib/goal-calculator";
 import type { Goal } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
@@ -71,14 +72,39 @@ export const GoalFeed = ({ goals = [], onRefresh }: GoalFeedProps) => {
 
   useEffect(() => {
     setGoalsList(goals);
-    // Пересчитываем ежедневные планы для всех целей
-    const updatedGoals = goals.map(goal => {
-      if (goal.status === "active") {
-        return recalculateDailyPlan(goal);
+    // Пересчитываем ежедневные планы для всех активных целей
+    const recalculateAndSave = async () => {
+      const goalsToUpdate: Goal[] = [];
+      
+      for (const goal of goals) {
+        if (goal.status === "active" && shouldRecalculateDailyPlan(goal)) {
+          const updatedGoal = recalculateDailyPlan(goal);
+          goalsToUpdate.push(updatedGoal);
+          
+          // Сохраняем обновленный план на сервер (тихо, без уведомлений)
+          try {
+            await spiritualPathAPI.updateGoal(goal.id, {
+              daily_plan: updatedGoal.daily_plan,
+              updated_at: updatedGoal.updated_at,
+            } as any);
+          } catch (error) {
+            console.error(`Error updating daily plan for goal ${goal.id}:`, error);
+            // Продолжаем работу даже при ошибке
+          }
+        }
       }
-      return goal;
-    });
-    setGoalsList(updatedGoals);
+      
+      // Обновляем локальное состояние
+      if (goalsToUpdate.length > 0) {
+        const updatedGoals = goals.map(goal => {
+          const updated = goalsToUpdate.find(g => g.id === goal.id);
+          return updated || goal;
+        });
+        setGoalsList(updatedGoals);
+      }
+    };
+    
+    recalculateAndSave();
   }, [goals]);
 
   const handlePause = async (goal: Goal) => {

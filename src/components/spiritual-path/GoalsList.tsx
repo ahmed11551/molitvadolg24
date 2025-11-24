@@ -59,7 +59,36 @@ export const GoalsList = () => {
     setLoading(true);
     try {
       const allGoals = await spiritualPathAPI.getGoals();
-      setGoals(allGoals);
+      
+      // Пересчитываем ежедневные планы для активных целей
+      const { recalculateDailyPlan, shouldRecalculateDailyPlan } = await import("@/lib/goal-calculator");
+      const goalsToUpdate: Goal[] = [];
+      
+      for (const goal of allGoals) {
+        if (goal.status === "active" && shouldRecalculateDailyPlan(goal)) {
+          const updatedGoal = recalculateDailyPlan(goal);
+          goalsToUpdate.push(updatedGoal);
+          
+          // Сохраняем обновленный план на сервер (тихо, без уведомлений)
+          try {
+            await spiritualPathAPI.updateGoal(goal.id, {
+              daily_plan: updatedGoal.daily_plan,
+              updated_at: updatedGoal.updated_at,
+            } as any);
+          } catch (error) {
+            console.error(`Error updating daily plan for goal ${goal.id}:`, error);
+            // Продолжаем работу даже при ошибке
+          }
+        }
+      }
+      
+      // Обновляем локальное состояние с пересчитанными планами
+      const updatedGoals = allGoals.map(goal => {
+        const updated = goalsToUpdate.find(g => g.id === goal.id);
+        return updated || goal;
+      });
+      
+      setGoals(updatedGoals);
     } catch (error) {
       console.error("Error loading goals:", error);
       toast({

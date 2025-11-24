@@ -7,6 +7,7 @@ import { Play, Pause, RotateCcw, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { eReplikaAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { DuaDisplaySettings, useDuaDisplaySettings, getArabicFontSize } from "./DuaDisplaySettings";
 
 interface DuaCardV2Props {
   dua: {
@@ -32,6 +33,7 @@ export const DuaCardV2 = memo(({ dua, number, categoryColor }: DuaCardV2Props) =
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [count, setCount] = useState(0);
   const [translation, setTranslation] = useState<string>(dua.translation);
+  const [isLoadingTranslation, setIsLoadingTranslation] = useState(false);
   
   // Refs
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -123,17 +125,31 @@ export const DuaCardV2 = memo(({ dua, number, categoryColor }: DuaCardV2Props) =
   useEffect(() => {
     if (settings.translationLanguage === 'ru') {
       setTranslation(dua.translation);
+      setIsLoadingTranslation(false);
       return;
     }
 
     // Загружаем перевод с API (если доступен)
     const loadTranslation = async () => {
+      setIsLoadingTranslation(true);
       try {
         const translated = await eReplikaAPI.getDuaTranslation(dua.id, settings.translationLanguage);
-        setTranslation(translated || dua.translation);
+        if (!isMountedRef.current) return;
+        
+        if (translated) {
+          setTranslation(translated);
+        } else {
+          // Если перевод не найден, используем русский как fallback
+          setTranslation(dua.translation);
+        }
       } catch (error) {
+        if (!isMountedRef.current) return;
         console.error("Error loading translation:", error);
         setTranslation(dua.translation);
+      } finally {
+        if (isMountedRef.current) {
+          setIsLoadingTranslation(false);
+        }
       }
     };
 
@@ -217,11 +233,22 @@ export const DuaCardV2 = memo(({ dua, number, categoryColor }: DuaCardV2Props) =
 
         {/* Серый блок с текстом и кнопками */}
         <div className="bg-gray-100 rounded-2xl mx-4 mb-4 p-4 space-y-4">
-          {/* Транслитерация на кириллице */}
-          {settings.showTranscription && dua.russianTranscription && (
-            <p className="text-sm text-foreground leading-relaxed text-center">
-              {dua.russianTranscription}
-            </p>
+          {/* Транслитерация */}
+          {settings.showTranscription && (
+            <div className="space-y-2">
+              {/* Латинская транскрипция */}
+              {dua.transcription && (
+                <p className="text-sm text-foreground/90 italic leading-relaxed text-center">
+                  {dua.transcription}
+                </p>
+              )}
+              {/* Кириллическая транскрипция */}
+              {dua.russianTranscription && (
+                <p className="text-sm text-foreground leading-relaxed text-center font-medium">
+                  {dua.russianTranscription}
+                </p>
+              )}
+            </div>
           )}
 
           {/* Арабский текст */}
@@ -285,9 +312,16 @@ export const DuaCardV2 = memo(({ dua, number, categoryColor }: DuaCardV2Props) =
         {/* Большой блок с переводом и объяснением */}
         {settings.showTranslation && (
           <div className="px-4 pb-6 space-y-3">
-            <p className="text-base text-foreground leading-relaxed">
-              {translation}
-            </p>
+            {isLoadingTranslation ? (
+              <div className="flex items-center justify-center py-2">
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mr-2" />
+                <span className="text-sm text-muted-foreground">Загрузка перевода...</span>
+              </div>
+            ) : (
+              <p className="text-base text-foreground leading-relaxed">
+                {translation}
+              </p>
+            )}
             
             {dua.reference && (
               <p className="text-sm text-muted-foreground italic">
@@ -299,7 +333,7 @@ export const DuaCardV2 = memo(({ dua, number, categoryColor }: DuaCardV2Props) =
 
         {/* Настройки отображения */}
         <div className="px-4 pb-4 flex items-center justify-center gap-2">
-          <SettingsComponent 
+          <DuaDisplaySettings 
             settings={settings} 
             onSettingsChange={updateSettings} 
           />

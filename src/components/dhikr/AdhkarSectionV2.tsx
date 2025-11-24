@@ -8,6 +8,7 @@ import { Star, Share2, Heart, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AdhkarCard } from "./AdhkarCard";
 import { eReplikaAPI } from "@/lib/api";
+import { getAvailableItemsByCategory } from "@/lib/dhikr-data";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -51,7 +52,46 @@ export const AdhkarSectionV2 = () => {
   const loadAdhkar = async () => {
     setLoading(true);
     try {
-      const data = await eReplikaAPI.getAdhkar();
+      // Используем getAvailableItemsByCategory с fallback на локальные данные
+      let data: any[] = [];
+      
+      try {
+        // Сначала пробуем получить из API
+        const apiData = await eReplikaAPI.getAdhkar();
+        if (apiData && apiData.length > 0) {
+          data = apiData;
+        } else {
+          // Если API вернул пустой массив, используем fallback
+          const fallbackData = await getAvailableItemsByCategory("adhkar");
+          data = fallbackData.map(item => ({
+            id: item.id,
+            title: item.title || "",
+            arabic: item.arabic || "",
+            transcription: item.transcription || "",
+            russianTranscription: item.russianTranscription,
+            translation: item.translation || "",
+            count: item.count || 33,
+            category: "general",
+            audioUrl: item.audioUrl || null,
+          }));
+        }
+      } catch (apiError) {
+        // Если API недоступен, используем fallback
+        console.warn("API недоступен, используем локальные данные:", apiError);
+        const fallbackData = await getAvailableItemsByCategory("adhkar");
+        data = fallbackData.map(item => ({
+          id: item.id,
+          title: item.title || "",
+          arabic: item.arabic || "",
+          transcription: item.transcription || "",
+          russianTranscription: item.russianTranscription,
+          translation: item.translation || "",
+          count: item.count || 33,
+          category: "general",
+          audioUrl: item.audioUrl || null,
+        }));
+      }
+
       setAdhkar(data);
 
       // Группируем по категориям
@@ -86,6 +126,9 @@ export const AdhkarSectionV2 = () => {
       setCategories(cats);
     } catch (error) {
       console.error("Error loading adhkar:", error);
+      // В случае ошибки показываем хотя бы пустые категории
+      setCategories([]);
+      setAdhkar([]);
     } finally {
       setLoading(false);
     }
@@ -215,6 +258,18 @@ export const AdhkarSectionV2 = () => {
         </TabsList>
 
         <TabsContent value="categories" className="mt-6 space-y-6">
+          {/* Сообщение если нет данных */}
+          {categories.length === 0 && !loading && (
+            <Card className="bg-gradient-card border-border/50">
+              <CardContent className="p-6 text-center">
+                <p className="text-muted-foreground mb-2">Азкары временно недоступны</p>
+                <p className="text-sm text-muted-foreground">
+                  Пожалуйста, проверьте подключение к интернету или попробуйте позже
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Сегодняшний Азкар */}
           {todayAdhkar && (
             <Card className="bg-gradient-card border-border/50">

@@ -16,10 +16,12 @@ function getAuthToken(): string | null {
     return window.Telegram.WebApp.initData;
   }
   // Используем test_token_123 по умолчанию для e-Replika API
+  // Согласно документации: https://bot.e-replika.ru/docs
   return import.meta.env.VITE_API_TOKEN || "test_token_123";
 }
 
 // Получение заголовков для запросов к e-Replika API
+// Всегда использует test_token_123 для авторизации согласно документации
 function getAuthHeaders(): HeadersInit {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -27,7 +29,11 @@ function getAuthHeaders(): HeadersInit {
   
   const token = getAuthToken();
   if (token) {
+    // Токен передается в формате Bearer согласно документации bot.e-replika.ru/docs
     headers["Authorization"] = `Bearer ${token}`;
+  } else {
+    // Fallback на test_token_123 если токен не получен
+    headers["Authorization"] = `Bearer test_token_123`;
   }
   
   // Добавляем API ключ, если он указан в env
@@ -1258,6 +1264,7 @@ import type {
   QazaCalculation,
   AIReport,
   NotificationSettings,
+  SmartNotification,
 } from "@/types/spiritual-path";
 
 export const spiritualPathAPI = {
@@ -1606,6 +1613,111 @@ export const spiritualPathAPI = {
     throw new Error("Failed to get AI report");
   },
 
+  // Умные уведомления
+  async getNotificationSettings(): Promise<NotificationSettings> {
+    const userId = getUserId();
+    if (!userId) {
+      throw new Error("user_id required");
+    }
+
+    try {
+      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/notifications/settings`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "apikey": SUPABASE_ANON_KEY,
+        },
+      });
+
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.warn("Supabase API недоступен:", error);
+    }
+
+    throw new Error("Failed to get notification settings");
+  },
+
+  async updateNotificationSettings(settings: Partial<NotificationSettings>): Promise<NotificationSettings> {
+    const userId = getUserId();
+    if (!userId) {
+      throw new Error("user_id required");
+    }
+
+    try {
+      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/notifications/settings`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "apikey": SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify(settings),
+      });
+
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.warn("Supabase API недоступен:", error);
+    }
+
+    throw new Error("Failed to update notification settings");
+  },
+
+  async getNotifications(): Promise<SmartNotification[]> {
+    const userId = getUserId();
+    if (!userId) {
+      return [];
+    }
+
+    try {
+      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/notifications`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "apikey": SUPABASE_ANON_KEY,
+        },
+      });
+
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.warn("Supabase API недоступен:", error);
+    }
+
+    return [];
+  },
+
+  async sendTestNotification(): Promise<void> {
+    const userId = getUserId();
+    if (!userId) {
+      throw new Error("user_id required");
+    }
+
+    try {
+      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/notifications/test`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "apikey": SUPABASE_ANON_KEY,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send test notification");
+      }
+    } catch (error) {
+      console.warn("Supabase API недоступен:", error);
+      throw error;
+    }
+  },
+
   // Калькулятор каза
   async calculateQaza(calculation: QazaCalculation): Promise<QazaCalculation> {
     const userId = getUserId();
@@ -1701,7 +1813,7 @@ export const spiritualPathAPI = {
       localStorage.setItem("spiritual_path_goals", JSON.stringify(goals));
     }
 
-    return { success: true, updated_goals };
+    return { success: true, updated_goals: updatedGoals };
   },
 
   addProgressInLocalStorage(goalId: string, value: number, date?: string, notes?: string): GoalProgress {
