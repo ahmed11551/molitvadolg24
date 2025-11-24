@@ -113,6 +113,7 @@ const Dhikr = () => {
                   </TabsTrigger>
                 ))}
               </TabsList>
+            </div>
           </div>
 
           <TabsContent value="goals" className="mt-0">
