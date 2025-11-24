@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +17,48 @@ import { useSearchParams } from "react-router-dom";
 const Dhikr = () => {
   const [searchParams] = useSearchParams();
   const goalId = searchParams.get("goal");
+  const tabsListRef = useRef<HTMLDivElement>(null);
+  const [showLeftGradient, setShowLeftGradient] = useState(false);
+  const [showRightGradient, setShowRightGradient] = useState(true);
+
+  useEffect(() => {
+    const container = tabsListRef.current;
+    if (!container) return;
+
+    const checkScroll = () => {
+      const { scrollWidth, clientWidth } = container;
+      setShowRightGradient(scrollWidth > clientWidth + 1);
+    };
+
+    checkScroll();
+    const timeout = setTimeout(checkScroll, 150);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  const updateGradients = () => {
+    const container = tabsListRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    setShowLeftGradient(scrollLeft > 0);
+    setShowRightGradient(scrollLeft < scrollWidth - clientWidth - 1);
+  };
+
+  useEffect(() => {
+    const container = tabsListRef.current;
+    if (!container) return;
+
+    container.addEventListener("scroll", updateGradients, { passive: true });
+    window.addEventListener("resize", updateGradients);
+    const timeout = setTimeout(updateGradients, 200);
+
+    return () => {
+      clearTimeout(timeout);
+      container.removeEventListener("scroll", updateGradients);
+      window.removeEventListener("resize", updateGradients);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-hero pb-20">
@@ -24,178 +66,53 @@ const Dhikr = () => {
 
       <main className="container mx-auto px-3 sm:px-4 py-6 max-w-5xl w-full overflow-x-hidden">
         <Tabs defaultValue={goalId ? "goals" : "dua"} className="w-full">
-          {/* Enhanced Tabs Container */}
-          <div className="relative mb-6 overflow-visible">
-            {/* Background with gradient glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 rounded-2xl blur-xl opacity-50 -z-10" />
-            
-            <TabsList className={cn(
-              "relative flex w-full h-auto items-center",
-              "px-1 sm:px-3 py-2 gap-0.5 sm:gap-2",
-              "overflow-x-auto overflow-y-visible",
-              "bg-white/95 backdrop-blur-md",
-              "rounded-2xl border border-border/60",
-              "shadow-lg shadow-primary/5",
-              "scroll-smooth snap-x snap-mandatory",
-              "min-h-[44px] sm:min-h-[52px]",
-              "no-scrollbar",
-              "sm:justify-start"
-            )}>
-              <TabsTrigger 
-                value="dua"
+          <div className="relative mb-6 w-full overflow-hidden">
+            {showLeftGradient && (
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-white via-white/80 to-transparent z-10" />
+            )}
+            {showRightGradient && (
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white via-white/80 to-transparent z-10" />
+            )}
+
+            <div
+              ref={tabsListRef}
+              className="flex items-center overflow-x-auto overflow-y-hidden scroll-smooth no-scrollbar w-full -mx-2 px-2"
+              style={{
+                WebkitOverflowScrolling: "touch",
+                touchAction: "pan-x",
+                overscrollBehaviorX: "contain",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+              }}
+            >
+              <TabsList
                 className={cn(
-                  "flex items-center justify-center",
-                  "flex-1 sm:flex-none sm:min-w-[80px]",
-                  "px-1.5 sm:px-5 py-1.5 sm:py-2.5",
-                  "text-center rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "text-[10px] sm:text-sm font-semibold",
-                  "snap-start",
-                  "overflow-visible",
-                  // Inactive state
-                  "text-foreground/90 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-[0.98]",
-                  // Active state
-                  "data-[state=active]:bg-gradient-to-r",
-                  "data-[state=active]:from-primary",
-                  "data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg",
-                  "data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-[1.01]",
-                  "data-[state=active]:font-bold",
-                  "data-[state=active]:z-10"
+                  "inline-flex items-center gap-1",
+                  "bg-white rounded-full border border-border/40 shadow-sm",
+                  "px-1 py-1 min-w-max h-12"
                 )}
               >
-                <span className="relative z-10">Дуа</span>
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="adhkar"
-                className={cn(
-                  "flex items-center justify-center",
-                  "flex-1 sm:flex-none sm:min-w-[90px]",
-                  "px-1.5 sm:px-5 py-1.5 sm:py-2.5",
-                  "text-center rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "text-[10px] sm:text-sm font-semibold",
-                  "snap-start",
-                  "overflow-visible",
-                  // Inactive state
-                  "text-foreground/90 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-[0.98]",
-                  // Active state
-                  "data-[state=active]:bg-gradient-to-r",
-                  "data-[state=active]:from-primary",
-                  "data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg",
-                  "data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-[1.01]",
-                  "data-[state=active]:font-bold",
-                  "data-[state=active]:z-10"
-                )}
-              >
-                <span className="relative z-10">Азкары</span>
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="salawat"
-                className={cn(
-                  "flex items-center justify-center",
-                  "flex-1 sm:flex-none sm:min-w-[100px]",
-                  "px-1.5 sm:px-5 py-1.5 sm:py-2.5",
-                  "text-center rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "text-[10px] sm:text-sm font-semibold",
-                  "snap-start",
-                  "overflow-visible",
-                  // Inactive state
-                  "text-foreground/90 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-[0.98]",
-                  // Active state
-                  "data-[state=active]:bg-gradient-to-r",
-                  "data-[state=active]:from-primary",
-                  "data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg",
-                  "data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-[1.01]",
-                  "data-[state=active]:font-bold",
-                  "data-[state=active]:z-10"
-                )}
-              >
-                <span className="relative z-10">Салаваты</span>
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="kalima"
-                className={cn(
-                  "flex items-center justify-center",
-                  "flex-1 sm:flex-none sm:min-w-[90px]",
-                  "px-1.5 sm:px-5 py-1.5 sm:py-2.5",
-                  "text-center rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "text-[10px] sm:text-sm font-semibold",
-                  "snap-start",
-                  "overflow-visible",
-                  // Inactive state
-                  "text-foreground/90 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-[0.98]",
-                  // Active state
-                  "data-[state=active]:bg-gradient-to-r",
-                  "data-[state=active]:from-primary",
-                  "data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg",
-                  "data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-[1.01]",
-                  "data-[state=active]:font-bold",
-                  "data-[state=active]:z-10"
-                )}
-              >
-                <span className="relative z-10">Калимы</span>
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="goals"
-                className={cn(
-                  "flex items-center justify-center",
-                  "flex-1 sm:flex-none sm:min-w-[110px]",
-                  "px-1.5 sm:px-5 py-1.5 sm:py-2.5",
-                  "text-center rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "text-[10px] sm:text-sm font-semibold",
-                  "snap-start",
-                  "overflow-visible",
-                  // Inactive state
-                  "text-foreground/90 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-[0.98]",
-                  // Active state
-                  "data-[state=active]:bg-gradient-to-r",
-                  "data-[state=active]:from-primary",
-                  "data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg",
-                  "data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-[1.01]",
-                  "data-[state=active]:font-bold",
-                  "data-[state=active]:z-10"
-                )}
-              >
-                <span className="relative z-10">Из целей</span>
-              </TabsTrigger>
-            </TabsList>
+                {[
+                  { value: "dua", label: "Дуа" },
+                  { value: "adhkar", label: "Азкары" },
+                  { value: "salawat", label: "Салаваты" },
+                  { value: "kalima", label: "Калимы" },
+                  { value: "goals", label: "Из целей" },
+                ].map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className={cn(
+                      "px-4 py-1.5 text-sm font-medium rounded-full",
+                      "text-foreground/70 transition-all whitespace-nowrap",
+                      "data-[state=active]:bg-primary data-[state=active]:text-white",
+                      "data-[state=active]:shadow-sm"
+                    )}
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
           </div>
 
           <TabsContent value="goals" className="mt-0">
