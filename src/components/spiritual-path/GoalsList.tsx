@@ -316,19 +316,19 @@ export const GoalsList = () => {
                   </div>
 
                   {/* Дополнительная информация */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     {goal.daily_plan && (
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-primary" />
-                        <span className="text-muted-foreground">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                        <span className="text-muted-foreground truncate">
                           План: <strong>{Math.ceil(goal.daily_plan)}</strong> в день
                         </span>
                       </div>
                     )}
                     {daysRemaining !== null && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground truncate">
                           Осталось: <strong>{daysRemaining}</strong> дн.
                         </span>
                       </div>
@@ -348,7 +348,7 @@ export const GoalsList = () => {
                   )}
 
                   {/* Кнопки действий */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     {goal.linked_counter_type ? (
                       <Button
                         variant="outline"
@@ -357,18 +357,18 @@ export const GoalsList = () => {
                           // Переход к тасбиху
                           window.location.href = "/dhikr";
                         }}
-                        className="flex-1"
+                        className="flex-1 min-w-0"
                       >
-                        Перейти к тасбиху
+                        <span className="truncate">Перейти к тасбиху</span>
                       </Button>
                     ) : (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleAddProgress(goal.id)}
-                        className="flex-1"
+                        className="flex-1 min-w-0"
                       >
-                        Отметить выполнение
+                        <span className="truncate">Отметить выполнение</span>
                       </Button>
                     )}
                     <Button
@@ -376,9 +376,10 @@ export const GoalsList = () => {
                       size="sm"
                       onClick={() => handleMarkComplete(goal)}
                       disabled={goal.current_value < goal.target_value}
+                      className="shrink-0"
                     >
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      Выполнено
+                      <CheckCircle2 className="w-4 h-4 mr-2 shrink-0" />
+                      <span className="whitespace-nowrap">Выполнено</span>
                     </Button>
                   </div>
                 </CardContent>

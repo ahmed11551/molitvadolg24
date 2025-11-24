@@ -150,22 +150,22 @@ export const GoalCard = ({ goal, onBack, onUpdate }: GoalCardProps) => {
           isUrgent && "border-yellow-500/50"
         )}>
           <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline">{CATEGORY_LABELS[goal.category]}</Badge>
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <Badge variant="outline" className="whitespace-nowrap">{CATEGORY_LABELS[goal.category]}</Badge>
                   {isOverdue && (
-                    <Badge variant="destructive">Просрочено</Badge>
+                    <Badge variant="destructive" className="whitespace-nowrap">Просрочено</Badge>
                   )}
                   {isUrgent && (
-                    <Badge variant="outline" className="border-yellow-500 text-yellow-600">
+                    <Badge variant="outline" className="border-yellow-500 text-yellow-600 whitespace-nowrap">
                       Срочно
                     </Badge>
                   )}
                 </div>
-                <CardTitle className="text-2xl mb-2">{goal.title}</CardTitle>
+                <CardTitle className="text-2xl mb-2 break-words">{goal.title}</CardTitle>
                 {goal.description && (
-                  <p className="text-muted-foreground">{goal.description}</p>
+                  <p className="text-muted-foreground break-words">{goal.description}</p>
                 )}
               </div>
             </div>
@@ -186,10 +186,10 @@ export const GoalCard = ({ goal, onBack, onUpdate }: GoalCardProps) => {
             {goal.daily_plan && (
               <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="w-4 h-4 text-primary" />
+                  <Sparkles className="w-4 h-4 text-primary shrink-0" />
                   <span className="font-semibold text-sm">Ежедневный план</span>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground break-words">
                   Делайте <strong className="text-primary">{Math.ceil(goal.daily_plan)}</strong>{" "}
                   {goal.metric === "count" ? "в день" : "дней подряд"}
                   {daysRemaining !== null && (
@@ -231,34 +231,36 @@ export const GoalCard = ({ goal, onBack, onUpdate }: GoalCardProps) => {
                   <Button
                     variant="outline"
                     onClick={() => handleAddProgress(1)}
+                    className="min-w-0"
                   >
-                    Выполнил +1
+                    <span className="truncate">Выполнил +1</span>
                   </Button>
                   <Button
                     variant="default"
                     onClick={() => handleAddProgress(goal.target_value - goal.current_value)}
+                    className="min-w-0"
                   >
-                    Выполнил все
+                    <span className="truncate">Выполнил все</span>
                   </Button>
                 </div>
               ) : goal.linked_counter_type ? (
                 // Для целей с тасбихом
                 <Button
                   variant="default"
-                  className="w-full"
+                  className="w-full min-w-0"
                   onClick={handleGoToTasbih}
                 >
-                  <Play className="w-4 h-4 mr-2" />
-                  Перейти к тасбиху
+                  <Play className="w-4 h-4 mr-2 shrink-0" />
+                  <span className="truncate">Перейти к тасбиху</span>
                 </Button>
               ) : (
                 // Для остальных - ручное добавление прогресса
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full min-w-0"
                   onClick={() => handleAddProgress(1)}
                 >
-                  Отметить выполнение
+                  <span className="truncate">Отметить выполнение</span>
                 </Button>
               )}
 
@@ -267,16 +269,18 @@ export const GoalCard = ({ goal, onBack, onUpdate }: GoalCardProps) => {
                   variant="outline"
                   onClick={() => setCompleteDialogOpen(true)}
                   disabled={goal.current_value < goal.target_value}
+                  className="min-w-0"
                 >
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Завершить
+                  <CheckCircle2 className="w-4 h-4 mr-2 shrink-0" />
+                  <span className="truncate">Завершить</span>
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => {/* TODO: открыть диалог редактирования */}}
+                  className="min-w-0"
                 >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Редактировать
+                  <Edit className="w-4 h-4 mr-2 shrink-0" />
+                  <span className="truncate">Редактировать</span>
                 </Button>
               </div>
             </div>

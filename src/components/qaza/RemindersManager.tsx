@@ -153,20 +153,89 @@ export const RemindersManager = () => {
     });
   };
 
-  // Планируем напоминания (упрощенная версия - в реальном приложении нужен Service Worker)
+  // Планируем напоминания
   useEffect(() => {
     if (!settings.enabled || permissionStatus !== "granted") {
       return;
     }
 
-    // В реальном приложении здесь должна быть логика планирования через Service Worker
-    // или использование библиотеки для планирования уведомлений
-    // Пока просто показываем информацию о том, что напоминания настроены
+    // Функция для расчета времени следующего напоминания
+    const getNextNotificationTime = (time: string): number => {
+      const [hours, minutes] = time.split(":").map(Number);
+      const now = new Date();
+      const notificationTime = new Date();
+      notificationTime.setHours(hours, minutes, 0, 0);
+
+      // Если время уже прошло сегодня, планируем на завтра
+      if (notificationTime.getTime() <= now.getTime()) {
+        notificationTime.setDate(notificationTime.getDate() + 1);
+      }
+
+      return notificationTime.getTime() - now.getTime();
+    };
+
+    // Функция для отправки напоминания
+    const sendReminder = () => {
+      if (permissionStatus !== "granted") return;
+
+      const message = settings.message || `Не забудьте восполнить намазы! Ваша цель сегодня: ${dailyGoal} намазов.`;
+      
+      try {
+        new Notification("Трекер намазов", {
+          body: message,
+          icon: "/logo.svg",
+          badge: "/logo.svg",
+          tag: "prayer-reminder",
+          requireInteraction: false,
+        });
+      } catch (error) {
+        console.error("Error showing notification:", error);
+      }
+    };
+
+    // Планируем напоминания в зависимости от частоты
+    let timeouts: NodeJS.Timeout[] = [];
+
+    if (settings.frequency === "daily") {
+      const delay = getNextNotificationTime(settings.time);
+      const timeout = setTimeout(() => {
+        sendReminder();
+        // Планируем следующее напоминание на завтра
+        const dailyInterval = setInterval(() => {
+          sendReminder();
+        }, 24 * 60 * 60 * 1000); // 24 часа
+        timeouts.push(dailyInterval);
+      }, delay);
+      timeouts.push(timeout);
+    } else if (settings.frequency === "twice") {
+      // Два раза в день: утром и вечером
+      const morningTime = settings.time;
+      const eveningTime = settings.time.split(":")[0] + ":20"; // +12 часов (примерно)
+      
+      const morningDelay = getNextNotificationTime(morningTime);
+      const eveningDelay = getNextNotificationTime(eveningTime);
+      
+      const morningTimeout = setTimeout(() => {
+        sendReminder();
+        const interval = setInterval(() => sendReminder(), 24 * 60 * 60 * 1000);
+        timeouts.push(interval);
+      }, morningDelay);
+      
+      const eveningTimeout = setTimeout(() => {
+        sendReminder();
+        const interval = setInterval(() => sendReminder(), 24 * 60 * 60 * 1000);
+        timeouts.push(interval);
+      }, eveningDelay);
+      
+      timeouts.push(morningTimeout, eveningTimeout);
+    }
 
     return () => {
-      // Cleanup
+      // Очищаем все таймеры при размонтировании или изменении настроек
+      timeouts.forEach(timeout => clearTimeout(timeout));
+      timeouts.forEach(interval => clearInterval(interval as NodeJS.Timeout));
     };
-  }, [settings, permissionStatus]);
+  }, [settings, permissionStatus, dailyGoal]);
 
   return (
     <Card className="bg-gradient-card shadow-medium border-border/50">

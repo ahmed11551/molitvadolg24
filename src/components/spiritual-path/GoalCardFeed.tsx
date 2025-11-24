@@ -16,6 +16,7 @@ import {
   Target,
   CheckCircle2,
   Pause,
+  Play,
   Edit,
   Trash2,
   Sparkles,
@@ -90,19 +91,19 @@ export const GoalCardFeed = ({
       )}
     >
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="text-3xl">{CATEGORY_ICONS[goal.category] || "🎯"}</div>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="text-3xl shrink-0">{CATEGORY_ICONS[goal.category] || "🎯"}</div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-lg truncate">{goal.title}</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="font-semibold text-base sm:text-lg break-words leading-tight">{goal.title}</h3>
+              <p className="text-sm text-muted-foreground truncate mt-0.5">
                 {CATEGORY_LABELS[goal.category]}
               </p>
             </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -139,36 +140,36 @@ export const GoalCardFeed = ({
 
         {/* Текстовый статус */}
         <div className="text-sm">
-          <p className="text-muted-foreground">{statusText}</p>
+          <p className="text-muted-foreground break-words">{statusText}</p>
         </div>
 
         {/* Ежедневный план и индикатор */}
         {dailyPlan && goal.status === "active" && (
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Ежедневный план:</span>
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Ежедневный план:</span>
+              <div className="flex items-center gap-2 shrink-0">
                 {planStatus === "ahead" && (
-                  <Badge variant="default" className="bg-green-500">
+                  <Badge variant="default" className="bg-green-500 whitespace-nowrap">
                     <TrendingUp className="h-3 w-3 mr-1" />
                     Опережаете
                   </Badge>
                 )}
                 {planStatus === "on_track" && (
-                  <Badge variant="default" className="bg-yellow-500">
+                  <Badge variant="default" className="bg-yellow-500 whitespace-nowrap">
                     <Minus className="h-3 w-3 mr-1" />
                     По плану
                   </Badge>
                 )}
                 {planStatus === "behind" && (
-                  <Badge variant="destructive">
+                  <Badge variant="destructive" className="whitespace-nowrap">
                     <TrendingDown className="h-3 w-3 mr-1" />
                     Отстаете
                   </Badge>
                 )}
               </div>
             </div>
-            <p className="text-sm font-semibold">
+            <p className="text-sm font-semibold break-words">
               Для достижения цели к сроку делайте{" "}
               <span className="text-primary">{Math.ceil(dailyPlan)}</span>{" "}
               {goal.linked_counter_type === "salawat"
@@ -205,31 +206,31 @@ export const GoalCardFeed = ({
           {isLinkedToTasbih && goal.status === "active" ? (
             <Button
               variant="default"
-              className="flex-1"
+              className="flex-1 min-w-0"
               onClick={onGoToTasbih}
             >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Перейти к тасбиху
+              <Sparkles className="h-4 w-4 mr-2 shrink-0" />
+              <span className="truncate">Перейти к тасбиху</span>
             </Button>
           ) : goal.status === "active" ? (
             <Button
               variant="default"
-              className="flex-1"
+              className="flex-1 min-w-0"
               onClick={onMarkComplete}
             >
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Отметить выполнение
+              <CheckCircle2 className="h-4 w-4 mr-2 shrink-0" />
+              <span className="truncate">Отметить выполнение</span>
             </Button>
           ) : null}
 
           {goal.status === "paused" && (
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 min-w-0"
               onClick={onEdit}
             >
-              <Play className="h-4 w-4 mr-2" />
-              Возобновить
+              <Play className="h-4 w-4 mr-2 shrink-0" />
+              <span className="truncate">Возобновить</span>
             </Button>
           )}
         </div>

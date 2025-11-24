@@ -40,10 +40,16 @@ export const SmartNotifications = () => {
   const [settings, setSettings] = useState<NotificationSettings>(getDefaultSettings());
   const [notifications, setNotifications] = useState<SmartNotification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>("default");
 
   useEffect(() => {
     loadSettings();
     loadNotifications();
+    
+    // Проверяем разрешение на уведомления браузера
+    if ("Notification" in window) {
+      setPermissionStatus(Notification.permission);
+    }
   }, []);
 
   const loadSettings = async () => {
@@ -96,18 +102,79 @@ export const SmartNotifications = () => {
     saveSettings(newSettings);
   };
 
+  const requestBrowserPermission = async () => {
+    if (!("Notification" in window)) {
+      toast({
+        title: "Уведомления не поддерживаются",
+        description: "Ваш браузер не поддерживает уведомления",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    setPermissionStatus(permission);
+
+    if (permission === "granted") {
+      toast({
+        title: "Разрешение получено",
+        description: "Теперь вы будете получать уведомления браузера",
+      });
+    } else {
+      toast({
+        title: "Разрешение отклонено",
+        description: "Вы не будете получать уведомления браузера. Вы можете включить их в настройках браузера.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const sendTestNotification = async () => {
-    try {
-      await spiritualPathAPI.sendTestNotification();
+    // Если включены уведомления браузера, проверяем разрешение
+    if (settings.enabled && permissionStatus !== "granted") {
+      await requestBrowserPermission();
+      return;
+    }
+
+    // Отправляем тестовое уведомление браузера, если разрешено
+    if (settings.enabled && permissionStatus === "granted") {
+      try {
+        new Notification("Умные уведомления", {
+          body: "Это тестовое уведомление. Ваши настройки работают корректно!",
+          icon: "/logo.svg",
+          badge: "/logo.svg",
+          tag: "smart-notification-test",
+        });
+      } catch (error) {
+        console.error("Error showing browser notification:", error);
+      }
+    }
+
+    // Отправляем через Telegram API, если включено
+    if (settings.telegram_enabled) {
+      try {
+        await spiritualPathAPI.sendTestNotification();
+        toast({
+          title: "Тестовое уведомление отправлено",
+          description: "Проверьте Telegram и уведомления браузера",
+        });
+      } catch (error) {
+        console.error("Error sending test notification:", error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось отправить Telegram уведомление. Убедитесь, что уведомления включены.",
+          variant: "destructive",
+        });
+      }
+    } else if (settings.enabled && permissionStatus === "granted") {
       toast({
         title: "Тестовое уведомление отправлено",
-        description: "Проверьте Telegram",
+        description: "Проверьте уведомления браузера",
       });
-    } catch (error) {
-      console.error("Error sending test notification:", error);
+    } else {
       toast({
-        title: "Ошибка",
-        description: "Не удалось отправить уведомление. Убедитесь, что уведомления включены.",
+        title: "Уведомления не настроены",
+        description: "Включите уведомления и разрешите их в браузере",
         variant: "destructive",
       });
     }
@@ -137,6 +204,31 @@ export const SmartNotifications = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Статус разрешений браузера */}
+          {permissionStatus !== "granted" && (
+            <div className="p-4 rounded-lg border border-yellow-500/20 bg-yellow-500/10">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm font-medium">
+                    {permissionStatus === "default" 
+                      ? "Для работы уведомлений необходимо разрешение браузера"
+                      : "Разрешение на уведомления отклонено"}
+                  </p>
+                  {permissionStatus === "default" ? (
+                    <Button onClick={requestBrowserPermission} size="sm" variant="outline">
+                      Разрешить уведомления
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Включите уведомления в настройках браузера: Настройки → Конфиденциальность → Уведомления
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Включить/выключить уведомления */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
@@ -150,7 +242,13 @@ export const SmartNotifications = () => {
             <Switch
               id="notifications-enabled"
               checked={settings.enabled}
-              onCheckedChange={(checked) => handleToggle("enabled", checked)}
+              onCheckedChange={(checked) => {
+                if (checked && permissionStatus !== "granted") {
+                  requestBrowserPermission();
+                } else {
+                  handleToggle("enabled", checked);
+                }
+              }}
             />
           </div>
 
@@ -262,7 +360,7 @@ export const SmartNotifications = () => {
           )}
 
           {/* Тестовое уведомление */}
-          {settings.enabled && settings.telegram_enabled && (
+          {settings.enabled && (
             <Button onClick={sendTestNotification} variant="outline" className="w-full">
               <Bell className="w-4 h-4 mr-2" />
               Отправить тестовое уведомление

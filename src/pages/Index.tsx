@@ -128,20 +128,25 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl pb-24 sm:pb-6 w-full overflow-x-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Улучшенная навигация с кнопками прокрутки */}
+          {/* Профессиональная навигация с улучшенным дизайном */}
           <div className="relative mb-6">
+            {/* Фоновое свечение для глубины */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 rounded-3xl blur-2xl opacity-60 -z-10" />
+            
             {/* Кнопка прокрутки влево */}
             {showLeftGradient && (
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "absolute left-0 top-1/2 -translate-y-1/2 z-20",
-                  "h-10 w-10 rounded-full",
-                  "bg-white/90 backdrop-blur-sm shadow-md",
+                  "absolute left-2 top-1/2 -translate-y-1/2 z-30",
+                  "h-9 w-9 rounded-full",
+                  "bg-white/95 backdrop-blur-md shadow-lg",
                   "border border-primary/20",
-                  "hover:bg-white hover:shadow-lg",
-                  "transition-all duration-200"
+                  "hover:bg-white hover:shadow-xl hover:scale-110",
+                  "active:scale-95",
+                  "transition-all duration-300",
+                  "group"
                 )}
                 onClick={() => {
                   if (tabsListRef.current) {
@@ -150,7 +155,7 @@ const Index = () => {
                   }
                 }}
               >
-                <ChevronLeft className="h-5 w-5 text-primary" />
+                <ChevronLeft className="h-4 w-4 text-primary group-hover:text-primary/80 transition-colors" />
               </Button>
             )}
 
@@ -160,12 +165,14 @@ const Index = () => {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "absolute right-0 top-1/2 -translate-y-1/2 z-20",
-                  "h-10 w-10 rounded-full",
-                  "bg-white/90 backdrop-blur-sm shadow-md",
+                  "absolute right-2 top-1/2 -translate-y-1/2 z-30",
+                  "h-9 w-9 rounded-full",
+                  "bg-white/95 backdrop-blur-md shadow-lg",
                   "border border-primary/20",
-                  "hover:bg-white hover:shadow-lg",
-                  "transition-all duration-200"
+                  "hover:bg-white hover:shadow-xl hover:scale-110",
+                  "active:scale-95",
+                  "transition-all duration-300",
+                  "group"
                 )}
                 onClick={() => {
                   if (tabsListRef.current) {
@@ -174,30 +181,30 @@ const Index = () => {
                   }
                 }}
               >
-                <ChevronRight className="h-5 w-5 text-primary" />
+                <ChevronRight className="h-4 w-4 text-primary group-hover:text-primary/80 transition-colors" />
               </Button>
             )}
 
-            {/* Градиентные индикаторы прокрутки */}
+            {/* Улучшенные градиентные индикаторы прокрутки */}
             {showLeftGradient && (
-              <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-background via-background/90 to-transparent z-10 pointer-events-none transition-opacity duration-300" />
+              <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-background via-background/95 to-transparent z-20 pointer-events-none transition-opacity duration-300" />
             )}
             {showRightGradient && (
-              <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-background via-background/90 to-transparent z-10 pointer-events-none transition-opacity duration-300" />
+              <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-background via-background/95 to-transparent z-20 pointer-events-none transition-opacity duration-300" />
             )}
             
             <TabsList 
               ref={tabsListRef}
               className={cn(
                 "relative flex items-center",
-                "px-2 sm:px-4 py-2 gap-1.5 sm:gap-2",
+                "px-3 sm:px-5 py-2.5 gap-2 sm:gap-3",
                 "overflow-x-auto overflow-y-hidden",
-                "bg-gradient-to-r from-white via-white to-white",
-                "rounded-2xl",
-                "shadow-md shadow-primary/5",
-                "border border-primary/10",
+                "bg-white/95 backdrop-blur-xl",
+                "rounded-3xl",
+                "shadow-xl shadow-primary/10",
+                "border border-primary/15",
                 "scroll-smooth snap-x snap-mandatory",
-                "min-h-[48px]",
+                "min-h-[52px] sm:min-h-[56px]",
                 "no-scrollbar",
                 "w-full",
                 "max-w-full"
@@ -210,201 +217,45 @@ const Index = () => {
                 msOverflowStyle: 'none',
                 display: 'flex',
                 flexWrap: 'nowrap',
-                paddingLeft: showLeftGradient ? '2.5rem' : undefined,
-                paddingRight: showRightGradient ? '2.5rem' : undefined
+                paddingLeft: showLeftGradient ? '3rem' : undefined,
+                paddingRight: showRightGradient ? '3rem' : undefined
               }}
             >
-              <TabsTrigger 
-                value="plan"
-                className={cn(
-                  "flex-shrink-0",
-                  "px-3 sm:px-4 py-2",
-                  "text-xs sm:text-sm font-medium",
-                  "rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "snap-start",
-                  "relative",
-                  "text-foreground/60 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-95",
-                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-105",
-                  "data-[state=active]:font-semibold"
-                )}
-              >
-                План
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="plan"
-                className={cn(
-                  "flex-shrink-0",
-                  "px-3 sm:px-4 py-2",
-                  "text-xs sm:text-sm font-medium",
-                  "rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "snap-start",
-                  "relative",
-                  "text-foreground/60 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-95",
-                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-105",
-                  "data-[state=active]:font-semibold"
-                )}
-              >
-                План
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="progress"
-                className={cn(
-                  "flex-shrink-0",
-                  "px-3 sm:px-4 py-2",
-                  "text-xs sm:text-sm font-medium",
-                  "rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "snap-start",
-                  "relative",
-                  "text-foreground/60 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-95",
-                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-105",
-                  "data-[state=active]:font-semibold"
-                )}
-              >
-                Прогресс
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="travel"
-                className={cn(
-                  "flex-shrink-0",
-                  "px-3 sm:px-4 py-2",
-                  "text-xs sm:text-sm font-medium",
-                  "rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "snap-start",
-                  "relative",
-                  "text-foreground/60 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-95",
-                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-105",
-                  "data-[state=active]:font-semibold"
-                )}
-              >
-                Сафар
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="reports"
-                className={cn(
-                  "flex-shrink-0",
-                  "px-3 sm:px-4 py-2",
-                  "text-xs sm:text-sm font-medium",
-                  "rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "snap-start",
-                  "relative",
-                  "text-foreground/60 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-95",
-                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-105",
-                  "data-[state=active]:font-semibold"
-                )}
-              >
-                Отчёты
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="calculator"
-                className={cn(
-                  "flex-shrink-0",
-                  "px-3 sm:px-4 py-2",
-                  "text-xs sm:text-sm font-medium",
-                  "rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "snap-start",
-                  "relative",
-                  "text-foreground/60 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-95",
-                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-105",
-                  "data-[state=active]:font-semibold"
-                )}
-              >
-                Калькулятор
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="goals"
-                className={cn(
-                  "flex-shrink-0",
-                  "px-3 sm:px-4 py-2",
-                  "text-xs sm:text-sm font-medium",
-                  "rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "snap-start",
-                  "relative",
-                  "text-foreground/60 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-95",
-                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-105",
-                  "data-[state=active]:font-semibold"
-                )}
-              >
-                Цели
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="calendar"
-                className={cn(
-                  "flex-shrink-0",
-                  "px-3 sm:px-4 py-2",
-                  "text-xs sm:text-sm font-medium",
-                  "rounded-xl",
-                  "transition-all duration-300 ease-out",
-                  "whitespace-nowrap",
-                  "snap-start",
-                  "relative",
-                  "text-foreground/60 bg-transparent",
-                  "hover:text-foreground hover:bg-primary/8",
-                  "active:scale-95",
-                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90",
-                  "data-[state=active]:text-white",
-                  "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30",
-                  "data-[state=active]:scale-105",
-                  "data-[state=active]:font-semibold"
-                )}
-              >
-                Календарь
-              </TabsTrigger>
+              {[
+                { value: "plan", label: "План" },
+                { value: "progress", label: "Прогресс" },
+                { value: "travel", label: "Сафар" },
+                { value: "reports", label: "Отчёты" },
+                { value: "calculator", label: "Калькулятор" },
+                { value: "goals", label: "Цели" },
+                { value: "calendar", label: "Календарь" },
+              ].map((tab) => (
+                <TabsTrigger 
+                  key={tab.value}
+                  value={tab.value}
+                  className={cn(
+                    "flex-shrink-0",
+                    "px-4 sm:px-5 py-2.5",
+                    "text-sm sm:text-base font-medium",
+                    "rounded-2xl",
+                    "transition-all duration-300 ease-out",
+                    "whitespace-nowrap",
+                    "snap-start",
+                    "relative",
+                    "text-foreground/70 bg-transparent",
+                    "hover:text-foreground hover:bg-primary/10",
+                    "active:scale-[0.97]",
+                    "data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:via-primary data-[state=active]:to-primary/90",
+                    "data-[state=active]:text-white",
+                    "data-[state=active]:shadow-lg data-[state=active]:shadow-primary/40",
+                    "data-[state=active]:scale-[1.02]",
+                    "data-[state=active]:font-semibold",
+                    "data-[state=active]:before:absolute data-[state=active]:before:inset-0 data-[state=active]:before:rounded-2xl data-[state=active]:before:bg-gradient-to-br data-[state=active]:before:from-white/20 data-[state=active]:before:to-transparent data-[state=active]:before:pointer-events-none"
+                  )}
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </div>
 

@@ -54,6 +54,7 @@ export const AdhkarSectionV2 = () => {
     try {
       // Используем getAvailableItemsByCategory с fallback на локальные данные
       let data: any[] = [];
+      let hasError = false;
       
       try {
         // Сначала пробуем получить из API
@@ -62,34 +63,64 @@ export const AdhkarSectionV2 = () => {
           data = apiData;
         } else {
           // Если API вернул пустой массив, используем fallback
-          const fallbackData = await getAvailableItemsByCategory("adhkar");
-          data = fallbackData.map(item => ({
-            id: item.id,
-            title: item.title || "",
-            arabic: item.arabic || "",
-            transcription: item.transcription || "",
-            russianTranscription: item.russianTranscription,
-            translation: item.translation || "",
-            count: item.count || 33,
-            category: "general",
-            audioUrl: item.audioUrl || null,
-          }));
+          try {
+            const fallbackData = await getAvailableItemsByCategory("adhkar");
+            if (fallbackData && fallbackData.length > 0) {
+              data = fallbackData.map(item => ({
+                id: item.id,
+                title: item.title || "",
+                arabic: item.arabic || "",
+                transcription: item.transcription || "",
+                russianTranscription: item.russianTranscription,
+                translation: item.translation || "",
+                count: item.count || 33,
+                category: "general",
+                audioUrl: item.audioUrl || null,
+              }));
+            } else {
+              hasError = true;
+            }
+          } catch (fallbackError) {
+            console.warn("Fallback также не сработал:", fallbackError);
+            hasError = true;
+          }
         }
       } catch (apiError) {
         // Если API недоступен, используем fallback
         console.warn("API недоступен, используем локальные данные:", apiError);
-        const fallbackData = await getAvailableItemsByCategory("adhkar");
-        data = fallbackData.map(item => ({
-          id: item.id,
-          title: item.title || "",
-          arabic: item.arabic || "",
-          transcription: item.transcription || "",
-          russianTranscription: item.russianTranscription,
-          translation: item.translation || "",
-          count: item.count || 33,
-          category: "general",
-          audioUrl: item.audioUrl || null,
-        }));
+        try {
+          const fallbackData = await getAvailableItemsByCategory("adhkar");
+          if (fallbackData && fallbackData.length > 0) {
+            data = fallbackData.map(item => ({
+              id: item.id,
+              title: item.title || "",
+              arabic: item.arabic || "",
+              transcription: item.transcription || "",
+              russianTranscription: item.russianTranscription,
+              translation: item.translation || "",
+              count: item.count || 33,
+              category: "general",
+              audioUrl: item.audioUrl || null,
+            }));
+          } else {
+            hasError = true;
+          }
+        } catch (fallbackError) {
+          console.error("Fallback также не сработал:", fallbackError);
+          hasError = true;
+        }
+      }
+
+      if (hasError || data.length === 0) {
+        // Если все попытки не удались, показываем ошибку
+        setCategories([]);
+        setAdhkar([]);
+        toast({
+          title: "Не удалось загрузить азкары",
+          description: "Проверьте подключение к интернету и попробуйте обновить страницу",
+          variant: "destructive",
+        });
+        return;
       }
 
       setAdhkar(data);
@@ -129,6 +160,11 @@ export const AdhkarSectionV2 = () => {
       // В случае ошибки показываем хотя бы пустые категории
       setCategories([]);
       setAdhkar([]);
+      toast({
+        title: "Ошибка загрузки",
+        description: "Не удалось загрузить азкары. Пожалуйста, попробуйте позже.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -261,11 +297,16 @@ export const AdhkarSectionV2 = () => {
           {/* Сообщение если нет данных */}
           {categories.length === 0 && !loading && (
             <Card className="bg-gradient-card border-border/50">
-              <CardContent className="p-6 text-center">
-                <p className="text-muted-foreground mb-2">Азкары временно недоступны</p>
-                <p className="text-sm text-muted-foreground">
-                  Пожалуйста, проверьте подключение к интернету или попробуйте позже
-                </p>
+              <CardContent className="p-6 text-center space-y-4">
+                <div>
+                  <p className="text-muted-foreground mb-2 font-medium">Азкары временно недоступны</p>
+                  <p className="text-sm text-muted-foreground">
+                    Пожалуйста, проверьте подключение к интернету или попробуйте позже
+                  </p>
+                </div>
+                <Button onClick={loadAdhkar} variant="outline" size="sm">
+                  Попробовать снова
+                </Button>
               </CardContent>
             </Card>
           )}
