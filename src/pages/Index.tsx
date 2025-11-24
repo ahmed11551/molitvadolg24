@@ -132,15 +132,17 @@ const Index = () => {
               ref={tabsListRef}
               className={cn(
                 "relative flex w-full h-auto items-center",
-                "px-2 sm:px-4 py-2.5 gap-1.5 sm:gap-2.5",
+                "px-1 sm:px-4 py-2 sm:py-2.5 gap-0.5 sm:gap-2.5",
                 "overflow-x-auto overflow-y-visible",
                 "bg-white/95 backdrop-blur-md",
                 "rounded-2xl border border-border/60",
                 "shadow-lg shadow-primary/5",
                 "scroll-smooth snap-x snap-proximity",
-                "min-h-[48px] sm:min-h-[52px]",
+                "min-h-[44px] sm:min-h-[52px]",
                 "tabs-scroll-container",
-                "no-scrollbar"
+                "no-scrollbar",
+                // На мобильных делаем равномерное распределение
+                "sm:justify-start"
               )}
               style={{ 
                 WebkitOverflowScrolling: 'touch',
@@ -153,12 +155,13 @@ const Index = () => {
               <TabsTrigger 
                 value="plan"
                 className={cn(
-                  "flex-shrink-0 flex items-center justify-center",
-                  "w-auto min-w-fit px-3 sm:px-6 py-2 sm:py-3",
+                  "flex items-center justify-center",
+                  "flex-1 sm:flex-none sm:w-auto sm:min-w-fit",
+                  "px-1.5 sm:px-6 py-1.5 sm:py-3",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-[11px] sm:text-sm font-semibold",
+                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -183,12 +186,13 @@ const Index = () => {
               <TabsTrigger 
                 value="progress"
                 className={cn(
-                  "flex-shrink-0 flex items-center justify-center",
-                  "w-auto min-w-fit px-3 sm:px-6 py-2 sm:py-3",
+                  "flex items-center justify-center",
+                  "flex-1 sm:flex-none sm:w-auto sm:min-w-fit",
+                  "px-1.5 sm:px-6 py-1.5 sm:py-3",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-[11px] sm:text-sm font-semibold",
+                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -213,12 +217,13 @@ const Index = () => {
               <TabsTrigger 
                 value="travel"
                 className={cn(
-                  "flex-shrink-0 flex items-center justify-center",
-                  "w-auto min-w-fit px-3 sm:px-6 py-2 sm:py-3",
+                  "flex items-center justify-center",
+                  "flex-1 sm:flex-none sm:w-auto sm:min-w-fit",
+                  "px-1.5 sm:px-6 py-1.5 sm:py-3",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-[11px] sm:text-sm font-semibold",
+                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -243,12 +248,13 @@ const Index = () => {
               <TabsTrigger 
                 value="reports"
                 className={cn(
-                  "flex-shrink-0 flex items-center justify-center",
-                  "w-auto min-w-fit px-3 sm:px-6 py-2 sm:py-3",
+                  "flex items-center justify-center",
+                  "flex-1 sm:flex-none sm:w-auto sm:min-w-fit",
+                  "px-1.5 sm:px-6 py-1.5 sm:py-3",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-[11px] sm:text-sm font-semibold",
+                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -273,12 +279,13 @@ const Index = () => {
               <TabsTrigger 
                 value="calculator"
                 className={cn(
-                  "flex-shrink-0 flex items-center justify-center",
-                  "w-auto min-w-fit px-3 sm:px-6 py-2 sm:py-3",
+                  "flex items-center justify-center",
+                  "flex-1 sm:flex-none sm:w-auto sm:min-w-fit",
+                  "px-1.5 sm:px-6 py-1.5 sm:py-3",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-[11px] sm:text-sm font-semibold",
+                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -303,12 +310,13 @@ const Index = () => {
               <TabsTrigger 
                 value="goals"
                 className={cn(
-                  "flex-shrink-0 flex items-center justify-center",
-                  "w-auto min-w-fit px-3 sm:px-6 py-2 sm:py-3",
+                  "flex items-center justify-center",
+                  "flex-1 sm:flex-none sm:w-auto sm:min-w-fit",
+                  "px-1.5 sm:px-6 py-1.5 sm:py-3",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-[11px] sm:text-sm font-semibold",
+                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state

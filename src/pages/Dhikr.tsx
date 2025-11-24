@@ -22,7 +22,7 @@ const Dhikr = () => {
     <div className="min-h-screen bg-gradient-hero pb-20">
       <MainHeader />
 
-      <main className="container mx-auto px-4 py-6 max-w-5xl">
+      <main className="container mx-auto px-3 sm:px-4 py-6 max-w-5xl w-full overflow-x-hidden">
         <Tabs defaultValue={goalId ? "goals" : "dua"} className="w-full">
           {/* Enhanced Tabs Container */}
           <div className="relative mb-6 overflow-visible">
@@ -31,23 +31,26 @@ const Dhikr = () => {
             
             <TabsList className={cn(
               "relative flex w-full h-auto items-center",
-              "px-2 sm:px-3 py-2 gap-1.5 sm:gap-2",
+              "px-1 sm:px-3 py-2 gap-0.5 sm:gap-2",
               "overflow-x-auto overflow-y-visible",
               "bg-white/95 backdrop-blur-md",
               "rounded-2xl border border-border/60",
               "shadow-lg shadow-primary/5",
               "scroll-smooth snap-x snap-mandatory",
-              "min-h-[48px] sm:min-h-[52px]"
+              "min-h-[44px] sm:min-h-[52px]",
+              "no-scrollbar",
+              "sm:justify-start"
             )}>
               <TabsTrigger 
                 value="dua"
                 className={cn(
-                  "flex-shrink-0 flex items-center justify-center",
-                  "min-w-[70px] sm:min-w-[80px] px-3 sm:px-5 py-2 sm:py-2.5",
+                  "flex items-center justify-center",
+                  "flex-1 sm:flex-none sm:min-w-[80px]",
+                  "px-1.5 sm:px-5 py-1.5 sm:py-2.5",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-xs sm:text-sm font-semibold",
+                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -72,12 +75,13 @@ const Dhikr = () => {
               <TabsTrigger 
                 value="adhkar"
                 className={cn(
-                  "flex-shrink-0 flex items-center justify-center",
-                  "min-w-[75px] sm:min-w-[90px] px-3 sm:px-5 py-2 sm:py-2.5",
+                  "flex items-center justify-center",
+                  "flex-1 sm:flex-none sm:min-w-[90px]",
+                  "px-1.5 sm:px-5 py-1.5 sm:py-2.5",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-xs sm:text-sm font-semibold",
+                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -102,12 +106,13 @@ const Dhikr = () => {
               <TabsTrigger 
                 value="salawat"
                 className={cn(
-                  "flex-shrink-0 flex items-center justify-center",
-                  "min-w-[85px] sm:min-w-[100px] px-3 sm:px-5 py-2 sm:py-2.5",
+                  "flex items-center justify-center",
+                  "flex-1 sm:flex-none sm:min-w-[100px]",
+                  "px-1.5 sm:px-5 py-1.5 sm:py-2.5",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-xs sm:text-sm font-semibold",
+                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -132,12 +137,13 @@ const Dhikr = () => {
               <TabsTrigger 
                 value="kalima"
                 className={cn(
-                  "flex-shrink-0 flex items-center justify-center",
-                  "min-w-[75px] sm:min-w-[90px] px-3 sm:px-5 py-2 sm:py-2.5",
+                  "flex items-center justify-center",
+                  "flex-1 sm:flex-none sm:min-w-[90px]",
+                  "px-1.5 sm:px-5 py-1.5 sm:py-2.5",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-xs sm:text-sm font-semibold",
+                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
@@ -162,12 +168,13 @@ const Dhikr = () => {
               <TabsTrigger 
                 value="goals"
                 className={cn(
-                  "flex-shrink-0 flex items-center justify-center",
-                  "min-w-[90px] sm:min-w-[110px] px-3 sm:px-5 py-2 sm:py-2.5",
+                  "flex items-center justify-center",
+                  "flex-1 sm:flex-none sm:min-w-[110px]",
+                  "px-1.5 sm:px-5 py-1.5 sm:py-2.5",
                   "text-center rounded-xl",
                   "transition-all duration-300 ease-out",
                   "whitespace-nowrap",
-                  "text-xs sm:text-sm font-semibold",
+                  "text-[10px] sm:text-sm font-semibold",
                   "snap-start",
                   "overflow-visible",
                   // Inactive state
