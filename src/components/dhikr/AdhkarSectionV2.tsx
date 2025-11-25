@@ -112,14 +112,9 @@ export const AdhkarSectionV2 = () => {
       }
 
       if (hasError || data.length === 0) {
-        // Если все попытки не удались, показываем ошибку
+        // Если все попытки не удались, показываем сообщение в интерфейсе
         setCategories([]);
         setAdhkar([]);
-        toast({
-          title: "Не удалось загрузить азкары",
-          description: "Проверьте подключение к интернету и попробуйте обновить страницу",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -160,11 +155,6 @@ export const AdhkarSectionV2 = () => {
       // В случае ошибки показываем хотя бы пустые категории
       setCategories([]);
       setAdhkar([]);
-      toast({
-        title: "Ошибка загрузки",
-        description: "Не удалось загрузить азкары. Пожалуйста, попробуйте позже.",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
