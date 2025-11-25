@@ -137,3 +137,38 @@ export interface OfflineEvent {
   synced: boolean;
 }
 
+export type FocusMood = "calm" | "gratitude" | "energy" | "healing" | "repentance";
+
+export type FocusRitualStepType = "dhikr" | "breath" | "reflection";
+
+export interface FocusRitualStep {
+  id: string;
+  type: FocusRitualStepType;
+  title: string;
+  instructions: string;
+  target_count?: number;
+  breath_pattern?: string;
+  duration_sec?: number;
+}
+
+export interface FocusRitual {
+  id: string;
+  title: string;
+  intent: string;
+  mood: FocusMood;
+  color?: string;
+  auto_tempo?: number;
+  steps: FocusRitualStep[];
+  is_custom?: boolean;
+}
+
+export interface FocusSessionEntry {
+  id: string;
+  ritual_id?: string;
+  ritual_title?: string;
+  mood: FocusMood;
+  reflections?: string;
+  total_count?: number;
+  created_at: string; // ISO
+}
+

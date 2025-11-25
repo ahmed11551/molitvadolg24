@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState, useEffect } from "react";
 import { Search, ChevronDown, ChevronUp, ChevronRight, Loader2 } from "lucide-react";
 import { getAvailableItemsByCategory, getAyahs, getSurahs, getNamesOfAllah } from "@/lib/dhikr-data";
 import type { GoalCategory } from "@/types/spiritual-path";

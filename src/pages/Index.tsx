@@ -16,9 +16,11 @@ import { WelcomeDialog } from "@/components/qaza/WelcomeDialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DiscoverSection } from "@/components/discover/DiscoverSection";
+import { OverviewDashboard } from "@/components/dashboard/OverviewDashboard";
+import { FastingTracker } from "@/components/qaza/FastingTracker";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("plan");
+  const [activeTab, setActiveTab] = useState("overview");
   const tabsListRef = useRef<HTMLDivElement>(null);
   const [showLeftGradient, setShowLeftGradient] = useState(false);
   const [showRightGradient, setShowRightGradient] = useState(true);
@@ -168,8 +170,10 @@ const Index = () => {
                 )}
               >
                 {[
+                  { value: "overview", label: "Обзор" },
                   { value: "plan", label: "План" },
                   { value: "progress", label: "Прогресс" },
+                  { value: "fasting", label: "Посты" },
                   { value: "travel", label: "Сафар" },
                   { value: "reports", label: "Отчёты" },
                   { value: "calculator", label: "Калькулятор" },
@@ -198,12 +202,20 @@ const Index = () => {
             </div>
           </div>
 
+          <TabsContent value="overview">
+            <OverviewDashboard />
+          </TabsContent>
+
           <TabsContent value="plan">
             <RepaymentPlanSection />
           </TabsContent>
 
           <TabsContent value="progress">
             <ProgressSection />
+          </TabsContent>
+
+          <TabsContent value="fasting">
+            <FastingTracker />
           </TabsContent>
 
           <TabsContent value="travel">

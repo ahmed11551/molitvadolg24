@@ -6,6 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -13,6 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Play,
   Pause,
@@ -27,12 +38,30 @@ import {
   Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useFocusRituals } from "@/hooks/useFocusRituals";
 import { smartTasbihAPI, eReplikaAPI, spiritualPathAPI } from "@/lib/api";
 import { initOfflineQueue, addOfflineEvent, getUnsyncedEvents, syncOfflineEvents } from "@/lib/offline-queue";
 import { getAvailableItemsByCategory } from "@/lib/dhikr-data";
-import type { Category, GoalType, PrayerSegment, TasbihGoal, TasbihSession, DailyAzkar } from "@/types/smart-tasbih";
+import type {
+  Category,
+  GoalType,
+  PrayerSegment,
+  TasbihGoal,
+  TasbihSession,
+  DailyAzkar,
+  FocusMood,
+  FocusRitual,
+} from "@/types/smart-tasbih";
 import type { Goal } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
+import { getMoodLabel } from "@/lib/focus-rituals";
+import {
+  loadFavoriteTasbihItems,
+  loadPendingTasbih,
+  removePendingTasbih,
+  toggleFavoriteTasbihItem,
+  upsertPendingTasbih,
+} from "@/lib/tasbih-storage";
 import { hapticFeedback, showTelegramNotification } from "@/lib/telegram";
 
 interface SmartTasbihV2Props {
@@ -47,8 +76,46 @@ const PRAYER_SEGMENTS: Array<{ value: PrayerSegment; label: string; icon: string
   { value: "isha", label: "Иша", icon: "🌙" },
 ];
 
+const MOOD_OPTIONS: Array<{ value: FocusMood; label: string; emoji: string }> = [
+  { value: "calm", label: "Спокойствие", emoji: "🌿" },
+  { value: "gratitude", label: "Благодарность", emoji: "🤲" },
+  { value: "energy", label: "Энергия", emoji: "⚡" },
+  { value: "healing", label: "Исцеление", emoji: "💧" },
+  { value: "repentance", label: "Истигфар", emoji: "🕊️" },
+];
+
+const randomId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const formatTimeAgo = (timestamp: number) => {
+  const diff = Date.now() - timestamp;
+  if (diff < 60_000) {
+    return `${Math.max(1, Math.round(diff / 1000))} c назад`;
+  }
+  if (diff < 3_600_000) {
+    return `${Math.round(diff / 60_000)} мин назад`;
+  }
+  return `${Math.round(diff / 3_600_000)} ч назад`;
+};
+
+const formatJournalDate = (iso: string) => {
+  try {
+    return new Date(iso).toLocaleString("ru-RU", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+};
+
 export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
   const { toast } = useToast();
+  const { rituals, saveCustom, journal, addJournalEntry } = useFocusRituals();
   const [loading, setLoading] = useState(true);
   const [activeGoal, setActiveGoal] = useState<TasbihGoal | null>(null);
   const [activeSession, setActiveSession] = useState<TasbihSession | null>(null);
@@ -64,6 +131,29 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
   const [lastTapTime, setLastTapTime] = useState(0);
   const [loadingItems, setLoadingItems] = useState(false);
   const [spiritualPathGoals, setSpiritualPathGoals] = useState<Goal[]>([]);
+  const [sessionMood, setSessionMood] = useState<FocusMood>("calm");
+  const [sessionReflection, setSessionReflection] = useState("");
+  const [customRitualTitle, setCustomRitualTitle] = useState("");
+  const [customRitualIntent, setCustomRitualIntent] = useState("");
+  const [customRitualCount, setCustomRitualCount] = useState("33");
+  const [customRitualMood, setCustomRitualMood] = useState<FocusMood>("gratitude");
+  const [activeRitualId, setActiveRitualId] = useState<string | null>(null);
+  const [ritualStepIndex, setRitualStepIndex] = useState(0);
+  const [autoMode, setAutoMode] = useState(false);
+  const [autoTempo, setAutoTempo] = useState(60);
+  const autoTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [recentEvents, setRecentEvents] = useState<
+    Array<{ id: string; delta: number; timestamp: number; source: "manual" | "auto" | "bulk" }>
+  >([]);
+  const [favoriteItemIds, setFavoriteItemIds] = useState<string[]>(() => loadFavoriteTasbihItems());
+  const [manualTarget, setManualTarget] = useState(33);
+  const [manualPickerOpen, setManualPickerOpen] = useState<string | null>("manual");
+
+  useEffect(() => {
+    if (selectedItem?.count) {
+      setManualTarget(selectedItem.count);
+    }
+  }, [selectedItem]);
 
   // Инициализация
   useEffect(() => {
@@ -93,6 +183,36 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
       loadCategoryItems();
     }
   }, [selectedCategory]);
+
+  const tasbihLinkedGoals = useMemo(
+    () =>
+      spiritualPathGoals.filter(
+        (goal) =>
+          goal.category === "zikr" ||
+          goal.category === "names_of_allah" ||
+          goal.category === "quran" ||
+          goal.linked_counter_type
+      ),
+    [spiritualPathGoals]
+  );
+
+  const handleStartFromSpiritualGoal = async (goal: Goal) => {
+    const tasbihGoal: TasbihGoal = {
+      id: goal.id,
+      user_id: goal.user_id,
+      category: (goal.item_type as Category) || "dua",
+      item_id: goal.item_id,
+      goal_type: goal.metric === "count" ? "recite" : "learn",
+      target_count: goal.target_value || 33,
+      progress: goal.current_value || 0,
+      status: goal.status as any,
+      prayer_segment: "none",
+      created_at: goal.created_at,
+      updated_at: goal.updated_at,
+    };
+    setActiveGoal(tasbihGoal);
+    await startSessionForGoal(tasbihGoal);
+  };
 
   const init = async () => {
     setLoading(true);
@@ -180,6 +300,11 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
     return spiritualPathGoals.filter(g => g.linked_counter_type === counterType);
   }, [selectedCategory, selectedItem, spiritualPathGoals]);
 
+  const activeRitual = useMemo(
+    () => rituals.find((ritual) => ritual.id === activeRitualId) || null,
+    [rituals, activeRitualId]
+  );
+
   const loadCategoryItems = async () => {
     setLoadingItems(true);
     try {
@@ -240,104 +365,146 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
           console.error("Error loading item data:", error);
         }
       }
+
+      upsertPendingTasbih({
+        id: goal.id,
+        sessionId: session.id,
+        title: goal.item_data?.translation || goal.item_data?.arabic || goal.item_id || goal.id,
+        current: goal.progress,
+        target: goal.target_count,
+        category: goal.category,
+        fromGoal: true,
+      });
     } catch (error) {
       console.error("Error starting session:", error);
     }
   };
 
-  const handleTap = useCallback(async (delta: number = 1) => {
-    // Защита от спама (не чаще 2 раз в секунду)
-    const now = Date.now();
-    if (now - lastTapTime < 500) {
-      return;
-    }
-    setLastTapTime(now);
+  const handleTap = useCallback(
+    async (
+      delta: number = 1,
+      options?: { skipThrottle?: boolean; source?: "manual" | "bulk" | "auto" }
+    ) => {
+      const now = Date.now();
+      if (!options?.skipThrottle) {
+        if (now - lastTapTime < 500) {
+          return;
+        }
+        setLastTapTime(now);
+      }
 
-    if (!activeSession) {
-      toast({
-        title: "Ошибка",
-        description: "Сессия не начата",
-        variant: "destructive",
-      });
-      return;
-    }
+      if (!activeSession) {
+        toast({
+          title: "Ошибка",
+          description: "Сессия не начата",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    const newCount = currentCount + delta;
-    setCurrentCount(newCount);
+      const newCount = currentCount + delta;
+      setCurrentCount(newCount);
 
-    // Тактильная обратная связь
-    hapticFeedback("light");
+      hapticFeedback(options?.source === "auto" ? "selection" : "light");
 
-    try {
-      const offline_id = await addOfflineEvent("tap", {
-        session_id: activeSession.id,
-        delta,
-        event_type: "tap",
-        prayer_segment: activeSession.prayer_segment,
-      });
+      try {
+        const offline_id = await addOfflineEvent("tap", {
+          session_id: activeSession.id,
+          delta,
+          event_type: "tap",
+          prayer_segment: activeSession.prayer_segment,
+        });
 
-      const response = await smartTasbihAPI.counterTap({
-        session_id: activeSession.id,
-        delta,
-        event_type: "tap",
-        offline_id,
-        prayer_segment: activeSession.prayer_segment,
-      });
+        const response = await smartTasbihAPI.counterTap({
+          session_id: activeSession.id,
+          delta,
+          event_type: "tap",
+          offline_id,
+          prayer_segment: activeSession.prayer_segment,
+        });
 
-      // Обновляем состояние
-      if (response.goal_progress) {
-        if (activeGoal) {
-          setActiveGoal({
-            ...activeGoal,
-            progress: response.goal_progress.progress,
-            status: response.goal_progress.is_completed ? "completed" : "active",
-          });
+        if (response.goal_progress) {
+          if (activeGoal) {
+            setActiveGoal({
+              ...activeGoal,
+              progress: response.goal_progress.progress,
+              status: response.goal_progress.is_completed ? "completed" : "active",
+            });
+            upsertPendingTasbih({
+              id: activeGoal.id,
+              sessionId: activeSession.id,
+              title:
+                selectedItem?.translation ||
+                selectedItem?.title ||
+                activeGoal.item_id ||
+                "Тасбих",
+              current: response.goal_progress.progress,
+              target: activeGoal.target_count,
+              category: activeGoal.category,
+              fromGoal: true,
+            });
+          }
+
+          if (response.goal_progress.is_completed) {
+            removePendingTasbih(activeGoal?.id || "");
+            showTelegramNotification("success");
+            toast({
+              title: "Цель достигнута!",
+              description: "Ма ша Аллах!",
+            });
+          }
         }
 
-        if (response.goal_progress.is_completed) {
-          showTelegramNotification("success");
-          toast({
-            title: "Цель достигнута!",
-            description: "Ма ша Аллах!",
-          });
+        if (response.daily_azkar) {
+          setDailyAzkar(response.daily_azkar);
         }
-      }
 
-      if (response.daily_azkar) {
-        setDailyAzkar(response.daily_azkar);
-      }
-
-      // Синхронизация с целями из spiritual-path модуля
-      const counterType = getCounterType(selectedCategory, selectedItem);
-      if (counterType && delta > 0) {
-        try {
-          await spiritualPathAPI.syncCounter(counterType, delta);
-          // Обновляем список целей
-          await loadSpiritualPathGoals();
-        } catch (error) {
-          console.error("Error syncing with spiritual path goals:", error);
-          // Не показываем ошибку пользователю
+        const counterType = getCounterType(selectedCategory, selectedItem);
+        if (counterType && delta > 0) {
+          try {
+            await spiritualPathAPI.syncCounter(counterType, delta);
+            await loadSpiritualPathGoals();
+          } catch (error) {
+            console.error("Error syncing with spiritual path goals:", error);
+          }
         }
-      }
 
-      // Сохраняем последнее событие для Undo
-      setLastEvent({ delta, value_after: response.value_after });
-      setCanUndo(true);
+        setLastEvent({ delta, value_after: response.value_after });
+        setCanUndo(true);
 
-      // Таймер для Undo (5 секунд)
-      if (undoTimeout) {
-        clearTimeout(undoTimeout);
+        if (undoTimeout) {
+          clearTimeout(undoTimeout);
+        }
+        const timeout = setTimeout(() => {
+          setCanUndo(false);
+          setLastEvent(null);
+        }, 5000);
+        setUndoTimeout(timeout);
+
+        setRecentEvents((prev) => {
+          const event = {
+            id: randomId(),
+            delta,
+            timestamp: Date.now(),
+            source: options?.source || (delta > 1 ? "bulk" : "manual"),
+          };
+          return [event, ...prev].slice(0, 6);
+        });
+      } catch (error: any) {
+        console.error("Error tapping:", error);
       }
-      const timeout = setTimeout(() => {
-        setCanUndo(false);
-        setLastEvent(null);
-      }, 5000);
-      setUndoTimeout(timeout);
-    } catch (error: any) {
-      // Если ошибка, событие уже в офлайн-очереди
-      console.error("Error tapping:", error);
-    }
-  }, [activeSession, currentCount, lastTapTime, activeGoal, undoTimeout]);
+    },
+    [
+      activeSession,
+      currentCount,
+      lastTapTime,
+      activeGoal,
+      undoTimeout,
+      selectedCategory,
+      selectedItem,
+      toast,
+    ]
+  );
 
   const handleUndo = useCallback(async () => {
     if (!lastEvent || !activeSession) return;
@@ -376,9 +543,40 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
     }
   }, [lastEvent, activeSession, currentCount, undoTimeout]);
 
-  const handleBulkTap = useCallback((delta: number) => {
-    handleTap(delta);
-  }, [handleTap]);
+  const handleBulkTap = useCallback(
+    (delta: number) => {
+      handleTap(delta, { source: "bulk" });
+    },
+    [handleTap]
+  );
+
+  useEffect(() => {
+    if (!autoMode || !activeSession || isComplete) {
+      if (autoTimerRef.current) {
+        clearInterval(autoTimerRef.current);
+        autoTimerRef.current = null;
+      }
+      return;
+    }
+
+    const interval = Math.max(250, Math.round(60000 / Math.max(autoTempo, 20)));
+    autoTimerRef.current = setInterval(() => {
+      handleTap(1, { skipThrottle: true, source: "auto" });
+    }, interval);
+
+    return () => {
+      if (autoTimerRef.current) {
+        clearInterval(autoTimerRef.current);
+        autoTimerRef.current = null;
+      }
+    };
+  }, [autoMode, autoTempo, handleTap, activeSession, isComplete]);
+
+  useEffect(() => {
+    if ((!activeGoal || isComplete) && autoMode) {
+      setAutoMode(false);
+    }
+  }, [activeGoal, isComplete, autoMode]);
 
   const handleRepeat = useCallback(async () => {
     if (!activeGoal || activeGoal.goal_type !== "learn") return;
@@ -418,6 +616,7 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
         ...activeGoal,
         status: "completed",
       });
+      removePendingTasbih(activeGoal.id);
 
       hapticFeedback("heavy");
       showTelegramNotification("success");
@@ -450,6 +649,21 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
       });
 
       setCurrentCount(0);
+      if (activeGoal) {
+        upsertPendingTasbih({
+          id: activeGoal.id,
+          sessionId: activeSession.id,
+          title:
+            selectedItem?.translation ||
+            selectedItem?.title ||
+            activeGoal.item_id ||
+            "Тасбих",
+          current: 0,
+          target: activeGoal.target_count,
+          category: activeGoal.category,
+          fromGoal: true,
+        });
+      }
       hapticFeedback("medium");
       toast({
         title: "Сброшено",
@@ -477,6 +691,95 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
     }
   };
 
+  const handleStartRitual = (ritualId: string) => {
+    setActiveRitualId(ritualId);
+    setRitualStepIndex(0);
+    const ritual = rituals.find((r) => r.id === ritualId);
+    if (ritual?.auto_tempo) {
+      setAutoTempo(ritual.auto_tempo);
+      setAutoMode(true);
+    }
+    toast({
+      title: "Ритуал начат",
+      description: ritual?.intent || "Сфокусируйтесь на намерении",
+    });
+  };
+
+  const handleAdvanceRitualStep = () => {
+    if (!activeRitual) return;
+    const nextIndex = ritualStepIndex + 1;
+    if (nextIndex >= activeRitual.steps.length) {
+      handleSaveFocusMoment("ritual");
+      setActiveRitualId(null);
+      setRitualStepIndex(0);
+      setAutoMode(false);
+      toast({
+        title: "Ритуал завершен",
+        description: "Запись добавлена в журнал",
+      });
+      return;
+    }
+    setRitualStepIndex(nextIndex);
+  };
+
+  const handleSaveFocusMoment = (source: "manual" | "ritual" = "manual") => {
+    const entry = {
+      id: randomId(),
+      ritual_id: activeRitual?.id,
+      ritual_title: activeRitual?.title,
+      mood: sessionMood,
+      reflections:
+        sessionReflection.trim() ||
+        (source === "ritual" ? "Ритуал завершен" : undefined),
+      total_count: currentCount,
+      created_at: new Date().toISOString(),
+    };
+    addJournalEntry(entry);
+    setSessionReflection("");
+    toast({
+      title: "Записано",
+      description: "Сеанс сохранен в журнал",
+    });
+  };
+
+  const handleCreateCustomRitual = () => {
+    if (!customRitualTitle.trim()) {
+      toast({
+        title: "Название нужно",
+        description: "Добавьте имя вашего ритуала",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const ritual: FocusRitual = {
+      id: `custom-${Date.now()}`,
+      title: customRitualTitle.trim(),
+      intent: customRitualIntent.trim() || "Личный wird",
+      mood: customRitualMood,
+      auto_tempo: 60,
+      steps: [
+        {
+          id: `custom-step-${Date.now()}`,
+          type: "dhikr",
+          title: customRitualTitle.trim(),
+          instructions: `Повторите ${customRitualCount || "33"} раз и удерживайте фокус`,
+          target_count: Number(customRitualCount) || 33,
+        },
+      ],
+      is_custom: true,
+    };
+
+    saveCustom(ritual);
+    setCustomRitualTitle("");
+    setCustomRitualIntent("");
+    setCustomRitualCount("33");
+    toast({
+      title: "Ритуал сохранен",
+      description: "Теперь он доступен в списке фокусов",
+    });
+  };
+
   const isCountdownMode = activeGoal?.prayer_segment !== "none" && activeGoal?.category === "azkar";
   const displayCount = isCountdownMode 
     ? Math.max(0, activeGoal.target_count - currentCount)
@@ -497,6 +800,113 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
 
   return (
     <div className="space-y-4">
+      <Card className="bg-gradient-card border-primary/40 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between text-lg">
+            <span>Ритуалы фокусировки</span>
+            <span className="text-sm text-muted-foreground">
+              Создавай собственные wird’ы + дыхание
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            {rituals.slice(0, 3).map((ritual) => {
+              const isActive = activeRitualId === ritual.id;
+              return (
+                <div
+                  key={ritual.id}
+                  className={cn(
+                    "rounded-xl border p-4 transition-all",
+                    isActive ? "border-primary shadow-lg" : "border-border/60"
+                  )}
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-semibold">{ritual.title}</p>
+                      <p className="text-xs text-muted-foreground">{ritual.intent}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Настрой: {getMoodLabel(ritual.mood)}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={isActive ? "secondary" : "default"}
+                      onClick={() => handleStartRitual(ritual.id)}
+                    >
+                      {isActive ? "В прогрессе" : "Начать"}
+                    </Button>
+                  </div>
+                  {isActive && (
+                    <div className="mt-3 space-y-2">
+                      {ritual.steps.map((step, idx) => (
+                        <div
+                          key={step.id}
+                          className={cn(
+                            "rounded-lg border px-3 py-2 text-sm",
+                            idx === ritualStepIndex
+                              ? "border-primary bg-primary/5"
+                              : "border-border/40"
+                          )}
+                        >
+                          <p className="font-medium">{step.title}</p>
+                          <p className="text-xs text-muted-foreground">{step.instructions}</p>
+                        </div>
+                      ))}
+                      <Button size="sm" className="w-full" onClick={handleAdvanceRitualStep}>
+                        Следующий шаг
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="space-y-2 border-t pt-4">
+            <p className="text-sm font-semibold">Собери свой стане</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Input
+                placeholder="Название"
+                value={customRitualTitle}
+                onChange={(e) => setCustomRitualTitle(e.target.value)}
+              />
+              <Input
+                placeholder="Интент / для чего"
+                value={customRitualIntent}
+                onChange={(e) => setCustomRitualIntent(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Input
+                type="number"
+                min={1}
+                placeholder="Повторы"
+                value={customRitualCount}
+                onChange={(e) => setCustomRitualCount(e.target.value)}
+              />
+              <Select
+                value={customRitualMood}
+                onValueChange={(value) => setCustomRitualMood(value as FocusMood)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Настрой" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MOOD_OPTIONS.map((mood) => (
+                    <SelectItem key={mood.value} value={mood.value}>
+                      {mood.emoji} {mood.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={handleCreateCustomRitual}>
+                Сохранить ритуал
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       {/* Ежедневные азкары (5x99) */}
       {dailyAzkar && (
         <Card className="bg-gradient-card border-border/50">
@@ -551,103 +961,210 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
 
       {/* Выбор категории и элемента */}
       {!activeGoal && (
-        <Card className="bg-gradient-card border-border/50">
-          <CardHeader>
-            <CardTitle>Выберите категорию</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Select
-              value={selectedCategory}
-              onValueChange={(v) => setSelectedCategory(v as Category)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dua">Дуа</SelectItem>
-                <SelectItem value="azkar">Азкары</SelectItem>
-                <SelectItem value="salawat">Салаваты</SelectItem>
-                <SelectItem value="kalimat">Калимы</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {loadingItems ? (
-              <div className="text-center py-4 text-muted-foreground">Загрузка...</div>
-            ) : (
-              <div className="max-h-60 overflow-y-auto space-y-2">
-                {availableItems.map((item) => (
-                  <Card
-                    key={item.id}
-                    className={cn(
-                      "cursor-pointer hover:bg-secondary/50 transition-colors",
-                      selectedItem?.id === item.id && "border-primary"
-                    )}
-                    onClick={() => setSelectedItem(item)}
-                  >
-                    <CardContent className="p-3">
-                      <p className="font-semibold text-sm">{item.translation || item.title}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-
-            {selectedItem && (
-              <div className="space-y-2">
-                {/* Предложение связать с целями из spiritual-path */}
-                {linkedGoals.length > 0 && (
-                  <div className="bg-primary/5 rounded-lg p-3 mb-2">
-                    <p className="text-xs font-semibold mb-1">
-                      💡 У вас есть {linkedGoals.length} связан{linkedGoals.length === 1 ? "ая" : "ых"} цель{linkedGoals.length === 1 ? "" : "ей"}:
-                    </p>
-                    {linkedGoals.map((goal) => (
-                      <p key={goal.id} className="text-xs text-muted-foreground">
-                        • {goal.title}
-                      </p>
-                    ))}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Прогресс будет обновляться автоматически
+        <div className="space-y-4">
+          <Card className="border-primary/20 bg-background/90">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Выбрать из целей</span>
+                <Badge variant="outline">{tasbihLinkedGoals.length}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {tasbihLinkedGoals.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Нет активных целей по зикру. Создайте их в разделе «Мой путь».
+                </p>
+              )}
+              {tasbihLinkedGoals.slice(0, 5).map((goal) => (
+                <div
+                  key={goal.id}
+                  className="rounded-lg border border-border/60 p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="font-semibold text-sm">{goal.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {goal.current_value}/{goal.target_value} • дедлайн{" "}
+                      {goal.end_date ? new Date(goal.end_date).toLocaleDateString("ru-RU") : "∞"}
                     </p>
                   </div>
-                )}
+                  <Button size="sm" onClick={() => handleStartFromSpiritualGoal(goal)}>
+                    Продолжить
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
 
-                <Button
-                  className="w-full"
-                  onClick={async () => {
-                    const goal = await smartTasbihAPI.createOrUpdateGoal({
-                      category: selectedCategory,
-                      item_id: selectedItem.id,
-                      goal_type: "recite",
-                      target_count: selectedItem.count || 33,
-                    });
-                    setActiveGoal(goal);
-                    setSelectedItem(selectedItem); // Сохраняем выбранный элемент
-                    await startSessionForGoal(goal);
-                  }}
-                >
-                  Начать (Произнести)
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={async () => {
-                    const goal = await smartTasbihAPI.createOrUpdateGoal({
-                      category: selectedCategory,
-                      item_id: selectedItem.id,
-                      goal_type: "learn",
-                      target_count: 1,
-                    });
-                    setActiveGoal(goal);
-                    setSelectedItem(selectedItem); // Сохраняем выбранный элемент
-                    await startSessionForGoal(goal);
-                  }}
-                >
-                  Начать (Выучить)
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          <Card className="bg-gradient-card border-border/50">
+            <Accordion
+              type="single"
+              collapsible
+              value={manualPickerOpen}
+              onValueChange={(value) => setManualPickerOpen(value || null)}
+            >
+              <AccordionItem value="manual">
+                <AccordionTrigger className="px-4 font-semibold">
+                  Расширенный выбор (категории/избранные)
+                </AccordionTrigger>
+                <AccordionContent>
+                  <CardContent className="space-y-4 pt-4">
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: "dua", label: "Дуа" },
+                        { value: "azkar", label: "Азкары" },
+                        { value: "salawat", label: "Салаваты" },
+                        { value: "kalimat", label: "Калимы" },
+                        { value: "names99", label: "99 имён" },
+                      ].map((categoryOption) => (
+                        <Button
+                          key={categoryOption.value}
+                          variant={selectedCategory === categoryOption.value ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedCategory(categoryOption.value as Category)}
+                        >
+                          {categoryOption.label}
+                        </Button>
+                      ))}
+                      <Button
+                        variant={showFavoritesOnly ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => setShowFavoritesOnly((prev) => !prev)}
+                      >
+                        {showFavoritesOnly ? "Все карточки" : "Только избранные"}
+                      </Button>
+                    </div>
+
+                    {loadingItems ? (
+                      <div className="text-center py-4 text-muted-foreground">Загрузка...</div>
+                    ) : (
+                      <div className="max-h-60 overflow-y-auto space-y-2">
+                        {availableItems
+                          .filter((item) => {
+                            if (!showFavoritesOnly) return true;
+                            const key = `${selectedCategory}:${item.id}`;
+                            return favoriteItemIds.includes(key);
+                          })
+                          .map((item) => {
+                            const key = `${selectedCategory}:${item.id}`;
+                            const isFavorite = favoriteItemIds.includes(key);
+                            return (
+                              <Card
+                                key={item.id}
+                                className={cn(
+                                  "cursor-pointer hover:bg-secondary/50 transition-colors",
+                                  selectedItem?.id === item.id && "border-primary"
+                                )}
+                                onClick={() => setSelectedItem(item)}
+                              >
+                                <CardContent className="p-3 flex items-center justify-between gap-2">
+                                  <div>
+                                    <p className="font-semibold text-sm">{item.translation || item.title}</p>
+                                    {item.reference && (
+                                      <p className="text-xs text-muted-foreground">{item.reference}</p>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="icon"
+                                    variant={isFavorite ? "secondary" : "ghost"}
+                                    className="shrink-0"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      const updated = toggleFavoriteTasbihItem(key);
+                                      setFavoriteItemIds(updated);
+                                    }}
+                                  >
+                                    {isFavorite ? "★" : "☆"}
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                      </div>
+                    )}
+
+                    {selectedItem && (
+                      <div className="space-y-3">
+                        {linkedGoals.length > 0 && (
+                          <div className="bg-primary/5 rounded-lg p-3">
+                            <p className="text-xs font-semibold mb-1">
+                              💡 Прогресс синхронизируется с целями:
+                            </p>
+                            {linkedGoals.map((goal) => (
+                              <p key={goal.id} className="text-xs text-muted-foreground">
+                                • {goal.title}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label>Обратный отсчёт</Label>
+                          <div className="flex flex-wrap gap-2">
+                            {[33, 50, 100, 300].map((value) => (
+                              <Button
+                                key={value}
+                                size="sm"
+                                variant={manualTarget === value ? "default" : "outline"}
+                                onClick={() => setManualTarget(value)}
+                              >
+                                {value}
+                              </Button>
+                            ))}
+                            <Input
+                              type="number"
+                              min={1}
+                              className="w-24 bg-background"
+                              value={manualTarget}
+                              onChange={(e) => setManualTarget(parseInt(e.target.value) || 1)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <Button
+                            className="w-full"
+                            onClick={async () => {
+                              const goal = await smartTasbihAPI.createOrUpdateGoal({
+                                category: selectedCategory,
+                                item_id: selectedItem.id,
+                                goal_type: "recite",
+                                target_count: manualTarget || selectedItem.count || 33,
+                              });
+                              setActiveGoal(goal);
+                              setSelectedItem(selectedItem);
+                              setManualPickerOpen(null);
+                              await startSessionForGoal(goal);
+                            }}
+                          >
+                            Начать (произнес)
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={async () => {
+                              const goal = await smartTasbihAPI.createOrUpdateGoal({
+                                category: selectedCategory,
+                                item_id: selectedItem.id,
+                                goal_type: "learn",
+                                target_count: 1,
+                              });
+                              setActiveGoal(goal);
+                              setSelectedItem(selectedItem);
+                              setManualPickerOpen(null);
+                              await startSessionForGoal(goal);
+                            }}
+                          >
+                            Начать (выучить)
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </Card>
+        </div>
       )}
 
       {/* Главный экран (активная сессия) */}
@@ -731,6 +1248,63 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
               }
               className="h-3"
             />
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Настрой и отражение</p>
+                <div className="flex flex-wrap gap-2">
+                  {MOOD_OPTIONS.map((mood) => (
+                    <Button
+                      key={mood.value}
+                      variant={sessionMood === mood.value ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSessionMood(mood.value)}
+                    >
+                      {mood.emoji} {mood.label}
+                    </Button>
+                  ))}
+                </div>
+                <Textarea
+                  placeholder="Короткая заметка (необязательно)"
+                  value={sessionReflection}
+                  onChange={(e) => setSessionReflection(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                />
+                <Button variant="secondary" size="sm" onClick={() => handleSaveFocusMoment()}>
+                  Сохранить ощущение
+                </Button>
+              </div>
+              <div className="space-y-3 rounded-xl border border-dashed border-primary/30 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">Авто-дзикр</p>
+                    <p className="text-xs text-muted-foreground">
+                      Равномерный темп без отвлечений
+                    </p>
+                  </div>
+                  <Switch
+                    checked={autoMode}
+                    onCheckedChange={(value) => setAutoMode(value)}
+                    disabled={!activeSession || isComplete}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Slider
+                    value={[autoTempo]}
+                    min={30}
+                    max={180}
+                    step={5}
+                    onValueChange={(value) => setAutoTempo(value[0])}
+                    disabled={!activeSession}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {autoTempo} ударов в минуту • 1 повтор ≈{" "}
+                    {Math.round(60000 / Math.max(autoTempo, 1))} мс
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Информация о связанных целях из spiritual-path */}
             {linkedGoals.length > 0 && (
@@ -855,6 +1429,29 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
               </Button>
             )}
 
+            {recentEvents.length > 0 && (
+              <div className="rounded-lg border border-border/40 p-3 text-xs space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Хроника сессии
+                </p>
+                {recentEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center justify-between text-[11px]"
+                  >
+                    <span className="text-muted-foreground">{formatTimeAgo(event.timestamp)}</span>
+                    <span className="font-semibold">
+                      {event.delta > 0 ? "+" : ""}
+                      {event.delta}{" "}
+                      <span className="text-muted-foreground">
+                        ({event.source === "auto" ? "авто" : event.source === "bulk" ? "серия" : "ручн."})
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {isComplete && (
               <div className="text-center">
                 <p className="text-sm gradient-text-gold font-semibold animate-pulse">
@@ -862,6 +1459,32 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
                 </p>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {journal.length > 0 && (
+        <Card className="bg-background/80 border-border/60">
+          <CardHeader>
+            <CardTitle className="text-lg">Журнал сосредоточенности</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {journal.slice(0, 3).map((entry) => (
+              <div key={entry.id} className="rounded-lg border border-border/40 p-3 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-sm">
+                    {entry.ritual_title || "Свободная практика"}
+                  </p>
+                  <Badge variant="outline" className="text-xs">
+                    {getMoodLabel(entry.mood)}
+                  </Badge>
+                </div>
+                {entry.reflections && (
+                  <p className="text-xs text-muted-foreground">{entry.reflections}</p>
+                )}
+                <p className="text-[11px] text-muted-foreground">{formatJournalDate(entry.created_at)}</p>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
