@@ -1,13 +1,14 @@
 // Компонент для управления умными уведомлениями
 // Интеграция с Telegram Bot API
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Bell,
   BellOff,
@@ -22,6 +23,14 @@ import { useToast } from "@/hooks/use-toast";
 import { spiritualPathAPI } from "@/lib/api";
 import type { NotificationSettings, SmartNotification } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
+import { getTelegramWebApp } from "@/lib/telegram";
+import {
+  enableBackgroundNotifications,
+  disableBackgroundNotifications,
+  getPushCapability,
+  sendLocalNotification,
+  type PushCapability,
+} from "@/lib/push-client";
 
 // TODO: Получить настройки из API
 const getDefaultSettings = (): NotificationSettings => ({
@@ -33,6 +42,8 @@ const getDefaultSettings = (): NotificationSettings => ({
   daily_reminder_enabled: true,
   motivation_enabled: true,
   badge_notifications_enabled: true,
+  push_enabled: false,
+  push_subscription_status: "not_supported",
 });
 
 export const SmartNotifications = () => {
@@ -41,6 +52,15 @@ export const SmartNotifications = () => {
   const [notifications, setNotifications] = useState<SmartNotification[]>([]);
   const [loading, setLoading] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>("default");
+  const [pushCapability, setPushCapability] = useState<PushCapability>({
+    supported: false,
+    permission: "default",
+    vapidReady: Boolean(import.meta.env.VITE_VAPID_PUBLIC_KEY),
+    subscribed: false,
+  });
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const telegramBotLink = import.meta.env.VITE_TELEGRAM_BOT_LINK || "https://t.me/mubarakway_bot";
 
   useEffect(() => {
     loadSettings();
@@ -52,10 +72,27 @@ export const SmartNotifications = () => {
     }
   }, []);
 
+  const refreshPushCapability = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    try {
+      const capability = await getPushCapability();
+      setPushCapability(capability);
+    } catch (error) {
+      setPushError((error as Error).message);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshPushCapability();
+  }, [refreshPushCapability]);
+
   const loadSettings = async () => {
     try {
       const data = await spiritualPathAPI.getNotificationSettings();
-      setSettings(data);
+      setSettings({
+        ...getDefaultSettings(),
+        ...data,
+      });
     } catch (error) {
       console.error("Error loading settings:", error);
       // Используем настройки по умолчанию
@@ -74,8 +111,8 @@ export const SmartNotifications = () => {
   const saveSettings = async (newSettings: NotificationSettings) => {
     setLoading(true);
     try {
-      await spiritualPathAPI.updateNotificationSettings(newSettings);
-      setSettings(newSettings);
+      const updated = await spiritualPathAPI.updateNotificationSettings(newSettings);
+      setSettings(updated);
       toast({
         title: "Настройки сохранены",
         description: "Уведомления обновлены",
@@ -102,6 +139,50 @@ export const SmartNotifications = () => {
     saveSettings(newSettings);
   };
 
+  const handleOpenTelegramBot = () => {
+    const tg = getTelegramWebApp();
+    if (tg) {
+      tg.openTelegramLink(telegramBotLink);
+    } else {
+      window.open(telegramBotLink, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const handleBackgroundToggle = async (checked: boolean) => {
+    setPushLoading(true);
+    setPushError(null);
+
+    try {
+      if (checked) {
+        await enableBackgroundNotifications();
+        await saveSettings({
+          ...settings,
+          push_enabled: true,
+          push_subscription_status: "subscribed",
+          last_push_check: new Date().toISOString(),
+        });
+      } else {
+        await disableBackgroundNotifications();
+        await saveSettings({
+          ...settings,
+          push_enabled: false,
+          push_subscription_status: "inactive",
+        });
+      }
+      await refreshPushCapability();
+    } catch (error) {
+      console.error("Error toggling background notifications:", error);
+      setPushError((error as Error).message);
+      await saveSettings({
+        ...settings,
+        push_enabled: false,
+        push_subscription_status: "error",
+      });
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
   const requestBrowserPermission = async () => {
     if (!("Notification" in window)) {
       toast({
@@ -114,6 +195,7 @@ export const SmartNotifications = () => {
 
     const permission = await Notification.requestPermission();
     setPermissionStatus(permission);
+    refreshPushCapability();
 
     if (permission === "granted") {
       toast({
@@ -136,6 +218,16 @@ export const SmartNotifications = () => {
       return;
     }
 
+    let delivered = false;
+
+    if (pushCapability.subscribed) {
+      await sendLocalNotification(
+        "Умные уведомления",
+        "Это тестовое фоновое уведомление. Проверьте центр уведомлений."
+      );
+      delivered = true;
+    }
+
     // Отправляем тестовое уведомление браузера, если разрешено
     if (settings.enabled && permissionStatus === "granted") {
       try {
@@ -145,6 +237,7 @@ export const SmartNotifications = () => {
           badge: "/logo.svg",
           tag: "smart-notification-test",
         });
+        delivered = true;
       } catch (error) {
         console.error("Error showing browser notification:", error);
       }
@@ -154,10 +247,7 @@ export const SmartNotifications = () => {
     if (settings.telegram_enabled) {
       try {
         await spiritualPathAPI.sendTestNotification();
-        toast({
-          title: "Тестовое уведомление отправлено",
-          description: "Проверьте Telegram и уведомления браузера",
-        });
+        delivered = true;
       } catch (error) {
         console.error("Error sending test notification:", error);
         toast({
@@ -166,15 +256,17 @@ export const SmartNotifications = () => {
           variant: "destructive",
         });
       }
-    } else if (settings.enabled && permissionStatus === "granted") {
+    }
+
+    if (delivered) {
       toast({
         title: "Тестовое уведомление отправлено",
-        description: "Проверьте уведомления браузера",
+        description: "Проверьте Telegram и центр уведомлений вашего устройства",
       });
     } else {
       toast({
         title: "Уведомления не настроены",
-        description: "Включите уведомления и разрешите их в браузере",
+        description: "Включите их в настройках и разрешите в браузере",
         variant: "destructive",
       });
     }
@@ -242,15 +334,73 @@ export const SmartNotifications = () => {
             <Switch
               id="notifications-enabled"
               checked={settings.enabled}
-              onCheckedChange={(checked) => {
+              onCheckedChange={async (checked) => {
                 if (checked && permissionStatus !== "granted") {
-                  requestBrowserPermission();
-                } else {
-                  handleToggle("enabled", checked);
+                  await requestBrowserPermission();
+                  if (Notification.permission !== "granted") {
+                    return;
+                  }
+                }
+                handleToggle("enabled", checked);
+                if (!checked && pushCapability.subscribed) {
+                  handleBackgroundToggle(false);
                 }
               }}
             />
           </div>
+
+          {/* Фоновые уведомления через Service Worker */}
+          {settings.enabled && (
+            <div className="space-y-3 rounded-lg border border-border/50 bg-secondary/40 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Фоновые уведомления</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Работают даже если приложение закрыто
+                  </p>
+                </div>
+                <Switch
+                  checked={pushCapability.subscribed}
+                  onCheckedChange={handleBackgroundToggle}
+                  disabled={
+                    pushLoading ||
+                    !pushCapability.supported ||
+                    !pushCapability.vapidReady ||
+                    pushCapability.permission === "denied"
+                  }
+                />
+              </div>
+              {!pushCapability.supported && (
+                <p className="text-xs text-muted-foreground">
+                  Ваш браузер не поддерживает Service Worker и Push API. Попробуйте обновить его или использовать Chrome/Edge.
+                </p>
+              )}
+              {!pushCapability.vapidReady && (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    Фоновые уведомления будут доступны после настройки серверного ключа. Свяжитесь с администрацией.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {pushCapability.permission === "denied" && (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    Разрешите уведомления в настройках браузера, чтобы активировать фоновые напоминания.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {pushError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{pushError}</AlertDescription>
+                </Alert>
+              )}
+              {pushCapability.subscribed && (
+                <Badge variant="outline" className="w-fit">
+                  Фоновые уведомления активны
+                </Badge>
+              )}
+            </div>
+          )}
 
           {/* Telegram уведомления */}
           {settings.enabled && (
@@ -263,12 +413,19 @@ export const SmartNotifications = () => {
                   Отправлять уведомления в Telegram
                 </p>
               </div>
-              <Switch
-                id="telegram-enabled"
-                checked={settings.telegram_enabled}
-                onCheckedChange={(checked) => handleToggle("telegram_enabled", checked)}
-                disabled={!settings.enabled}
-              />
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="telegram-enabled"
+                  checked={settings.telegram_enabled}
+                  onCheckedChange={(checked) => handleToggle("telegram_enabled", checked)}
+                  disabled={!settings.enabled}
+                />
+                {settings.telegram_enabled && (
+                  <Button variant="ghost" size="sm" onClick={handleOpenTelegramBot}>
+                    Открыть бота
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 

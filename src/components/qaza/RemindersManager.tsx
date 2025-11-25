@@ -367,8 +367,8 @@ export const RemindersManager = () => {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-sm">
-            <strong>Примечание:</strong> Напоминания работают только когда приложение открыто в браузере.
-            Для фоновых уведомлений требуется установка приложения или использование Service Worker.
+            <strong>Примечание:</strong> Эти напоминания работают, пока приложение открыто.
+            Для фоновых уведомлений включите раздел «Фоновые уведомления» в настройках умных уведомлений.
           </AlertDescription>
         </Alert>
       </CardContent>

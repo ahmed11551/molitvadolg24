@@ -305,20 +305,47 @@ export const DuaSectionV2 = () => {
       </div>
 
       {/* Вкладки */}
-      <Tabs value={activeTab} onValueChange={(v) => {
-        setActiveTab(v as "categories" | "favorites" | "search");
-        if (v !== "search") {
-          setSearchQuery("");
-        }
-      }}>
-        <TabsList className="w-full grid grid-cols-2">
-          <TabsTrigger value="categories" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
-            Категории
-          </TabsTrigger>
-          <TabsTrigger value="favorites" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
-            Любимое
-          </TabsTrigger>
-        </TabsList>
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => {
+          setActiveTab(v as "categories" | "favorites" | "search");
+          if (v !== "search") {
+            setSearchQuery("");
+          }
+        }}
+      >
+        <div className="flex justify-center mt-2 mb-2">
+          <TabsList
+            className={cn(
+              "inline-flex items-center gap-1",
+              "rounded-full border border-border/40 bg-white",
+              "shadow-sm px-1 py-1 w-auto"
+            )}
+          >
+            <TabsTrigger
+              value="categories"
+              className={cn(
+                "px-4 py-1.5 text-sm font-medium rounded-full",
+                "text-foreground/70 transition-all",
+                "data-[state=active]:bg-primary data-[state=active]:text-white",
+                "data-[state=active]:shadow-sm"
+              )}
+            >
+              Категории
+            </TabsTrigger>
+            <TabsTrigger
+              value="favorites"
+              className={cn(
+                "px-4 py-1.5 text-sm font-medium rounded-full",
+                "text-foreground/70 transition-all",
+                "data-[state=active]:bg-primary data-[state=active]:text-white",
+                "data-[state=active]:shadow-sm"
+              )}
+            >
+              Любимое
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="categories" className="mt-6 space-y-6">
           {/* Сообщение если нет данных */}

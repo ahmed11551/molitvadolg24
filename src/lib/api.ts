@@ -105,6 +105,8 @@ import type {
   RepaymentProgress,
   Term,
   UserPrayerDebt,
+  MissedPrayers,
+  TravelPrayers,
 } from "@/types/prayer-debt";
 
 // e-Replika API интеграция
@@ -786,6 +788,7 @@ export const eReplikaAPI = {
 export const prayerDebtAPI = {
   // Рассчитать долг намазов
   async calculateDebt(request: CalculationRequest & { 
+    user_id?: string;
     debt_calculation?: any; 
     repayment_progress?: any;
     missed_prayers?: MissedPrayers;
@@ -1265,7 +1268,24 @@ import type {
   AIReport,
   NotificationSettings,
   SmartNotification,
+  PushSubscriptionStatus,
 } from "@/types/spiritual-path";
+
+const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
+  user_id: "",
+  enabled: false,
+  telegram_enabled: false,
+  notification_period_start: "08:00",
+  notification_period_end: "22:00",
+  daily_reminder_enabled: true,
+  motivation_enabled: true,
+  badge_notifications_enabled: true,
+  push_enabled: false,
+  push_subscription_status: "not_supported",
+  last_push_check: undefined,
+};
+
+const PUSH_SUBSCRIPTION_STORAGE_KEY = "smart_notifications_push_subscription";
 
 export const spiritualPathAPI = {
   // Цели
@@ -1631,13 +1651,21 @@ export const spiritualPathAPI = {
       });
 
       if (response.ok) {
-        return await response.json();
+        const data = await response.json();
+        return {
+          ...DEFAULT_NOTIFICATION_SETTINGS,
+          ...data,
+          user_id: data.user_id || userId,
+        };
       }
     } catch (error) {
       console.warn("Supabase API недоступен:", error);
     }
 
-    throw new Error("Failed to get notification settings");
+    return {
+      ...DEFAULT_NOTIFICATION_SETTINGS,
+      user_id: userId,
+    };
   },
 
   async updateNotificationSettings(settings: Partial<NotificationSettings>): Promise<NotificationSettings> {
@@ -1645,6 +1673,12 @@ export const spiritualPathAPI = {
     if (!userId) {
       throw new Error("user_id required");
     }
+
+    const payload: NotificationSettings = {
+      ...DEFAULT_NOTIFICATION_SETTINGS,
+      ...settings,
+      user_id: userId,
+    };
 
     try {
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/notifications/settings`, {
@@ -1654,17 +1688,21 @@ export const spiritualPathAPI = {
           "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
           "apikey": SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
-        return await response.json();
+        const updated = await response.json();
+        return {
+          ...payload,
+          ...updated,
+        };
       }
     } catch (error) {
       console.warn("Supabase API недоступен:", error);
     }
 
-    throw new Error("Failed to update notification settings");
+    return payload;
   },
 
   async getNotifications(): Promise<SmartNotification[]> {
@@ -1715,6 +1753,60 @@ export const spiritualPathAPI = {
     } catch (error) {
       console.warn("Supabase API недоступен:", error);
       throw error;
+    }
+  },
+
+  async registerPushSubscription(payload: {
+    subscription: PushSubscriptionJSON;
+    platform?: string;
+    subscribed_at?: string;
+  }): Promise<void> {
+    const userId = getUserId();
+    if (!userId) {
+      throw new Error("user_id required");
+    }
+
+    const body = {
+      user_id: userId,
+      platform: payload.platform || (typeof navigator !== "undefined" ? navigator.userAgent : "web"),
+      subscription: payload.subscription,
+      subscribed_at: payload.subscribed_at || new Date().toISOString(),
+    };
+
+    try {
+      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/notifications/push-subscription`, {
+        method: "POST",
+        headers: getSupabaseHeaders(),
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to register push subscription");
+      }
+
+      localStorage.setItem(PUSH_SUBSCRIPTION_STORAGE_KEY, JSON.stringify(body));
+    } catch (error) {
+      console.warn("Push subscription fallback:", error);
+      localStorage.setItem(PUSH_SUBSCRIPTION_STORAGE_KEY, JSON.stringify(body));
+    }
+  },
+
+  async unregisterPushSubscription(endpoint?: string): Promise<void> {
+    const userId = getUserId();
+    if (!userId) {
+      return;
+    }
+
+    try {
+      await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/notifications/push-subscription`, {
+        method: "DELETE",
+        headers: getSupabaseHeaders(),
+        body: JSON.stringify({ user_id: userId, endpoint }),
+      });
+    } catch (error) {
+      console.warn("Failed to unregister push subscription:", error);
+    } finally {
+      localStorage.removeItem(PUSH_SUBSCRIPTION_STORAGE_KEY);
     }
   },
 

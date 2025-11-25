@@ -193,6 +193,14 @@ export interface AIPrediction {
   timeframe: string;
 }
 
+export type PushSubscriptionStatus =
+  | "not_supported"
+  | "inactive"
+  | "permission_denied"
+  | "subscribed"
+  | "vapid_missing"
+  | "error";
+
 export interface NotificationSettings {
   user_id: string;
   enabled: boolean;
@@ -202,6 +210,11 @@ export interface NotificationSettings {
   daily_reminder_enabled: boolean;
   motivation_enabled: boolean;
   badge_notifications_enabled: boolean;
+  push_enabled?: boolean;
+  push_subscription_status?: PushSubscriptionStatus;
+  last_push_check?: string;
+  device_platform?: string;
+  telegram_chat_id?: string | null;
 }
 
 export interface SmartNotification {

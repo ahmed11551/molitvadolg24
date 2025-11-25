@@ -15,6 +15,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { WelcomeDialog } from "@/components/qaza/WelcomeDialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { DiscoverSection } from "@/components/discover/DiscoverSection";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("plan");
@@ -126,6 +127,7 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-5xl pb-24 sm:pb-6 w-full overflow-x-hidden">
+        <DiscoverSection onNavigate={setActiveTab} />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Навигация с правильной горизонтальной прокруткой */}
           <div className="relative mb-6 w-full overflow-hidden">
