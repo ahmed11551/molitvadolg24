@@ -35,6 +35,7 @@ dist-ssr
 # Build outputs
 build
 .vite
+.__mf__temp
 
 # OS files
 Thumbs.db

@@ -87,6 +87,65 @@ npm run preview
 - ✅ Согласие на обработку данных
 - ✅ Соревновательный эффект с друзьями
 - ✅ Категоризированные дуа и азкары
+- ✅ Drizzle Kit миграции + типобезопасный доступ к БД
+- ✅ Module Federation remote (micro-frontend)
+
+## 🗄️ Drizzle Kit & миграции
+
+Для управления схемой БД используется [drizzle-kit](https://orm.drizzle.team/). Перед запуском убедитесь, что в корне проекта задано подключение к базе:
+
+```dotenv
+# .env
+DATABASE_URL="postgres://user:password@host:5432/database"
+```
+
+Основные команды:
+
+```bash
+# сгенерировать SQL-миграции на основании схемы из drizzle/schema.ts
+npm run drizzle:generate
+
+# применить миграции к базе данных
+npm run drizzle:migrate
+
+# открыть Drizzle Studio для просмотра данных
+npm run drizzle:studio
+```
+
+Все описания таблиц и enum находятся в `drizzle/schema.ts`, конфигурация CLI — в `drizzle.config.ts`, а SQL-файлы попадают в директорию `drizzle/migrations`.
+
+## 🧩 Module Federation (микрофронт)
+
+Проект собирается как remote-приложение через [@module-federation/vite](https://github.com/module-federation/universe/tree/main/packages/vite). При `npm run build` дополнительно генерируется `remoteEntry.js`, который можно подключить в host-приложение.
+
+### Экспонированные сущности
+
+```
+// tasbihRemote @ https://<host>/assets/remoteEntry.js
+import("tasbihRemote/App").then(({ App, mount }) => { ... });
+```
+
+- `App` — корневой React-компонент.
+- `mount(element?: HTMLElement)` — helper-функция, которая монтирует приложение и возвращает `unmount`.
+
+### Пример интеграции в host
+
+```js
+// webpack.config.js (host)
+new ModuleFederationPlugin({
+  remotes: {
+    tasbihRemote: "tasbihRemote@https://cdn.example.com/remoteEntry.js",
+  },
+});
+```
+
+```tsx
+// runtime
+const { mount } = await import("tasbihRemote/App");
+const unmount = mount(document.getElementById("tasbih-root"));
+```
+
+Зависимости `react`, `react-dom`, `react-router-dom` объявлены единичными (singleton), поэтому host и remote используют один экземпляр React.
 
 ## 📄 Лицензия
 
