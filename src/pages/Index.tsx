@@ -18,9 +18,12 @@ import { cn } from "@/lib/utils";
 import { DiscoverSection } from "@/components/discover/DiscoverSection";
 import { OverviewDashboard } from "@/components/dashboard/OverviewDashboard";
 import { FastingTracker } from "@/components/qaza/FastingTracker";
+import { useSearchParams } from "react-router-dom";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "overview";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const tabsListRef = useRef<HTMLDivElement>(null);
   const [showLeftGradient, setShowLeftGradient] = useState(false);
   const [showRightGradient, setShowRightGradient] = useState(true);
@@ -44,8 +47,24 @@ const Index = () => {
   }, []);
 
   const handleNavigateToCalculator = () => {
-    setActiveTab("calculator");
+    handleTabChange("calculator");
   };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam) {
+      if (tabParam !== activeTab) {
+        setActiveTab(tabParam);
+      }
+      const params = new URLSearchParams(searchParams);
+      params.delete("tab");
+      setSearchParams(params, { replace: true });
+    }
+  }, [searchParams, activeTab, setSearchParams]);
 
   // Проверка возможности прокрутки и обновление градиентов
   const updateGradients = () => {
@@ -129,8 +148,8 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-5xl pb-24 sm:pb-6 w-full overflow-x-hidden">
-        <DiscoverSection onNavigate={setActiveTab} />
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <DiscoverSection onNavigate={handleTabChange} />
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           {/* Навигация с правильной горизонтальной прокруткой */}
           <div className="relative mb-6 w-full overflow-hidden">
             {/* Градиентные индикаторы прокрутки */}

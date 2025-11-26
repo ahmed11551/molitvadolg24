@@ -52,6 +52,20 @@ describe("CalculatorSection", () => {
     vi.clearAllMocks();
   });
 
+  const renderCalculatorMode = async () => {
+    const user = userEvent.setup();
+    const queryClient = createTestQueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CalculatorSection />
+      </QueryClientProvider>
+    );
+
+    const modeButton = await screen.findByRole("button", { name: /помощь посчитать/i });
+    await user.click(modeButton);
+    return { user, queryClient };
+  };
+
   it("should render calculator form", () => {
     const queryClient = createTestQueryClient();
     render(
@@ -64,17 +78,9 @@ describe("CalculatorSection", () => {
   });
 
   it("should show validation errors for invalid input", async () => {
-    const user = userEvent.setup();
-    const queryClient = createTestQueryClient();
-    
-    render(
-      <QueryClientProvider client={queryClient}>
-        <CalculatorSection />
-      </QueryClientProvider>
-    );
+    const { user } = await renderCalculatorMode();
 
-    // Try to submit without filling form
-    const submitButton = screen.getByRole("button", { name: /рассчитать/i });
+    const submitButton = screen.getByRole("button", { name: /рассчитать долг/i });
     await user.click(submitButton);
 
     // Should show validation errors
@@ -84,23 +90,13 @@ describe("CalculatorSection", () => {
   });
 
   it("should handle form submission with valid data", async () => {
-    const user = userEvent.setup();
-    const queryClient = createTestQueryClient();
-    
-    // Get mocked functions from the module
+    const { user } = await renderCalculatorMode();
     const { prayerDebtAPI } = await import("@/lib/api");
     vi.mocked(prayerDebtAPI.calculateDebt).mockResolvedValue({
       user_id: "test",
       debt_calculation: { total_days: 100 },
     } as any);
-    
-    render(
-      <QueryClientProvider client={queryClient}>
-        <CalculatorSection />
-      </QueryClientProvider>
-    );
 
-    // Fill in required fields
     const birthDateInput = screen.getByLabelText(/дата рождения/i);
     await user.type(birthDateInput, "2000-01-01");
 
@@ -109,7 +105,7 @@ describe("CalculatorSection", () => {
     await user.click(maleRadio);
 
     // Submit form
-    const submitButton = screen.getByRole("button", { name: /рассчитать/i });
+    const submitButton = screen.getByRole("button", { name: /рассчитать долг/i });
     await user.click(submitButton);
 
     // Should attempt to calculate

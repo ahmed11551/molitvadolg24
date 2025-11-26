@@ -255,10 +255,12 @@ export const DuaCard = memo(({ dua, categoryColor }: DuaCardProps) => {
     audio.addEventListener("error", handleError);
     audio.addEventListener("canplay", handleCanPlay);
 
-    // Attempt to load metadata
-    audio.load().catch((error) => {
+    // Attempt to load metadata (jsdom returns undefined, so guard)
+    try {
+      audio.load();
+    } catch (error) {
       console.error("Error loading audio:", error);
-    });
+    }
 
     return () => {
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);

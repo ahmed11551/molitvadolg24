@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react-swc";
 import { federation } from "@module-federation/vite";
 import path from "path";
 
+const isVitest = process.env.VITEST === "true";
+
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
@@ -11,19 +13,20 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    federation({
-      name: "tasbihRemote",
-      filename: "remoteEntry.js",
-      exposes: {
-        "./App": "./src/mf/index.tsx",
-      },
-      shared: {
-        react: { singleton: true, requiredVersion: "^18.3.1" },
-        "react-dom": { singleton: true, requiredVersion: "^18.3.1" },
-        "react-router-dom": { singleton: true, requiredVersion: "^6.30.1" },
-      },
-    }),
-  ],
+    !isVitest &&
+      federation({
+        name: "tasbihRemote",
+        filename: "remoteEntry.js",
+        exposes: {
+          "./App": "./src/mf/index.tsx",
+        },
+        shared: {
+          react: { singleton: true, requiredVersion: "^18.3.1" },
+          "react-dom": { singleton: true, requiredVersion: "^18.3.1" },
+          "react-router-dom": { singleton: true, requiredVersion: "^6.30.1" },
+        },
+      }),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

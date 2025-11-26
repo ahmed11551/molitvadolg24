@@ -72,18 +72,27 @@ describe("Integration Tests", () => {
     localStorage.clear();
   });
 
+  const renderCalculatorView = async () => {
+    const user = userEvent.setup();
+    const queryClient = createTestQueryClient();
+
+    render(
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <CalculatorSection />
+        </QueryClientProvider>
+      </BrowserRouter>
+    );
+
+    const modeButton = await screen.findByRole("button", { name: /помощь посчитать/i });
+    await user.click(modeButton);
+
+    return { user, queryClient };
+  };
+
   describe("Calculator Flow", () => {
     it("should complete full calculation flow", async () => {
-      const user = userEvent.setup();
-      const queryClient = createTestQueryClient();
-
-      render(
-        <BrowserRouter>
-          <QueryClientProvider client={queryClient}>
-            <CalculatorSection />
-          </QueryClientProvider>
-        </BrowserRouter>
-      );
+      const { user } = await renderCalculatorView();
 
       // Fill form
       const birthDateInput = screen.getByLabelText(/дата рождения/i);
@@ -98,7 +107,7 @@ describe("Integration Tests", () => {
       await user.type(bulughAgeInput, "15");
 
       // Submit
-      const submitButton = screen.getByRole("button", { name: /рассчитать/i });
+      const submitButton = screen.getByRole("button", { name: /рассчитать долг/i });
       await user.click(submitButton);
 
       // Should process calculation

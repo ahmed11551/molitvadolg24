@@ -9,6 +9,7 @@ import { ru } from "date-fns/locale";
 import { spiritualPathAPI } from "@/lib/api";
 import type { Goal, NotificationSettings, SmartNotification } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 type DiscoverSectionProps = {
   onNavigate?: (tab: string) => void;
@@ -61,6 +62,7 @@ const loadTasbihStats = () => {
 };
 
 export const DiscoverSection = ({ onNavigate }: DiscoverSectionProps) => {
+  const navigate = useNavigate();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [notifications, setNotifications] = useState<SmartNotification[]>([]);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
@@ -126,24 +128,35 @@ export const DiscoverSection = ({ onNavigate }: DiscoverSectionProps) => {
     return `${diff} мин`;
   }, [nextPrayer]);
 
+  const navigateToTab = (tab: string) => {
+    onNavigate?.(tab);
+    navigate(tab === "overview" ? "/" : `/?tab=${tab}`, { replace: false });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const goToDhikr = () => {
+    navigate("/dhikr");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const quickActions = [
     {
       label: "Цели",
       description: "Проверь активные цели",
       icon: <Target className="w-4 h-4 text-primary" />,
-      onClick: () => onNavigate?.("goals"),
+      action: () => navigateToTab("goals"),
     },
     {
       label: "Уведомления",
       description: "Настрой умные напоминания",
       icon: <Bell className="w-4 h-4 text-primary" />,
-      onClick: () => onNavigate?.("calendar"),
+      action: () => navigateToTab("calendar"),
     },
     {
       label: "Тасбих",
       description: "Продолжи сессию",
       icon: <Sparkles className="w-4 h-4 text-primary" />,
-      onClick: () => onNavigate?.("goals"),
+      action: goToDhikr,
     },
   ];
 
@@ -154,7 +167,7 @@ export const DiscoverSection = ({ onNavigate }: DiscoverSectionProps) => {
           <h2 className="text-2xl font-bold">Мой день</h2>
           <p className="text-sm text-muted-foreground">Быстрый обзор прогресса и важных напоминаний</p>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => onNavigate?.("reports")}>
+        <Button variant="ghost" size="sm" onClick={() => navigateToTab("reports")}>
           Аналитика
         </Button>
       </div>
@@ -210,7 +223,7 @@ export const DiscoverSection = ({ onNavigate }: DiscoverSectionProps) => {
             <p className="text-sm text-muted-foreground">
               Продолжай работать над целями. Мы готовы подсказать следующую задачу.
             </p>
-            <Button variant="outline" size="sm" onClick={() => onNavigate?.("goals")}>
+            <Button variant="outline" size="sm" onClick={() => navigateToTab("goals")}>
               Управлять целями
             </Button>
           </CardContent>
@@ -237,7 +250,7 @@ export const DiscoverSection = ({ onNavigate }: DiscoverSectionProps) => {
                 ? `В последний раз вы прочитали ${tasbihStats.total.toLocaleString("ru-RU")} зикров.`
                 : "Начни сессию тасбиха и автоматически засчитывай прогресс по целям."}
             </p>
-            <Button variant="outline" size="sm" onClick={() => onNavigate?.("goals")}>
+            <Button variant="outline" size="sm" onClick={goToDhikr}>
               Открыть Smart Tasbih
             </Button>
           </CardContent>
@@ -275,7 +288,7 @@ export const DiscoverSection = ({ onNavigate }: DiscoverSectionProps) => {
                 <p className="text-muted-foreground">Telegram</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => onNavigate?.("calendar")}>
+            <Button variant="outline" size="sm" onClick={() => navigateToTab("calendar")}>
               Настроить уведомления
             </Button>
           </CardContent>
@@ -294,7 +307,7 @@ export const DiscoverSection = ({ onNavigate }: DiscoverSectionProps) => {
           {quickActions.map((action) => (
             <button
               key={action.label}
-              onClick={action.onClick}
+              onClick={action.action}
               className={cn(
                 "p-4 rounded-xl border border-border/50 bg-secondary/40",
                 "text-left transition hover:border-primary/40 hover:bg-primary/5"

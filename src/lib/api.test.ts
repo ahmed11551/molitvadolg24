@@ -75,9 +75,11 @@ describe("localStorageAPI", () => {
 
     it("should handle corrupted data gracefully", () => {
       localStorage.setItem("userPrayerDebt", "invalid json");
-      
-      // Should throw or return null - JSON.parse will throw
-      expect(() => localStorageAPI.getUserData()).toThrow();
+
+      const result = localStorageAPI.getUserData();
+
+      expect(result).toBeNull();
+      expect(localStorage.getItem("userPrayerDebt")).toBeNull();
     });
   });
 
