@@ -13,7 +13,6 @@ import { RemindersManager } from "@/components/qaza/RemindersManager";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { WelcomeDialog } from "@/components/qaza/WelcomeDialog";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DiscoverSection } from "@/components/discover/DiscoverSection";
 import { OverviewDashboard } from "@/components/dashboard/OverviewDashboard";
@@ -141,6 +140,21 @@ const Index = () => {
     };
   }, []);
 
+  const tabsConfig = [
+    { value: "overview", label: "Обзор" },
+    { value: "plan", label: "План" },
+    { value: "progress", label: "Прогресс" },
+    { value: "fasting", label: "Посты" },
+    { value: "travel", label: "Сафар" },
+    { value: "reports", label: "Отчёты" },
+    { value: "calculator", label: "Калькулятор" },
+    { value: "goals", label: "Цели" },
+    { value: "calendar", label: "Календарь" },
+  ] as const;
+
+  const pinnedTabs = tabsConfig.filter((tab) => tab.value === "overview" || tab.value === "fasting");
+  const scrollableTabs = tabsConfig.filter((tab) => !pinnedTabs.some((pinned) => pinned.value === tab.value));
+
   return (
     <div className="min-h-screen bg-gradient-hero pb-20 sm:pb-0">
       <MainHeader />
@@ -150,6 +164,22 @@ const Index = () => {
       <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-5xl pb-24 sm:pb-6 w-full overflow-x-hidden">
         <DiscoverSection onNavigate={handleTabChange} />
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+          <div className="mb-4 flex flex-wrap gap-2">
+            {pinnedTabs.map((tab) => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className={cn(
+                  "px-3 py-2 text-sm font-medium rounded-md",
+                  "bg-muted/50 shadow-sm border border-border/50",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground",
+                  "data-[state=active]:border-primary/40"
+                )}
+              >
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </div>
           {/* Навигация с правильной горизонтальной прокруткой */}
           <div className="relative mb-6 w-full overflow-hidden">
             {/* Градиентные индикаторы прокрутки */}
@@ -188,17 +218,7 @@ const Index = () => {
                   "min-w-max"
                 )}
               >
-                {[
-                  { value: "overview", label: "Обзор" },
-                  { value: "plan", label: "План" },
-                  { value: "progress", label: "Прогресс" },
-                  { value: "fasting", label: "Посты" },
-                  { value: "travel", label: "Сафар" },
-                  { value: "reports", label: "Отчёты" },
-                  { value: "calculator", label: "Калькулятор" },
-                  { value: "goals", label: "Цели" },
-                  { value: "calendar", label: "Календарь" },
-                ].map((tab) => (
+                {scrollableTabs.map((tab) => (
                   <TabsTrigger 
                     key={tab.value}
                     value={tab.value}
