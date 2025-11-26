@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalculatorSection } from "@/components/qaza/CalculatorSection";
 import { ProgressSection } from "@/components/qaza/ProgressSection";
@@ -13,28 +13,38 @@ import { RemindersManager } from "@/components/qaza/RemindersManager";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { WelcomeDialog } from "@/components/qaza/WelcomeDialog";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DiscoverSection } from "@/components/discover/DiscoverSection";
 import { OverviewDashboard } from "@/components/dashboard/OverviewDashboard";
 import { FastingTracker } from "@/components/qaza/FastingTracker";
 import { useSearchParams } from "react-router-dom";
 
-const tabsConfig = [
-  { value: "overview", label: "Обзор" },
-  { value: "plan", label: "План" },
-  { value: "progress", label: "Прогресс" },
-  { value: "fasting", label: "Посты" },
-  { value: "travel", label: "Сафар" },
-  { value: "reports", label: "Отчёты" },
-  { value: "calculator", label: "Калькулятор" },
-  { value: "goals", label: "Цели" },
-  { value: "calendar", label: "Календарь" },
-] as const;
-
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") || "overview";
   const [activeTab, setActiveTab] = useState(initialTab);
+  const tabsListRef = useRef<HTMLDivElement>(null);
+  const [showLeftGradient, setShowLeftGradient] = useState(false);
+  const [showRightGradient, setShowRightGradient] = useState(true);
+
+  // Проверка возможности прокрутки при загрузке
+  useEffect(() => {
+    const checkScroll = () => {
+      if (tabsListRef.current) {
+        const container = tabsListRef.current;
+        const { scrollWidth, clientWidth } = container;
+        const canScroll = scrollWidth > clientWidth;
+        setShowRightGradient(canScroll);
+      }
+    };
+    
+    // Проверяем сразу и после небольшой задержки
+    checkScroll();
+    const timeout = setTimeout(checkScroll, 200);
+    
+    return () => clearTimeout(timeout);
+  }, []);
 
   const handleNavigateToCalculator = () => {
     handleTabChange("calculator");
@@ -56,6 +66,81 @@ const Index = () => {
     }
   }, [searchParams, activeTab, setSearchParams]);
 
+  // Проверка возможности прокрутки и обновление градиентов
+  const updateGradients = () => {
+    if (tabsListRef.current) {
+      const container = tabsListRef.current;
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      
+      setShowLeftGradient(scrollLeft > 0);
+      setShowRightGradient(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  // Автоматическая прокрутка к активной вкладке
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (tabsListRef.current) {
+        const activeTabElement = tabsListRef.current.querySelector(
+          `[data-state="active"]`
+        ) as HTMLElement;
+        if (activeTabElement) {
+          const container = tabsListRef.current;
+          const tabLeft = activeTabElement.offsetLeft - container.offsetLeft;
+          const tabWidth = activeTabElement.offsetWidth;
+          const containerWidth = container.clientWidth;
+          const scrollLeft = container.scrollLeft;
+          
+          const padding = 16;
+          const tabRight = tabLeft + tabWidth;
+          const visibleLeft = scrollLeft;
+          const visibleRight = scrollLeft + containerWidth;
+          
+          const isFullyVisible = tabLeft >= visibleLeft + padding && tabRight <= visibleRight - padding;
+          
+          if (!isFullyVisible) {
+            let scrollTo = scrollLeft;
+            if (tabLeft < visibleLeft + padding) {
+              scrollTo = Math.max(0, tabLeft - padding);
+            } else if (tabRight > visibleRight - padding) {
+              scrollTo = tabRight - containerWidth + padding;
+            }
+            
+            if (Math.abs(scrollTo - scrollLeft) > 1) {
+              container.scrollTo({
+                left: scrollTo,
+                behavior: "smooth",
+              });
+            }
+          }
+        }
+        updateGradients();
+      }
+    }, 150);
+
+    return () => clearTimeout(timeoutId);
+  }, [activeTab]);
+
+  // Обновление градиентов при прокрутке и изменении размера
+  useEffect(() => {
+    const container = tabsListRef.current;
+    if (!container) return;
+
+    // Инициализация градиентов с небольшой задержкой для корректного расчета размеров
+    const initTimeout = setTimeout(() => {
+      updateGradients();
+    }, 100);
+    
+    container.addEventListener('scroll', updateGradients, { passive: true });
+    window.addEventListener('resize', updateGradients);
+
+    return () => {
+      clearTimeout(initTimeout);
+      container.removeEventListener('scroll', updateGradients);
+      window.removeEventListener('resize', updateGradients);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-hero pb-20 sm:pb-0">
       <MainHeader />
@@ -65,31 +150,76 @@ const Index = () => {
       <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-5xl pb-24 sm:pb-6 w-full overflow-x-hidden">
         <DiscoverSection onNavigate={handleTabChange} />
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList
-            className={cn(
-              "grid gap-2 mb-6 w-full",
-              "bg-muted/50 rounded-2xl p-2",
-              "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
+          {/* Навигация с правильной горизонтальной прокруткой */}
+          <div className="relative mb-6 w-full overflow-hidden">
+            {/* Градиентные индикаторы прокрутки */}
+            {showLeftGradient && (
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none" />
             )}
-          >
-            {tabsConfig.map((tab) => (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
+            {showRightGradient && (
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
+            )}
+            
+            <div 
+              ref={tabsListRef}
+              className={cn(
+                "flex items-center",
+                "overflow-x-auto overflow-y-hidden",
+                "scroll-smooth",
+                "no-scrollbar",
+                "w-full",
+                "-mx-2 px-2"
+              )}
+              style={{ 
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-x',
+                overscrollBehaviorX: 'contain',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}
+            >
+              <TabsList 
                 className={cn(
-                  "w-full px-3 py-2 text-sm font-medium rounded-xl",
-                  "transition-all shadow-none border border-transparent",
-                  "data-[state=active]:bg-background",
-                  "data-[state=active]:text-foreground",
-                  "data-[state=active]:shadow-sm",
-                  "data-[state=active]:border-primary/20",
-                  "text-center"
+                  "inline-flex items-center",
+                  "h-10 px-1 gap-1",
+                  "bg-muted/50",
+                  "rounded-lg",
+                  "p-1",
+                  "min-w-max"
                 )}
               >
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+                {[
+                  { value: "overview", label: "Обзор" },
+                  { value: "plan", label: "План" },
+                  { value: "progress", label: "Прогресс" },
+                  { value: "fasting", label: "Посты" },
+                  { value: "travel", label: "Сафар" },
+                  { value: "reports", label: "Отчёты" },
+                  { value: "calculator", label: "Калькулятор" },
+                  { value: "goals", label: "Цели" },
+                  { value: "calendar", label: "Календарь" },
+                ].map((tab) => (
+                  <TabsTrigger 
+                    key={tab.value}
+                    value={tab.value}
+                    className={cn(
+                      "flex-shrink-0",
+                      "px-3 py-1.5",
+                      "text-sm font-medium",
+                      "rounded-md",
+                      "transition-all",
+                      "whitespace-nowrap",
+                      "data-[state=active]:bg-background",
+                      "data-[state=active]:text-foreground",
+                      "data-[state=active]:shadow-sm"
+                    )}
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          </div>
 
           <TabsContent value="overview">
             <OverviewDashboard />
