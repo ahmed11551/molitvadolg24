@@ -94,8 +94,8 @@ const createMockUserPrayerDebt = (): UserPrayerDebt => ({
       witr: 0,
     },
     last_updated: new Date(),
-  },
-});
+    },
+  });
 
 describe("CalculatorSection", () => {
   beforeEach(() => {

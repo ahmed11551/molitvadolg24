@@ -176,7 +176,7 @@ export const ReportsSection = () => {
           <CardContent className="pt-6">
             <div className="text-center py-8 space-y-4">
               <p className="text-muted-foreground">
-                {!userData
+                {!userData 
                   ? "Для отображения отчётов необходимо сначала рассчитать долг намазов"
                   : "Данные неполные. Пожалуйста, выполните расчет заново."}
               </p>

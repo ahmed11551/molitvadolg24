@@ -348,61 +348,6 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
     await startSessionForGoal(tasbihGoal);
   };
 
-  const init = async () => {
-    setLoading(true);
-    try {
-      // Инициализация офлайн-очереди
-      await initOfflineQueue();
-
-      // Загружаем цели из spiritual-path модуля (нужно для goalId)
-      await loadSpiritualPathGoals();
-
-      // Если передан goalId, пытаемся найти цель в spiritual-path
-      if (goalId) {
-        try {
-          const goal = spiritualPathGoals.find(g => g.id === goalId);
-          if (goal && goal.category === "zikr") {
-            // Создаем цель для smart-tasbih на основе spiritual-path цели
-            const tasbihGoal: TasbihGoal = {
-              id: goal.id,
-              category: goal.item_category || "dua",
-              item_id: goal.item_id,
-              goal_type: "recite",
-              target_count: goal.target_value || 33,
-              progress: goal.current_value || 0,
-              prayer_segment: "none",
-            };
-            setActiveGoal(tasbihGoal);
-            await startSessionForGoal(tasbihGoal);
-          }
-        } catch (error) {
-          console.error("Error loading goal by ID:", error);
-        }
-      }
-
-      // Загрузка состояния
-      try {
-        const bootstrap = await smartTasbihAPI.bootstrap();
-        // Если goalId не был передан, используем активную цель из bootstrap
-        if (!goalId && bootstrap.active_goal) {
-          setActiveGoal(bootstrap.active_goal);
-          await startSessionForGoal(bootstrap.active_goal);
-        }
-        setDailyAzkar(bootstrap.daily_azkar || null);
-      } catch (error) {
-        console.error("Error bootstrapping:", error);
-        // Продолжаем работу даже если bootstrap не удался
-      }
-
-      // Синхронизация офлайн-событий (не блокируем загрузку)
-      syncOfflineQueue().catch(err => console.error("Error syncing offline queue:", err));
-    } catch (error) {
-      console.error("Error initializing:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Определение типа счетчика на основе категории и элемента
   const getCounterType = (category: Category, item?: DhikrItem | null): LinkedCounterType => {
     if (category === "salawat") return "salawat";

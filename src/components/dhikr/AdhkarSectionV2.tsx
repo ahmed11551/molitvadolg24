@@ -177,17 +177,6 @@ export const AdhkarSectionV2 = () => {
     }
   }, [getCategoryName]);
 
-  const getCategoryName = (categoryId: string): string => {
-    const categoryNames: Record<string, string> = {
-      morning: "Утренние",
-      evening: "Вечерние",
-      after_prayer: "После намаза",
-      general: "Общие",
-      protection: "Защита",
-    };
-    return categoryNames[categoryId] || categoryId;
-  };
-
   const loadFavorites = useCallback(() => {
     try {
       const stored = localStorage.getItem(BOOKMARKS_KEY);

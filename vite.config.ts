@@ -4,6 +4,7 @@ import { federation } from "@module-federation/vite";
 import path from "path";
 
 const isVitest = process.env.VITEST === "true";
+const isProduction = process.env.NODE_ENV === "production";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -13,7 +14,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    !isVitest &&
+    !isVitest && !isProduction &&
       federation({
         name: "tasbihRemote",
         filename: "remoteEntry.js",
