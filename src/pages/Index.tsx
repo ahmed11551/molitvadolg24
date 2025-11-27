@@ -160,7 +160,7 @@ const Index = () => {
               <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
             )}
             
-            <div
+            <div 
               ref={tabsListRef}
               className={cn(
                 "flex items-center",
@@ -170,19 +170,22 @@ const Index = () => {
                 "w-full",
                 "-mx-2 px-2"
               )}
-              style={{
-                WebkitOverflowScrolling: "touch",
-                touchAction: "pan-x",
-                overscrollBehaviorX: "contain",
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
+              style={{ 
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-x',
+                overscrollBehaviorX: 'contain',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
               }}
             >
-              <TabsList
+              <TabsList 
                 className={cn(
-                  "inline-flex items-center gap-1",
-                  "bg-white rounded-full border border-border/40 shadow-sm",
-                  "px-1 py-1 min-w-max h-12"
+                  "inline-flex items-center",
+                  "h-10 px-1 gap-1",
+                  "bg-muted/50",
+                  "rounded-lg",
+                  "p-1",
+                  "min-w-max"
                 )}
               >
                 {[
@@ -196,15 +199,18 @@ const Index = () => {
                   { value: "goals", label: "Цели" },
                   { value: "calendar", label: "Календарь" },
                 ].map((tab) => (
-                  <TabsTrigger
+                  <TabsTrigger 
                     key={tab.value}
                     value={tab.value}
                     className={cn(
-                      "flex-shrink-0 px-4 py-1.5",
-                      "text-sm font-medium whitespace-nowrap",
-                      "rounded-full transition-all",
-                      "text-foreground/70",
-                      "data-[state=active]:bg-primary data-[state=active]:text-white",
+                      "flex-shrink-0",
+                      "px-3 py-1.5",
+                      "text-sm font-medium",
+                      "rounded-md",
+                      "transition-all",
+                      "whitespace-nowrap",
+                      "data-[state=active]:bg-background",
+                      "data-[state=active]:text-foreground",
                       "data-[state=active]:shadow-sm"
                     )}
                   >
