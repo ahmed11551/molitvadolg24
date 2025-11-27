@@ -124,7 +124,7 @@ export const EditGoalDialog = ({
         period,
         type,
         daily_plan: dailyPlan || undefined,
-      } as any);
+      });
 
       toast({
         title: "Цель обновлена!",

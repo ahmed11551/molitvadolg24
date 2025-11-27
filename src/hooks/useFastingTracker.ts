@@ -8,6 +8,7 @@ import {
   removeScheduledDate,
   saveFastingPlans,
   scheduleFastForPlan,
+  setPlanCompletedDays,
   updatePlanTarget,
 } from "@/lib/fasting-tracker";
 
@@ -81,6 +82,13 @@ export const useFastingTracker = () => {
     [updatePlans]
   );
 
+  const setCompletion = useCallback(
+    (planId: string, completed: number) => {
+      updatePlans((prev) => setPlanCompletedDays(prev, planId, completed));
+    },
+    [updatePlans]
+  );
+
   const summary: FastingSummary = useMemo(() => getFastingSummary(plans), [plans]);
 
   return {
@@ -90,6 +98,7 @@ export const useFastingTracker = () => {
     scheduleFast,
     cancelScheduledDate,
     changeTarget,
+    setCompletion,
   };
 };
 

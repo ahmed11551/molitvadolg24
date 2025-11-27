@@ -67,6 +67,18 @@ const createDefaultPlans = (): FastingPlan[] => [
     upcomingDates: [],
     focusText: "Белые дни, Арафат, Ашура",
   },
+  {
+    id: "pon-thu-fast-plan",
+    type: "voluntary",
+    title: "Пост по понедельникам и четвергам",
+    targetDays: 104,
+    completedDays: 0,
+    streak: 0,
+    streakBest: 0,
+    lastCompletedDate: undefined,
+    upcomingDates: [],
+    focusText: "Автопланирование Пн/Чт с напоминаниями",
+  },
 ];
 
 const broadcastUpdate = (plans: FastingPlan[]) => {
@@ -76,6 +88,22 @@ const broadcastUpdate = (plans: FastingPlan[]) => {
       detail: plans,
     })
   );
+};
+
+const mergeWithDefaults = (plans: FastingPlan[]): FastingPlan[] => {
+  const defaults = createDefaultPlans();
+  const withBaseline = plans.map((plan) => {
+    const baseline = defaults.find((item) => item.id === plan.id);
+    if (!baseline) return plan;
+    return {
+      ...baseline,
+      ...plan,
+      upcomingDates: Array.isArray(plan.upcomingDates) ? plan.upcomingDates : [],
+    };
+  });
+
+  const missing = defaults.filter((plan) => !withBaseline.some((item) => item.id === plan.id));
+  return [...withBaseline, ...missing];
 };
 
 export const loadFastingPlans = (): FastingPlan[] => {
@@ -95,11 +123,12 @@ export const loadFastingPlans = (): FastingPlan[] => {
     if (!Array.isArray(parsed) || parsed.length === 0) {
       throw new Error("Invalid fasting plans");
     }
-    return parsed.map((plan) => ({
+    const normalized = parsed.map((plan) => ({
       ...plan,
       id: plan.id || randomId(),
       upcomingDates: Array.isArray(plan.upcomingDates) ? plan.upcomingDates : [],
     }));
+    return mergeWithDefaults(normalized);
   } catch (error) {
     console.warn("Failed to parse fasting plans, resetting:", error);
     const defaults = createDefaultPlans();
@@ -175,6 +204,23 @@ export const updatePlanTarget = (
     return {
       ...plan,
       targetDays: safeTarget,
+    };
+  });
+};
+
+export const setPlanCompletedDays = (
+  plans: FastingPlan[],
+  planId: string,
+  completedDays: number
+): FastingPlan[] => {
+  return plans.map((plan) => {
+    if (plan.id !== planId) return plan;
+    const safeCompleted = Math.max(0, Math.min(plan.targetDays, completedDays));
+    return {
+      ...plan,
+      completedDays: safeCompleted,
+      streak: safeCompleted === 0 ? 0 : plan.streak,
+      streakBest: Math.max(plan.streakBest, safeCompleted),
     };
   });
 };

@@ -3,18 +3,19 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import type { LucideIcon } from "lucide-react";
 import { Search, Moon, Sun, Sunrise, Sunset, Repeat, Heart, Utensils } from "lucide-react";
 import { AdhkarCard } from "./AdhkarCard";
 
 interface AdhkarCategory {
   id: string;
   name: string;
-  icon: any;
+  icon: LucideIcon;
   color: string;
   adhkar: Array<{
     id: string;
     title: string;
-    icon: any;
+    icon: LucideIcon;
     color: string;
     text: string;
     transcription: string;

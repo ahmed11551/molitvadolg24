@@ -1,6 +1,6 @@
 // Компонент для целей и привычек
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,19 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Target, Trophy, TrendingUp, Calendar, Sparkles, ShieldCheck, Handshake } from "lucide-react";
+import {
+  Target,
+  Trophy,
+  TrendingUp,
+  Calendar,
+  Sparkles,
+  ShieldCheck,
+  Handshake,
+  Flame,
+  Brain,
+  Medal,
+  AlertTriangle,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { localStorageAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -51,6 +63,45 @@ interface Habit {
 const HABITS_STORAGE_KEY = "prayer_habit_tracker_v2";
 const DAY_MS = 1000 * 60 * 60 * 24;
 
+interface HabitAnalytics {
+  totalCheckins7: number;
+  avgConsistency7: number;
+  topHabit?: Habit;
+  weakestHabit?: Habit;
+}
+
+type ChallengeKind = "streak" | "consistency" | "skip_free";
+
+interface ChallengeDefinition {
+  id: string;
+  title: string;
+  description: string;
+  type: ChallengeKind;
+  requirement: number;
+}
+
+interface ChallengeStatus extends ChallengeDefinition {
+  completed: boolean;
+  progress: number;
+  highlight?: string;
+}
+
+type AchievementMetric = "habit_count" | "longest_streak" | "weekly_checkins";
+
+interface AchievementDefinition {
+  id: string;
+  title: string;
+  description: string;
+  metric: AchievementMetric;
+  threshold: number;
+  emoji: string;
+}
+
+interface AchievementStatus extends AchievementDefinition {
+  earned: boolean;
+  current: number;
+}
+
 const formatDateKey = (date: Date) => date.toISOString().split("T")[0];
 const todayKey = () => formatDateKey(new Date());
 
@@ -82,6 +133,64 @@ const getWeekBounds = (reference = new Date()) => {
   end.setHours(23, 59, 59, 999);
   return { start, end };
 };
+
+const HABIT_CHALLENGES: ChallengeDefinition[] = [
+  {
+    id: "streak_3",
+    title: "Мини-серия",
+    description: "Держите любую привычку 3 дня подряд",
+    type: "streak",
+    requirement: 3,
+  },
+  {
+    id: "streak_7",
+    title: "Неделя огня",
+    description: "7 дней без обрывов",
+    type: "streak",
+    requirement: 7,
+  },
+  {
+    id: "consistency_80",
+    title: "80% выполнения",
+    description: "Средняя точность за неделю — 80%",
+    type: "consistency",
+    requirement: 80,
+  },
+  {
+    id: "skip_free",
+    title: "Неделя без skip",
+    description: "Закрыть неделю без пропусков",
+    type: "skip_free",
+    requirement: 0,
+  },
+];
+
+const HABIT_ACHIEVEMENTS: AchievementDefinition[] = [
+  {
+    id: "habit_builder",
+    title: "Создатель привычек",
+    description: "Заведите 3 активные привычки",
+    metric: "habit_count",
+    threshold: 3,
+    emoji: "🌱",
+  },
+  {
+    id: "streak_master",
+    title: "Магистр серий",
+    description: "Серия 14+ дней",
+    metric: "longest_streak",
+    threshold: 14,
+    emoji: "🔥",
+  },
+  {
+    id: "weekly_focus",
+    title: "Фокус недели",
+    description: "Закрыть 20 выполнений за 7 дней",
+    metric: "weekly_checkins",
+    threshold: 20,
+    emoji: "🎯",
+  },
+];
 
 const computeCurrentStreak = (history: Record<string, HabitStatus>): number => {
   let streak = 0;
@@ -134,8 +243,162 @@ const countSkipsThisWeek = (habit: Habit): number => {
   }).length;
 };
 
+const countDoneInLastDays = (habit: Habit, days: number): number => {
+  return getLastNDays(days).reduce((sum, day) => {
+    return habit.history[day.key] === "done" ? sum + 1 : sum;
+  }, 0);
+};
+
+const evaluateHabitAnalytics = (habits: Habit[]): HabitAnalytics => {
+  if (habits.length === 0) {
+    return {
+      totalCheckins7: 0,
+      avgConsistency7: 0,
+    };
+  }
+
+  const windowSize = 7;
+  const totalPossible = habits.length * windowSize;
+  let totalDone = 0;
+  let topHabit: Habit | undefined;
+  let weakestHabit: Habit | undefined;
+  let weakestConsistency = Number.POSITIVE_INFINITY;
+
+  habits.forEach((habit) => {
+    const doneCount = countDoneInLastDays(habit, windowSize);
+    totalDone += doneCount;
+    if (!topHabit || habit.streak > topHabit.streak) {
+      topHabit = habit;
+    }
+    const consistency = windowSize ? doneCount / windowSize : 0;
+    if (consistency < weakestConsistency) {
+      weakestConsistency = consistency;
+      weakestHabit = habit;
+    }
+  });
+
+  return {
+    totalCheckins7: totalDone,
+    avgConsistency7: totalPossible ? Math.round((totalDone / totalPossible) * 100) : 0,
+    topHabit,
+    weakestHabit,
+  };
+};
+
+const evaluateChallenges = (habits: Habit[]): ChallengeStatus[] => {
+  return HABIT_CHALLENGES.map((challenge) => {
+    if (habits.length === 0) {
+      return { ...challenge, completed: false, progress: 0 };
+    }
+
+    if (challenge.type === "streak") {
+      const bestHabit = habits.reduce((best, habit) => {
+        if (!best || habit.streak > best.streak) {
+          return habit;
+        }
+        return best;
+      }, habits[0]);
+      const progress = Math.min(1, (bestHabit?.streak || 0) / challenge.requirement);
+      return {
+        ...challenge,
+        completed: (bestHabit?.streak || 0) >= challenge.requirement,
+        progress,
+        highlight: bestHabit?.title,
+      };
+    }
+
+    if (challenge.type === "consistency") {
+      const bestHabit = habits.reduce((best, habit) => {
+        const bestConsistency = best
+          ? countDoneInLastDays(best, 7) / 7
+          : -Infinity;
+        const currentConsistency = countDoneInLastDays(habit, 7) / 7;
+        if (!best || currentConsistency > bestConsistency) {
+          return habit;
+        }
+        return best;
+      }, habits[0]);
+      const consistencyPercent = Math.round(((bestHabit ? countDoneInLastDays(bestHabit, 7) : 0) / 7) * 100);
+      const progress = Math.min(1, consistencyPercent / challenge.requirement);
+      return {
+        ...challenge,
+        completed: consistencyPercent >= challenge.requirement,
+        progress,
+        highlight: bestHabit?.title,
+      };
+    }
+
+    const skipFreeHabit = habits.find((habit) => countSkipsThisWeek(habit) === 0);
+    return {
+      ...challenge,
+      completed: Boolean(skipFreeHabit),
+      progress: skipFreeHabit ? 1 : 0,
+      highlight: skipFreeHabit?.title,
+    };
+  });
+};
+
+const evaluateAchievements = (habits: Habit[]): AchievementStatus[] => {
+  const weeklyCheckins = habits.reduce((sum, habit) => sum + countDoneInLastDays(habit, 7), 0);
+  const longestStreak = habits.reduce((best, habit) => Math.max(best, habit.longestStreak), 0);
+
+  return HABIT_ACHIEVEMENTS.map((achievement) => {
+    let current = 0;
+    switch (achievement.metric) {
+      case "habit_count":
+        current = habits.length;
+        break;
+      case "longest_streak":
+        current = longestStreak;
+        break;
+      case "weekly_checkins":
+        current = weeklyCheckins;
+        break;
+    }
+    return {
+      ...achievement,
+      current,
+      earned: current >= achievement.threshold,
+    };
+  });
+};
+
+const generateHabitAIAdvice = (
+  analytics: HabitAnalytics,
+  habits: Habit[],
+  seed: number
+): string => {
+  if (habits.length === 0) {
+    return "Добавьте хотя бы одну привычку, чтобы AI смог подсказать оптимальный ритм.";
+  }
+
+  const suggestions: string[] = [];
+
+  if (analytics.avgConsistency7 < 60) {
+    suggestions.push(
+      "Попробуйте выделить фиксированное время после фард-намазов — это повышает точность выполнения привычек."
+    );
+  } else {
+    suggestions.push("Продолжайте текущий темп — он уже приносит стабильные результаты. Зафиксируйте его в календаре.");
+  }
+
+  if (analytics.weakestHabit) {
+    suggestions.push(
+      `Привычка «${analytics.weakestHabit.title}» просела по активности. Попробуйте упростить критерий или уменьшить skip-дни.`
+    );
+  }
+
+  if (analytics.topHabit) {
+    suggestions.push(`«${analytics.topHabit.title}» — лидер недели. Добавьте мини-челлендж, чтобы удержать мотивацию.`);
+  }
+
+  const index = suggestions.length ? seed % suggestions.length : 0;
+  return suggestions[index] || "Продолжайте фиксировать выполнение привычек, чтобы AI увидел динамику.";
+};
+
 export const GoalsAndHabits = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [newGoalTarget, setNewGoalTarget] = useState(30);
   const [newGoalType, setNewGoalType] = useState<"monthly" | "weekly" | "daily">("monthly");
@@ -145,6 +408,7 @@ export const GoalsAndHabits = () => {
   const [newHabitSkipAllowance, setNewHabitSkipAllowance] = useState(2);
   const [commitmentDrafts, setCommitmentDrafts] = useState<Record<string, { buddy: string; note: string }>>({});
   const [pendingTasbih, setPendingTasbih] = useState<PendingTasbihEntry[]>([]);
+  const [aiAdviceSeed, setAiAdviceSeed] = useState(() => Date.now());
 
   useEffect(() => {
     loadGoals();
@@ -152,11 +416,11 @@ export const GoalsAndHabits = () => {
     if (goals.length === 0) {
       createDefaultGoal();
     }
-  }, []);
+  }, [loadGoals, goals.length, createDefaultGoal]);
 
   useEffect(() => {
     loadHabits();
-  }, []);
+  }, [loadHabits]);
 
   useEffect(() => {
     const loadPending = () => setPendingTasbih(loadPendingTasbih());
@@ -173,7 +437,7 @@ export const GoalsAndHabits = () => {
     return () => window.removeEventListener("pendingTasbihUpdated", handler);
   }, []);
 
-  const loadGoals = () => {
+  const loadGoals = useCallback(() => {
     const saved = localStorage.getItem(GOALS_STORAGE_KEY);
     if (saved) {
       try {
@@ -194,14 +458,14 @@ export const GoalsAndHabits = () => {
         setGoals([]);
       }
     }
-  };
+  }, []);
 
-  const saveGoals = (updatedGoals: Goal[]) => {
+  const saveGoals = useCallback((updatedGoals: Goal[]) => {
     localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(updatedGoals));
     setGoals(updatedGoals);
-  };
+  }, []);
 
-  const loadHabits = () => {
+  const loadHabits = useCallback(() => {
     const saved = localStorage.getItem(HABITS_STORAGE_KEY);
     if (!saved) return;
     try {
@@ -214,12 +478,12 @@ export const GoalsAndHabits = () => {
     } catch (error) {
       console.error("Failed to parse habits:", error);
     }
-  };
+  }, []);
 
-  const saveHabits = (updatedHabits: Habit[]) => {
+  const saveHabits = useCallback((updatedHabits: Habit[]) => {
     localStorage.setItem(HABITS_STORAGE_KEY, JSON.stringify(updatedHabits));
     setHabits(updatedHabits);
-  };
+  }, []);
 
   const updateHabit = (habitId: string, updater: (habit: Habit) => Habit) => {
     saveHabits(
@@ -341,7 +605,7 @@ export const GoalsAndHabits = () => {
     });
   };
 
-  const createDefaultGoal = () => {
+  const createDefaultGoal = useCallback(() => {
     const userData = localStorageAPI.getUserData();
     if (!userData) return;
 
@@ -366,9 +630,9 @@ export const GoalsAndHabits = () => {
     };
 
     saveGoals([defaultGoal]);
-  };
+  }, [saveGoals]);
 
-  const updateGoalProgress = () => {
+  const updateGoalProgress = useCallback(() => {
     const userData = localStorageAPI.getUserData();
     if (!userData) return;
 
@@ -396,15 +660,15 @@ export const GoalsAndHabits = () => {
     });
 
     saveGoals(updatedGoals);
-  };
+  }, [goals, saveGoals]);
 
   useEffect(() => {
     if (goals.length > 0) {
       updateGoalProgress();
     }
-  }, [goals.length]);
+  }, [goals.length, updateGoalProgress]);
 
-  const handleCreateGoal = () => {
+  const handleCreateGoal = useCallback(() => {
     const today = new Date();
     let endDate: Date;
 
@@ -437,7 +701,7 @@ export const GoalsAndHabits = () => {
       title: "Цель создана",
       description: `Цель: ${newGoalTarget} намазов за ${newGoalType === "daily" ? "день" : newGoalType === "weekly" ? "неделю" : "месяц"}`,
     });
-  };
+  }, [newGoalTarget, newGoalType, goals, toast, saveGoals]);
 
   const getGoalTypeLabel = (type: string) => {
     switch (type) {
@@ -461,6 +725,13 @@ export const GoalsAndHabits = () => {
       : 0,
     commitments: habits.filter((habit) => habit.commitment).length,
   };
+  const habitAnalytics = useMemo(() => evaluateHabitAnalytics(habits), [habits]);
+  const challengeStatuses = useMemo(() => evaluateChallenges(habits), [habits]);
+  const achievementStatuses = useMemo(() => evaluateAchievements(habits), [habits]);
+  const aiRecommendation = useMemo(
+    () => generateHabitAIAdvice(habitAnalytics, habits, aiAdviceSeed),
+    [habitAnalytics, habits, aiAdviceSeed]
+  );
   const recentDays = getLastNDays(7);
 
   const handleRemovePendingTasbih = (id: string) => {
@@ -590,6 +861,150 @@ export const GoalsAndHabits = () => {
           </Button>
         </CardContent>
       </Card>
+
+      {habits.length > 0 && (
+        <div className="grid gap-4">
+          <Card className="bg-gradient-card border-primary/30 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <CardTitle>Статистика недели</CardTitle>
+              </div>
+              <CardDescription>Живая динамика по привычкам за последние 7 дней</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 md:grid-cols-4">
+                <div className="rounded-lg border border-primary/20 bg-background/70 p-3">
+                  <p className="text-xs uppercase text-muted-foreground">Выполнений</p>
+                  <p className="text-2xl font-semibold">{habitAnalytics.totalCheckins7}</p>
+                  <p className="text-xs text-muted-foreground">За последние 7 дней</p>
+                </div>
+                <div className="rounded-lg border border-primary/20 bg-background/70 p-3">
+                  <p className="text-xs uppercase text-muted-foreground">Точность</p>
+                  <p className="text-2xl font-semibold">{habitAnalytics.avgConsistency7}%</p>
+                  <p className="text-xs text-muted-foreground">Среднее выполнение</p>
+                </div>
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3">
+                  <p className="text-xs uppercase text-emerald-700 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    Лидер недели
+                  </p>
+                  <p className="text-sm font-semibold text-emerald-800">
+                    {habitAnalytics.topHabit ? habitAnalytics.topHabit.title : "Добавьте привычку"}
+                  </p>
+                  <p className="text-xs text-emerald-700">
+                    {habitAnalytics.topHabit ? `${habitAnalytics.topHabit.streak} дн. серия` : "Нет данных"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3">
+                  <p className="text-xs uppercase text-amber-700 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    Требует внимания
+                  </p>
+                  <p className="text-sm font-semibold text-amber-800">
+                    {habitAnalytics.weakestHabit ? habitAnalytics.weakestHabit.title : "Все стабильно"}
+                  </p>
+                  <p className="text-xs text-amber-700">
+                    {habitAnalytics.weakestHabit ? "Добавьте напоминание" : "Можно усилить цель"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-background/90 border-border/60">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Flame className="w-5 h-5 text-primary" />
+                <CardTitle>Челленджи недели</CardTitle>
+              </div>
+              <CardDescription>Берём лучшее из Goal: Habits — короткие испытания и мгновенная обратная связь</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {challengeStatuses.map((challenge) => {
+                const percent = challenge.completed ? 100 : Math.round(challenge.progress * 100);
+                return (
+                  <div
+                    key={challenge.id}
+                    className="rounded-lg border border-border/60 p-4 space-y-2 bg-card/60"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-semibold">{challenge.title}</p>
+                        <p className="text-xs text-muted-foreground">{challenge.description}</p>
+                        {challenge.highlight && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Лидер: {challenge.highlight}
+                          </p>
+                        )}
+                      </div>
+                      <Badge variant={challenge.completed ? "default" : "outline"}>
+                        {challenge.completed ? "Готово" : `${percent}%`}
+                      </Badge>
+                    </div>
+                    <Progress value={percent} className="h-2" />
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-primary/5 border-primary/30">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Medal className="w-5 h-5 text-primary" />
+                <CardTitle>Достижения</CardTitle>
+              </div>
+              <CardDescription>Система бейджей по мотивам Goal — динамика и награды в одном месте</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 md:grid-cols-3">
+                {achievementStatuses.map((achievement) => {
+                  const percent = Math.min(100, Math.round((achievement.current / achievement.threshold) * 100));
+                  return (
+                    <div
+                      key={achievement.id}
+                      className={cn(
+                        "p-4 rounded-xl border shadow-sm flex flex-col gap-2",
+                        achievement.earned ? "border-primary bg-primary/10" : "border-border/60 bg-background/70"
+                      )}
+                    >
+                      <div className="text-2xl">{achievement.emoji}</div>
+                      <p className="font-semibold">{achievement.title}</p>
+                      <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                      <p className="text-sm font-medium">
+                        {achievement.current}/{achievement.threshold}
+                      </p>
+                      <Progress value={percent} className="h-2" />
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-secondary/60 border-secondary/40">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Brain className="w-5 h-5 text-primary" />
+                <CardTitle>AI-наставник</CardTitle>
+              </div>
+              <CardDescription>Совет появляется после постановки задач и анализа выполнения</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-foreground">{aiRecommendation}</p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => setAiAdviceSeed(Date.now())}>
+                  Обновить рекомендацию
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => navigate("/spiritual-path")}>
+                  Открыть подробный AI-отчет
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {habits.length > 0 && (
         <div className="grid gap-4">

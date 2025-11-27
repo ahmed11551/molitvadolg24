@@ -1,6 +1,6 @@
 // Раздел Дуа - новый дизайн с вкладками "Категории" и "Любимое"
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +10,7 @@ import { DuaCard } from "./DuaCard";
 import { CategoryDuasView } from "./CategoryDuasView";
 import { DuaSearch } from "./DuaSearch";
 import { eReplikaAPI } from "@/lib/api";
-import { getAvailableItemsByCategory } from "@/lib/dhikr-data";
+import { getAvailableItemsByCategory, type DhikrItem } from "@/lib/dhikr-data";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,19 @@ interface Category {
   duas: Dua[];
 }
 
+type RemoteDuaRecord = Dua & {
+  category_id?: string;
+  category_name?: string;
+  text_arabic?: string;
+  text_transcription?: string;
+  russian_transcription?: string;
+  text_translation?: string;
+  name_english?: string;
+  hadith_reference?: string;
+  audio_url?: string | null;
+  audio?: string | null;
+};
+
 export const DuaSectionV2 = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -47,17 +60,27 @@ export const DuaSectionV2 = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    loadDuas();
-    loadFavorites();
-    loadTodayDua();
+  const getCategoryName = useCallback((categoryId: string): string => {
+    const categoryNames: Record<string, string> = {
+      morning: "Утро & вечер",
+      evening: "Утро & вечер",
+      sleep: "Перед сном",
+      home: "Дом & семья",
+      family: "Дом & семья",
+      food: "Еда & напиток",
+      travel: "Путешествовать",
+      joy: "Радость & печаль",
+      sorrow: "Радость & печаль",
+      general: "Общие",
+    };
+    return categoryNames[categoryId] || categoryId;
   }, []);
 
-  const loadDuas = async () => {
+  const loadDuas = useCallback(async () => {
     setLoading(true);
     try {
       // Используем getAvailableItemsByCategory с fallback на локальные данные
-      let data: any[] = [];
+      let data: Dua[] = [];
       let hasError = false;
       
       try {
@@ -70,7 +93,7 @@ export const DuaSectionV2 = () => {
           try {
             const fallbackData = await getAvailableItemsByCategory("dua");
             if (fallbackData && fallbackData.length > 0) {
-              data = fallbackData.map(item => ({
+              data = fallbackData.map((item: DhikrItem): Dua => ({
                 id: item.id,
                 arabic: item.arabic || "",
                 transcription: item.transcription || "",
@@ -94,7 +117,7 @@ export const DuaSectionV2 = () => {
         try {
           const fallbackData = await getAvailableItemsByCategory("dua");
           if (fallbackData && fallbackData.length > 0) {
-            data = fallbackData.map(item => ({
+            data = fallbackData.map((item: DhikrItem): Dua => ({
               id: item.id,
               arabic: item.arabic || "",
               transcription: item.transcription || "",
@@ -124,9 +147,8 @@ export const DuaSectionV2 = () => {
 
       // Группируем по категориям
       const categoriesMap = new Map<string, Dua[]>();
-      data.forEach((dua: any) => {
+      (data as RemoteDuaRecord[]).forEach((dua) => {
         const categoryId = dua.category_id || dua.category || "general";
-        const categoryName = dua.category_name || dua.category || "Общие";
         
         if (!categoriesMap.has(categoryId)) {
           categoriesMap.set(categoryId, []);
@@ -138,7 +160,7 @@ export const DuaSectionV2 = () => {
           russianTranscription: dua.russian_transcription || dua.russianTranscription,
           translation: dua.translation || dua.text_translation || dua.name_english || "",
           reference: dua.reference || dua.hadith_reference,
-          audioUrl: dua.audio_url || dua.audioUrl || null,
+          audioUrl: dua.audio_url ?? dua.audioUrl ?? dua.audio ?? null,
           category: categoryId,
         });
       });
@@ -159,58 +181,49 @@ export const DuaSectionV2 = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getCategoryName]);
 
-  const getCategoryName = (categoryId: string): string => {
-    const categoryNames: Record<string, string> = {
-      morning: "Утро & вечер",
-      evening: "Утро & вечер",
-      sleep: "Перед сном",
-      home: "Дом & семья",
-      family: "Дом & семья",
-      food: "Еда & напиток",
-      travel: "Путешествовать",
-      joy: "Радость & печаль",
-      sorrow: "Радость & печаль",
-      general: "Общие",
-    };
-    return categoryNames[categoryId] || categoryId;
-  };
-
-  const loadFavorites = () => {
+  const loadFavorites = useCallback(() => {
     try {
       const stored = localStorage.getItem(BOOKMARKS_KEY);
       if (stored) {
-        const bookmarks = JSON.parse(stored);
-        if (Array.isArray(bookmarks)) {
-          setFavorites(bookmarks);
+        const bookmarksRaw: unknown = JSON.parse(stored);
+        if (Array.isArray(bookmarksRaw)) {
+          setFavorites(bookmarksRaw as Dua[]);
         }
       }
     } catch (error) {
       console.error("Error loading favorites:", error);
     }
-  };
+  }, []);
 
-  const loadTodayDua = () => {
+  const loadTodayDua = useCallback(() => {
     // Выбираем случайное дуа для "Сегодняшний Dua"
     if (duas.length > 0) {
       const randomIndex = Math.floor(Math.random() * duas.length);
       setTodayDua(duas[randomIndex]);
     }
-  };
+  }, [duas]);
+
+  useEffect(() => {
+    loadDuas();
+    loadFavorites();
+    loadTodayDua();
+  }, [loadDuas, loadFavorites, loadTodayDua]);
 
   useEffect(() => {
     if (duas.length > 0 && !todayDua) {
       loadTodayDua();
     }
-  }, [duas]);
+  }, [duas, todayDua, loadTodayDua]);
 
   const toggleFavorite = (dua: Dua) => {
     try {
       const stored = localStorage.getItem(BOOKMARKS_KEY);
-      let bookmarks: Dua[] = stored ? JSON.parse(stored) : [];
+      const parsed: unknown = stored ? JSON.parse(stored) : [];
+      let bookmarks: Dua[] = Array.isArray(parsed) ? (parsed as Dua[]) : [];
       
-      const isFavorite = bookmarks.some((b: Dua) => b.id === dua.id);
+      const isFavorite = bookmarks.some((b) => b.id === dua.id);
       
       if (isFavorite) {
         bookmarks = bookmarks.filter((b: Dua) => b.id !== dua.id);

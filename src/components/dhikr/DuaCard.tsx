@@ -189,7 +189,7 @@ export const DuaCard = memo(({ dua, categoryColor }: DuaCardProps) => {
     return () => {
       isMountedRef.current = false;
     };
-  }, [dua.id, dua.audioUrl]);
+  }, [dua.id, dua.audioUrl, audioUrl, isTTSAvailable]);
 
   // Initialize audio element
   useEffect(() => {
@@ -573,22 +573,23 @@ export const DuaCard = memo(({ dua, categoryColor }: DuaCardProps) => {
           description: "Дуа скопировано в буфер обмена для отправки",
         });
       }
-    } catch (error: any) {
-      if (error.name !== "AbortError") {
-        try {
-          await navigator.clipboard.writeText(shareText);
-          toast({
-            title: "Скопировано",
-            description: "Дуа скопировано в буфер обмена",
-          });
-        } catch (clipboardError) {
-          console.error("Failed to copy:", clipboardError);
-          toast({
-            title: "Ошибка",
-            description: "Не удалось поделиться или скопировать",
-            variant: "destructive",
-          });
-        }
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(shareText);
+        toast({
+          title: "Скопировано",
+          description: "Дуа скопировано в буфер обмена",
+        });
+      } catch (clipboardError: unknown) {
+        console.error("Failed to copy:", clipboardError);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось поделиться или скопировать",
+          variant: "destructive",
+        });
       }
     }
   }, [dua, toast]);

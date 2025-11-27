@@ -86,7 +86,7 @@ export const GoalFeed = ({ goals = [], onRefresh }: GoalFeedProps) => {
             await spiritualPathAPI.updateGoal(goal.id, {
               daily_plan: updatedGoal.daily_plan,
               updated_at: updatedGoal.updated_at,
-            } as any);
+            });
           } catch (error) {
             console.error(`Error updating daily plan for goal ${goal.id}:`, error);
             // Продолжаем работу даже при ошибке

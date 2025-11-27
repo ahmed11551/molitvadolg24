@@ -90,7 +90,7 @@ export const SmartTasbih = ({ goalId }: SmartTasbihProps) => {
         setLoadingItemData(true);
         try {
           const { getDhikrItemById } = await import("@/lib/dhikr-data");
-          const itemData = await getDhikrItemById(selectedGoal.item_id, selectedGoal.item_type as any);
+          const itemData = await getDhikrItemById(selectedGoal.item_id, selectedGoal.item_type);
           if (itemData) {
             // Обновляем цель с загруженными данными
             await spiritualPathAPI.updateGoal(selectedGoal.id, {
@@ -102,7 +102,7 @@ export const SmartTasbih = ({ goalId }: SmartTasbihProps) => {
                 audioUrl: itemData.audioUrl,
                 reference: itemData.reference,
               },
-            } as any);
+            });
             // Перезагружаем цели
             loadGoals();
           }

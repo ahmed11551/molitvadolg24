@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { spiritualPathAPI, localStorageAPI } from "@/lib/api";
 import { calculatePrayerDebt } from "@/lib/prayer-calculator";
 import type { QazaCalculation } from "@/types/spiritual-path";
+import type { TravelPeriod } from "@/types/prayer-debt";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useUserData } from "@/hooks/useUserData";
@@ -42,9 +43,9 @@ export const QazaCalculator = () => {
       setPrayerStartDate(userData.personal_data.prayer_start_date);
       if (userData.travel_data?.travel_periods) {
         setTravelPeriods(
-          userData.travel_data.travel_periods.map((p: any) => ({
-            start_date: new Date(p.start_date),
-            end_date: new Date(p.end_date),
+          userData.travel_data.travel_periods.map((p: TravelPeriod | { start_date: string | Date; end_date: string | Date }) => ({
+            start_date: p.start_date instanceof Date ? p.start_date : new Date(p.start_date),
+            end_date: p.end_date instanceof Date ? p.end_date : new Date(p.end_date),
           }))
         );
       }

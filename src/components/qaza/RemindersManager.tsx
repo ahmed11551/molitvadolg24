@@ -194,7 +194,7 @@ export const RemindersManager = () => {
     };
 
     // Планируем напоминания в зависимости от частоты
-    let timeouts: NodeJS.Timeout[] = [];
+    const timeouts: NodeJS.Timeout[] = [];
 
     if (settings.frequency === "daily") {
       const delay = getNextNotificationTime(settings.time);
@@ -232,8 +232,10 @@ export const RemindersManager = () => {
 
     return () => {
       // Очищаем все таймеры при размонтировании или изменении настроек
-      timeouts.forEach(timeout => clearTimeout(timeout));
-      timeouts.forEach(interval => clearInterval(interval as NodeJS.Timeout));
+      timeouts.forEach((timeout) => {
+        clearTimeout(timeout);
+        clearInterval(timeout);
+      });
     };
   }, [settings, permissionStatus, dailyGoal]);
 

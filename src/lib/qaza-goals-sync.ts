@@ -45,7 +45,7 @@ export async function syncQazaProgressWithGoals(
           // Если прогресс уменьшился (редкий случай), обновляем напрямую
           await spiritualPathAPI.updateGoal(goal.id, {
             current_value: totalCompleted,
-          } as any);
+          });
         }
       }
     }
@@ -76,7 +76,7 @@ export async function createQazaGoalIfNeeded(
       if (existingQazaGoal.target_value !== totalDebt) {
         await spiritualPathAPI.updateGoal(existingQazaGoal.id, {
           target_value: totalDebt,
-        } as any);
+        });
       }
       return existingQazaGoal.id;
     }

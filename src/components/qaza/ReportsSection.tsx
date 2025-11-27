@@ -102,6 +102,54 @@ export const ReportsSection = () => {
     });
   };
 
+  // Мемоизация массива статистики с безопасной обработкой даты
+  const statsArray = useMemo(() => {
+    if (userDataLoading || !userData || !isValidUserData) {
+      return [];
+    }
+
+    try {
+      const startDate =
+        stats.startDate instanceof Date && !isNaN(stats.startDate.getTime())
+          ? stats.startDate
+          : new Date();
+
+      return [
+        {
+          icon: Calendar,
+          label: "Дата начала",
+          value: startDate.toLocaleDateString("ru-RU", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }),
+          description: "Начало отслеживания",
+        },
+        {
+          icon: Target,
+          label: "Всего восполнено",
+          value: formatNumber(stats.totalCompleted),
+          description: "намазов выполнено",
+        },
+        {
+          icon: TrendingUp,
+          label: "Осталось",
+          value: formatNumber(stats.remaining),
+          description: "намазов до завершения",
+        },
+        {
+          icon: Clock,
+          label: "Средний темп",
+          value: `${stats.dailyPace}/день`,
+          description: "намазов в день",
+        },
+      ];
+    } catch (error) {
+      console.error("Error creating stats array:", error);
+      return [];
+    }
+  }, [stats, userDataLoading, userData, isValidUserData]);
+
   // Показываем загрузку
   if (userDataLoading) {
     return (
@@ -128,7 +176,7 @@ export const ReportsSection = () => {
           <CardContent className="pt-6">
             <div className="text-center py-8 space-y-4">
               <p className="text-muted-foreground">
-                {!userData 
+                {!userData
                   ? "Для отображения отчётов необходимо сначала рассчитать долг намазов"
                   : "Данные неполные. Пожалуйста, выполните расчет заново."}
               </p>
@@ -138,74 +186,6 @@ export const ReportsSection = () => {
       </div>
     );
   }
-
-  // Мемоизация массива статистики с безопасной обработкой даты
-  const statsArray = useMemo(() => {
-    try {
-      const startDate = stats.startDate instanceof Date && !isNaN(stats.startDate.getTime())
-        ? stats.startDate
-        : new Date();
-      
-      return [
-        {
-          icon: Calendar,
-          label: "Дата начала",
-          value: startDate.toLocaleDateString("ru-RU", { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          }),
-          description: "Начало отслеживания",
-        },
-        {
-          icon: Target,
-          label: "Всего восполнено",
-          value: formatNumber(stats.totalCompleted),
-          description: "намазов выполнено",
-        },
-        {
-          icon: TrendingUp,
-          label: "Осталось",
-          value: formatNumber(stats.remaining),
-          description: "намазов до завершения",
-        },
-        {
-          icon: Clock,
-          label: "Средний темп",
-          value: `${stats.dailyPace}/день`,
-          description: "намазов в день",
-        },
-      ];
-    } catch (error) {
-      console.error("Error creating stats array:", error);
-      return [
-        {
-          icon: Calendar,
-          label: "Дата начала",
-          value: new Date().toLocaleDateString("ru-RU"),
-          description: "Начало отслеживания",
-        },
-        {
-          icon: Target,
-          label: "Всего восполнено",
-          value: "0",
-          description: "намазов выполнено",
-        },
-        {
-          icon: TrendingUp,
-          label: "Осталось",
-          value: "0",
-          description: "намазов до завершения",
-        },
-        {
-          icon: Clock,
-          label: "Средний темп",
-          value: "0/день",
-          description: "намазов в день",
-        },
-      ];
-    }
-  }, [stats]);
 
   return (
     <div className="space-y-6 animate-in fade-in-50 duration-500">

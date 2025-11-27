@@ -12,7 +12,7 @@ export const DuaSection = () => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  const categories = [
+  const categories = useMemo(() => [
     {
       id: "sleep",
       name: "Перед сном",
@@ -220,12 +220,14 @@ export const DuaSection = () => {
         },
       ],
     },
-  ];
+  ], []);
 
   // Get favorites from localStorage with state to trigger updates
   const [bookmarksUpdated, setBookmarksUpdated] = useState(0);
   
   const favorites = useMemo(() => {
+    // Используем значение только для отслеживания изменений
+    void bookmarksUpdated;
     try {
       const bookmarks = localStorage.getItem("prayer_debt_bookmarks");
       if (bookmarks) {
@@ -291,7 +293,7 @@ export const DuaSection = () => {
     }
 
     return filtered;
-  }, [searchQuery, selectedCategory, showFavoritesOnly, favorites]);
+  }, [searchQuery, selectedCategory, showFavoritesOnly, favorites, categories]);
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories((prev) => {

@@ -1,6 +1,6 @@
 // Раздел Азкары - новый дизайн с вкладками "Категории" и "Любимое"
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,7 +8,7 @@ import { Star, Share2, Heart, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AdhkarCard } from "./AdhkarCard";
 import { eReplikaAPI } from "@/lib/api";
-import { getAvailableItemsByCategory } from "@/lib/dhikr-data";
+import { getAvailableItemsByCategory, type DhikrItem } from "@/lib/dhikr-data";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,6 +32,19 @@ interface Category {
   adhkar: Adhkar[];
 }
 
+type RemoteAdhkarRecord = Adhkar & {
+  category_id?: string;
+  category_name?: string;
+  name?: string;
+  text_arabic?: string;
+  text_transcription?: string;
+  russian_transcription?: string;
+  text_translation?: string;
+  name_english?: string;
+  audio_url?: string | null;
+  audio?: string | null;
+};
+
 export const AdhkarSectionV2 = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -43,17 +56,22 @@ export const AdhkarSectionV2 = () => {
   const [activeTab, setActiveTab] = useState<"categories" | "favorites">("categories");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadAdhkar();
-    loadFavorites();
-    loadTodayAdhkar();
+  const getCategoryName = useCallback((categoryId: string): string => {
+    const categoryNames: Record<string, string> = {
+      morning: "Утренние",
+      evening: "Вечерние",
+      after_prayer: "После намаза",
+      general: "Общие",
+      protection: "Защита",
+    };
+    return categoryNames[categoryId] || categoryId;
   }, []);
 
-  const loadAdhkar = async () => {
+  const loadAdhkar = useCallback(async () => {
     setLoading(true);
     try {
       // Используем getAvailableItemsByCategory с fallback на локальные данные
-      let data: any[] = [];
+      let data: Adhkar[] = [];
       let hasError = false;
       
       try {
@@ -66,7 +84,7 @@ export const AdhkarSectionV2 = () => {
           try {
             const fallbackData = await getAvailableItemsByCategory("adhkar");
             if (fallbackData && fallbackData.length > 0) {
-              data = fallbackData.map(item => ({
+              data = fallbackData.map((item: DhikrItem): Adhkar => ({
                 id: item.id,
                 title: item.title || "",
                 arabic: item.arabic || "",
@@ -74,7 +92,7 @@ export const AdhkarSectionV2 = () => {
                 russianTranscription: item.russianTranscription,
                 translation: item.translation || "",
                 count: item.count || 33,
-                category: "general",
+                category: item.category || "general",
                 audioUrl: item.audioUrl || null,
               }));
             } else {
@@ -91,7 +109,7 @@ export const AdhkarSectionV2 = () => {
         try {
           const fallbackData = await getAvailableItemsByCategory("adhkar");
           if (fallbackData && fallbackData.length > 0) {
-            data = fallbackData.map(item => ({
+            data = fallbackData.map((item: DhikrItem): Adhkar => ({
               id: item.id,
               title: item.title || "",
               arabic: item.arabic || "",
@@ -99,7 +117,7 @@ export const AdhkarSectionV2 = () => {
               russianTranscription: item.russianTranscription,
               translation: item.translation || "",
               count: item.count || 33,
-              category: "general",
+              category: item.category || "general",
               audioUrl: item.audioUrl || null,
             }));
           } else {
@@ -122,10 +140,9 @@ export const AdhkarSectionV2 = () => {
 
       // Группируем по категориям
       const categoriesMap = new Map<string, Adhkar[]>();
-      data.forEach((item: any) => {
+      (data as RemoteAdhkarRecord[]).forEach((item) => {
         const categoryId = item.category_id || item.category || "general";
-        const categoryName = item.category_name || item.category || "Общие";
-        
+
         if (!categoriesMap.has(categoryId)) {
           categoriesMap.set(categoryId, []);
         }
@@ -138,7 +155,7 @@ export const AdhkarSectionV2 = () => {
           translation: item.translation || item.text_translation || item.name_english || "",
           count: item.count || 33,
           category: categoryId,
-          audioUrl: item.audio_url || item.audioUrl || null,
+          audioUrl: item.audio_url ?? item.audioUrl ?? item.audio ?? null,
         });
       });
 
@@ -158,7 +175,7 @@ export const AdhkarSectionV2 = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getCategoryName]);
 
   const getCategoryName = (categoryId: string): string => {
     const categoryNames: Record<string, string> = {
@@ -171,40 +188,47 @@ export const AdhkarSectionV2 = () => {
     return categoryNames[categoryId] || categoryId;
   };
 
-  const loadFavorites = () => {
+  const loadFavorites = useCallback(() => {
     try {
       const stored = localStorage.getItem(BOOKMARKS_KEY);
       if (stored) {
-        const bookmarks = JSON.parse(stored);
-        if (Array.isArray(bookmarks)) {
-          setFavorites(bookmarks);
+        const bookmarksRaw: unknown = JSON.parse(stored);
+        if (Array.isArray(bookmarksRaw)) {
+          setFavorites(bookmarksRaw as Adhkar[]);
         }
       }
     } catch (error) {
       console.error("Error loading favorites:", error);
     }
-  };
+  }, []);
 
-  const loadTodayAdhkar = () => {
+  const loadTodayAdhkar = useCallback(() => {
     // Выбираем случайный азкар для "Сегодняшний Азкар"
     if (adhkar.length > 0) {
       const randomIndex = Math.floor(Math.random() * adhkar.length);
       setTodayAdhkar(adhkar[randomIndex]);
     }
-  };
+  }, [adhkar]);
+
+  useEffect(() => {
+    loadAdhkar();
+    loadFavorites();
+    loadTodayAdhkar();
+  }, [loadAdhkar, loadFavorites, loadTodayAdhkar]);
 
   useEffect(() => {
     if (adhkar.length > 0 && !todayAdhkar) {
       loadTodayAdhkar();
     }
-  }, [adhkar]);
+  }, [adhkar, todayAdhkar, loadTodayAdhkar]);
 
   const toggleFavorite = (adhkar: Adhkar) => {
     try {
       const stored = localStorage.getItem(BOOKMARKS_KEY);
-      let bookmarks: Adhkar[] = stored ? JSON.parse(stored) : [];
+      const parsed: unknown = stored ? JSON.parse(stored) : [];
+      let bookmarks: Adhkar[] = Array.isArray(parsed) ? (parsed as Adhkar[]) : [];
       
-      const isFavorite = bookmarks.some((b: Adhkar) => b.id === adhkar.id);
+      const isFavorite = bookmarks.some((b) => b.id === adhkar.id);
       
       if (isFavorite) {
         bookmarks = bookmarks.filter((b: Adhkar) => b.id !== adhkar.id);

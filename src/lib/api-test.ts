@@ -105,8 +105,12 @@ export async function testEReplikaDuasList() {
 
 // Добавляем в window для использования в консоли
 if (typeof window !== "undefined") {
-  (window as any).testEReplikaAudioAPI = testEReplikaAudioAPI;
-  (window as any).testEReplikaDuasList = testEReplikaDuasList;
+  const win = window as Window & {
+    testEReplikaAudioAPI?: typeof testEReplikaAudioAPI;
+    testEReplikaDuasList?: typeof testEReplikaDuasList;
+  };
+  win.testEReplikaAudioAPI = testEReplikaAudioAPI;
+  win.testEReplikaDuasList = testEReplikaDuasList;
   
   console.log(`
   🛠️  Утилиты для тестирования API доступны в консоли:

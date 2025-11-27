@@ -1,15 +1,12 @@
 // Просмотр дуа внутри категории
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, Search, ChevronRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { DuaCard } from "./DuaCard";
 import { DuaCardV2 } from "./DuaCardV2";
 import { eReplikaAPI } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 interface Dua {
   id: string;
@@ -28,32 +25,42 @@ interface CategoryDuasViewProps {
   onBack: () => void;
 }
 
+type RemoteDuaRecord = Dua & {
+  category_id?: string;
+  category?: string;
+  category_name?: string;
+  text_arabic?: string;
+  text_transcription?: string;
+  russian_transcription?: string;
+  text_translation?: string;
+  name_english?: string;
+  hadith_reference?: string;
+  audio_url?: string | null;
+  audio?: string | null;
+};
+
 export const CategoryDuasView = ({ categoryId, categoryName, onBack }: CategoryDuasViewProps) => {
   const [duas, setDuas] = useState<Dua[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDua, setSelectedDua] = useState<Dua | null>(null);
 
-  useEffect(() => {
-    loadCategoryDuas();
-  }, [categoryId]);
-
-  const loadCategoryDuas = async () => {
+  const loadCategoryDuas = useCallback(async () => {
     setLoading(true);
     try {
       const allDuas = await eReplikaAPI.getDuas();
-      const categoryDuas = allDuas
-        .filter((dua: any) => {
+      const categoryDuas = (allDuas as RemoteDuaRecord[])
+        .filter((dua) => {
           const catId = dua.category_id || dua.category || "general";
           return catId === categoryId;
         })
-        .map((dua: any, index: number) => ({
+        .map((dua, index: number) => ({
           id: dua.id,
           arabic: dua.arabic || dua.text_arabic || "",
           transcription: dua.transcription || dua.text_transcription || "",
           russianTranscription: dua.russian_transcription || dua.russianTranscription,
           translation: dua.translation || dua.text_translation || dua.name_english || "",
           reference: dua.reference || dua.hadith_reference,
-          audioUrl: dua.audio_url || dua.audioUrl || null,
+          audioUrl: dua.audio_url ?? dua.audioUrl ?? dua.audio ?? null,
           number: index + 1,
         }));
 
@@ -63,7 +70,11 @@ export const CategoryDuasView = ({ categoryId, categoryName, onBack }: CategoryD
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryId]);
+
+  useEffect(() => {
+    loadCategoryDuas();
+  }, [loadCategoryDuas]);
 
   if (loading) {
     return (

@@ -1,6 +1,6 @@
 // Компонент календаря намазов с интеграцией каза-намазов
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -46,7 +46,7 @@ export const PrayerCalendar = () => {
   useEffect(() => {
     loadCalendarData();
     loadUserData();
-  }, []);
+  }, [loadUserData]);
 
   const loadCalendarData = () => {
     const saved = localStorage.getItem(CALENDAR_STORAGE_KEY);
@@ -71,14 +71,14 @@ export const PrayerCalendar = () => {
     setEntries(updatedEntries);
   };
 
-  const loadUserData = () => {
+  const loadUserData = useCallback(() => {
     const data = localStorageAPI.getUserData();
     if (data) {
       setUserData(data);
     } else if (userDataFromHook) {
       setUserData(userDataFromHook);
     }
-  };
+  }, [userDataFromHook]);
 
   const getDateKey = (date: Date) => format(date, "yyyy-MM-dd");
 

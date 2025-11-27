@@ -37,7 +37,7 @@ export interface Item {
     transcription?: string;
     translation?: string;
     audio_url?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   created_at: Date;
   updated_at: Date;
@@ -132,7 +132,7 @@ export interface OfflineEvent {
   id: string;
   offline_id: string;
   type: "tap" | "learn_mark" | "session_start" | "session_end";
-  data: any;
+  data: Record<string, unknown>;
   timestamp: Date;
   synced: boolean;
 }

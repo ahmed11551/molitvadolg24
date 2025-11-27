@@ -1,6 +1,6 @@
 // Просмотр категории дуа/азкаров
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -18,6 +18,19 @@ interface Dua {
   audioUrl?: string | null;
 }
 
+type RemoteDuaRecord = Dua & {
+  category_id?: string;
+  category?: string;
+  text_arabic?: string;
+  text_transcription?: string;
+  russian_transcription?: string;
+  text_translation?: string;
+  name_english?: string;
+  hadith_reference?: string;
+  audio_url?: string | null;
+  audio?: string | null;
+};
+
 export const CategoryView = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -25,40 +38,7 @@ export const CategoryView = () => {
   const [loading, setLoading] = useState(true);
   const [categoryName, setCategoryName] = useState("");
 
-  useEffect(() => {
-    if (categoryId) {
-      loadCategoryDuas();
-    }
-  }, [categoryId]);
-
-  const loadCategoryDuas = async () => {
-    setLoading(true);
-    try {
-      const allDuas = await eReplikaAPI.getDuas();
-      const categoryDuas = allDuas.filter((dua: any) => {
-        const catId = dua.category_id || dua.category || "general";
-        return catId === categoryId;
-      });
-
-      setDuas(categoryDuas.map((dua: any) => ({
-        id: dua.id,
-        arabic: dua.arabic || dua.text_arabic || "",
-        transcription: dua.transcription || dua.text_transcription || "",
-        russianTranscription: dua.russian_transcription || dua.russianTranscription,
-        translation: dua.translation || dua.text_translation || dua.name_english || "",
-        reference: dua.reference || dua.hadith_reference,
-        audioUrl: dua.audio_url || dua.audioUrl || null,
-      })));
-
-      setCategoryName(getCategoryName(categoryId));
-    } catch (error) {
-      console.error("Error loading category duas:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getCategoryName = (id: string): string => {
+  const getCategoryName = useCallback((id: string): string => {
     const names: Record<string, string> = {
       morning: "Утро & вечер",
       evening: "Утро & вечер",
@@ -72,7 +52,40 @@ export const CategoryView = () => {
       general: "Общие",
     };
     return names[id] || id;
-  };
+  }, []);
+
+  const loadCategoryDuas = useCallback(async () => {
+    setLoading(true);
+    try {
+      const allDuas = await eReplikaAPI.getDuas();
+      const categoryDuas = (allDuas as RemoteDuaRecord[]).filter((dua) => {
+        const catId = dua.category_id || dua.category || "general";
+        return catId === categoryId;
+      });
+
+      setDuas(categoryDuas.map((dua) => ({
+        id: dua.id,
+        arabic: dua.arabic || dua.text_arabic || "",
+        transcription: dua.transcription || dua.text_transcription || "",
+        russianTranscription: dua.russian_transcription || dua.russianTranscription,
+        translation: dua.translation || dua.text_translation || dua.name_english || "",
+        reference: dua.reference || dua.hadith_reference,
+        audioUrl: dua.audio_url ?? dua.audioUrl ?? dua.audio ?? null,
+      })));
+
+      setCategoryName(getCategoryName(categoryId));
+    } catch (error) {
+      console.error("Error loading category duas:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [categoryId, getCategoryName]);
+
+  useEffect(() => {
+    if (categoryId) {
+      loadCategoryDuas();
+    }
+  }, [categoryId, loadCategoryDuas]);
 
   if (loading) {
     return (

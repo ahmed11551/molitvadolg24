@@ -41,7 +41,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useFocusRituals } from "@/hooks/useFocusRituals";
 import { smartTasbihAPI, eReplikaAPI, spiritualPathAPI } from "@/lib/api";
 import { initOfflineQueue, addOfflineEvent, getUnsyncedEvents, syncOfflineEvents } from "@/lib/offline-queue";
-import { getAvailableItemsByCategory } from "@/lib/dhikr-data";
+import { getAvailableItemsByCategory, getNamesOfAllah } from "@/lib/dhikr-data";
+import type { DhikrItem } from "@/lib/dhikr-data";
 import type {
   Category,
   GoalType,
@@ -52,7 +53,7 @@ import type {
   FocusMood,
   FocusRitual,
 } from "@/types/smart-tasbih";
-import type { Goal } from "@/types/spiritual-path";
+import type { Goal, LinkedCounterType } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
 import { getMoodLabel } from "@/lib/focus-rituals";
 import {
@@ -83,6 +84,78 @@ const MOOD_OPTIONS: Array<{ value: FocusMood; label: string; emoji: string }> = 
   { value: "healing", label: "Исцеление", emoji: "💧" },
   { value: "repentance", label: "Истигфар", emoji: "🕊️" },
 ];
+
+type DhikrItemTypeKey = NonNullable<Goal["item_type"]>;
+
+interface LastEvent {
+  delta: number;
+  value_after: number;
+}
+
+type GoalWithCategory = Goal & { item_category?: Category };
+
+const mapCategoryToDhikrType = (category: Category): DhikrItemTypeKey | null => {
+  switch (category) {
+    case "dua":
+      return "dua";
+    case "azkar":
+      return "adhkar";
+    case "salawat":
+      return "salawat";
+    case "kalimat":
+      return "kalima";
+    case "names99":
+      return "name_of_allah";
+    case "surah":
+      return "surah";
+    case "ayah":
+      return "ayah";
+    default:
+      return null;
+  }
+};
+
+const mapGoalItemTypeToCategory = (itemType?: Goal["item_type"]): Category => {
+  switch (itemType) {
+    case "adhkar":
+      return "azkar";
+    case "salawat":
+      return "salawat";
+    case "kalima":
+      return "kalimat";
+    case "name_of_allah":
+      return "names99";
+    case "surah":
+      return "surah";
+    case "ayah":
+      return "ayah";
+    case "dua":
+    default:
+      return "dua";
+  }
+};
+
+const mapGoalStatus = (status: Goal["status"]): TasbihGoal["status"] => {
+  return status === "completed" ? "completed" : "active";
+};
+
+const getDailyCountForSegment = (record: DailyAzkar | null, segment: PrayerSegment): number => {
+  if (!record) return 0;
+  switch (segment) {
+    case "fajr":
+      return record.fajr;
+    case "dhuhr":
+      return record.dhuhr;
+    case "asr":
+      return record.asr;
+    case "maghrib":
+      return record.maghrib;
+    case "isha":
+      return record.isha;
+    default:
+      return 0;
+  }
+};
 
 const randomId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -122,9 +195,9 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
   const [dailyAzkar, setDailyAzkar] = useState<DailyAzkar | null>(null);
   const [currentCount, setCurrentCount] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<Category>("dua");
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [availableItems, setAvailableItems] = useState<any[]>([]);
-  const [lastEvent, setLastEvent] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<DhikrItem | null>(null);
+  const [availableItems, setAvailableItems] = useState<DhikrItem[]>([]);
+  const [lastEvent, setLastEvent] = useState<LastEvent | null>(null);
   const [undoTimeout, setUndoTimeout] = useState<NodeJS.Timeout | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -156,9 +229,67 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
   }, [selectedItem]);
 
   // Инициализация
+  const loadSpiritualPathGoals = useCallback(async () => {
+    try {
+      const goals = await spiritualPathAPI.getGoals("active");
+      setSpiritualPathGoals(goals);
+      return goals;
+    } catch (error) {
+      console.error("Error loading spiritual path goals:", error);
+      return [];
+    }
+  }, []);
+
+  const init = useCallback(async () => {
+    setLoading(true);
+    try {
+      await initOfflineQueue();
+
+      const fetchedGoals = await loadSpiritualPathGoals();
+
+      if (goalId) {
+        try {
+          const goal = fetchedGoals.find((g) => g.id === goalId);
+          if (goal && goal.category === "zikr") {
+            const tasbihGoal: TasbihGoal = {
+              id: goal.id,
+              category: mapGoalItemTypeToCategory(goal.item_type),
+              item_id: goal.item_id,
+              goal_type: "recite",
+              target_count: goal.target_value || 33,
+              progress: goal.current_value || 0,
+              prayer_segment: "none",
+            };
+            setActiveGoal(tasbihGoal);
+            await startSessionForGoal(tasbihGoal);
+          }
+        } catch (error) {
+          console.error("Error loading goal by ID:", error);
+        }
+      }
+
+      try {
+        const bootstrap = await smartTasbihAPI.bootstrap();
+        if (!goalId && bootstrap.active_goal) {
+          setActiveGoal(bootstrap.active_goal);
+          await startSessionForGoal(bootstrap.active_goal);
+        }
+        setDailyAzkar(bootstrap.daily_azkar || null);
+      } catch (error) {
+        console.error("Error bootstrapping:", error);
+      }
+
+      syncOfflineQueue().catch((err) => console.error("Error syncing offline queue:", err));
+    } catch (error) {
+      console.error("Error initializing:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [goalId, loadSpiritualPathGoals]);
+
   useEffect(() => {
     init();
-  }, []);
+  }, [init]);
 
   // Синхронизация офлайн-событий при восстановлении связи
   useEffect(() => {
@@ -179,10 +310,11 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
 
   // Загрузка элементов категории
   useEffect(() => {
-    if (selectedCategory && selectedCategory !== "general") {
-      loadCategoryItems();
+    if (!selectedCategory || selectedCategory === "general") {
+      return;
     }
-  }, [selectedCategory]);
+    loadCategoryItems(selectedCategory);
+  }, [selectedCategory, loadCategoryItems]);
 
   const tasbihLinkedGoals = useMemo(
     () =>
@@ -197,15 +329,17 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
   );
 
   const handleStartFromSpiritualGoal = async (goal: Goal) => {
+    const goalWithCategory = goal as GoalWithCategory;
+    const derivedCategory = goalWithCategory.item_category ?? mapGoalItemTypeToCategory(goal.item_type);
     const tasbihGoal: TasbihGoal = {
       id: goal.id,
       user_id: goal.user_id,
-      category: (goal.item_type as Category) || "dua",
+      category: derivedCategory,
       item_id: goal.item_id,
       goal_type: goal.metric === "count" ? "recite" : "learn",
       target_count: goal.target_value || 33,
       progress: goal.current_value || 0,
-      status: goal.status as any,
+      status: mapGoalStatus(goal.status),
       prayer_segment: "none",
       created_at: goal.created_at,
       updated_at: goal.updated_at,
@@ -269,17 +403,8 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
     }
   };
 
-  const loadSpiritualPathGoals = async () => {
-    try {
-      const goals = await spiritualPathAPI.getGoals("active");
-      setSpiritualPathGoals(goals);
-    } catch (error) {
-      console.error("Error loading spiritual path goals:", error);
-    }
-  };
-
   // Определение типа счетчика на основе категории и элемента
-  const getCounterType = (category: Category, item?: any): string | null => {
+  const getCounterType = (category: Category, item?: DhikrItem | null): LinkedCounterType => {
     if (category === "salawat") return "salawat";
     if (category === "azkar") {
       // Определяем по названию элемента
@@ -305,11 +430,11 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
     [rituals, activeRitualId]
   );
 
-  const loadCategoryItems = async () => {
+  const loadCategoryItems = useCallback(async (category: Category) => {
     setLoadingItems(true);
     try {
-      let items: any[] = [];
-      switch (selectedCategory) {
+      let items: DhikrItem[] = [];
+      switch (category) {
         case "dua":
           items = await getAvailableItemsByCategory("dua");
           break;
@@ -322,6 +447,11 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
         case "kalimat":
           items = await getAvailableItemsByCategory("kalima");
           break;
+        case "names99":
+          items = await getNamesOfAllah();
+          break;
+        default:
+          items = [];
       }
       setAvailableItems(items);
     } catch (error) {
@@ -329,7 +459,7 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
     } finally {
       setLoadingItems(false);
     }
-  };
+  }, []);
 
   const syncOfflineQueue = async () => {
     try {
@@ -357,9 +487,12 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
       if (goal.item_id) {
         try {
           const { getDhikrItemById } = await import("@/lib/dhikr-data");
-          const itemData = await getDhikrItemById(goal.item_id, goal.category as any);
-          if (itemData) {
-            setSelectedItem(itemData);
+          const itemType = mapCategoryToDhikrType(goal.category);
+          if (itemType) {
+            const itemData = await getDhikrItemById(goal.item_id, itemType);
+            if (itemData) {
+              setSelectedItem(itemData);
+            }
           }
         } catch (error) {
           console.error("Error loading item data:", error);
@@ -490,7 +623,7 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
           };
           return [event, ...prev].slice(0, 6);
         });
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error tapping:", error);
       }
     },
@@ -503,6 +636,7 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
       selectedCategory,
       selectedItem,
       toast,
+      loadSpiritualPathGoals,
     ]
   );
 
@@ -541,7 +675,7 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
     } catch (error) {
       console.error("Error undoing:", error);
     }
-  }, [lastEvent, activeSession, currentCount, undoTimeout]);
+  }, [lastEvent, activeSession, currentCount, undoTimeout, toast]);
 
   const handleBulkTap = useCallback(
     (delta: number) => {
@@ -605,7 +739,7 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
     } catch (error) {
       console.error("Error recording repeat:", error);
     }
-  }, [activeGoal, activeSession]);
+  }, [activeGoal, activeSession, toast]);
 
   const handleLearned = useCallback(async () => {
     if (!activeGoal || activeGoal.goal_type !== "learn") return;
@@ -627,7 +761,7 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
     } catch (error) {
       console.error("Error marking learned:", error);
     }
-  }, [activeGoal]);
+  }, [activeGoal, toast]);
 
   const handleReset = useCallback(async () => {
     if (!activeSession) return;
@@ -672,7 +806,7 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
     } catch (error) {
       console.error("Error resetting:", error);
     }
-  }, [activeSession, currentCount]);
+  }, [activeSession, currentCount, activeGoal, selectedItem, toast]);
 
   const handlePrayerSegmentTap = async (segment: PrayerSegment) => {
     try {
@@ -916,7 +1050,7 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
           <CardContent>
             <div className="space-y-3">
               {PRAYER_SEGMENTS.map((segment) => {
-                const count = (dailyAzkar as any)[segment.value] || 0;
+                const count = getDailyCountForSegment(dailyAzkar, segment.value);
                 const isComplete = count >= 99;
                 return (
                   <div key={segment.value} className="space-y-2">

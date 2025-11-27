@@ -13,11 +13,17 @@ const DB_NAME = "tasbih_offline_queue";
 const DB_VERSION = 1;
 const STORE_NAME = "events";
 
+type OfflineEventData =
+  | { session_id: string; delta: number; event_type?: string; prayer_segment?: string }
+  | { goal_id: string }
+  | { session_id: string; goal_id?: string; category?: string; item_id?: string; prayer_segment?: string }
+  | Record<string, unknown>;
+
 export interface OfflineEvent {
   id: string;
   offline_id: string;
   type: "tap" | "learn_mark" | "session_start" | "session_end";
-  data: any;
+  data: OfflineEventData;
   timestamp: Date;
   synced: boolean;
 }
@@ -50,7 +56,7 @@ export async function initOfflineQueue(): Promise<void> {
 // Добавление события в очередь
 export async function addOfflineEvent(
   type: OfflineEvent["type"],
-  data: any
+  data: OfflineEventData
 ): Promise<string> {
   if (!db) {
     await initOfflineQueue();

@@ -8,7 +8,7 @@ import { Sparkles, TrendingUp, Target, Zap, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { spiritualPathAPI } from "@/lib/api";
 import { useUserData } from "@/hooks/useUserData";
-import type { Goal } from "@/types/spiritual-path";
+import type { Goal, GoalCategory, GoalPeriod } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
 
 interface SmartTemplate {
@@ -323,9 +323,9 @@ export const SmartGoalTemplates = ({ onTemplateSelected }: { onTemplateSelected?
       await spiritualPathAPI.createGoal({
         title: template.title,
         description: template.description,
-        category: template.category as any,
+        category: template.category as GoalCategory,
         type: template.period === "infinite" ? "habit" : "fixed_term",
-        period: template.period as any,
+        period: template.period as GoalPeriod,
         metric: "count",
         target_value: template.target_value,
         current_value: 0,
@@ -333,7 +333,7 @@ export const SmartGoalTemplates = ({ onTemplateSelected }: { onTemplateSelected?
         end_date: endDate,
         status: "active",
         daily_plan: template.suggested_daily_plan,
-      } as any);
+      });
 
       toast({
         title: "Цель создана!",

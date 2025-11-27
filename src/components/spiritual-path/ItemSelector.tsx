@@ -14,14 +14,15 @@ import {
 } from "@/components/ui/select";
 import { Search, ChevronDown, ChevronUp, ChevronRight, Loader2 } from "lucide-react";
 import { getAvailableItemsByCategory, getAyahs, getSurahs, getNamesOfAllah } from "@/lib/dhikr-data";
-import type { GoalCategory } from "@/types/spiritual-path";
+import type { DhikrItem } from "@/lib/dhikr-data";
+import type { Goal, GoalCategory } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
 
 interface ItemSelectorProps {
   category: GoalCategory;
   selectedItemId?: string;
   selectedItemType?: "dua" | "ayah" | "surah" | "adhkar" | "salawat" | "kalima" | "name_of_allah";
-  onItemSelect: (itemId: string, itemType: string, itemData: any) => void;
+  onItemSelect: (itemId: string, itemType: string, itemData: Goal["item_data"]) => void;
 }
 
 export const ItemSelector = ({
@@ -31,8 +32,8 @@ export const ItemSelector = ({
   onItemSelect,
 }: ItemSelectorProps) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("");
-  const [items, setItems] = useState<any[]>([]);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<"dua" | "adhkar" | "salawat" | "kalima" | "">("");
+  const [items, setItems] = useState<DhikrItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedSurah, setSelectedSurah] = useState<number | null>(null);
 
@@ -50,7 +51,7 @@ export const ItemSelector = ({
       setLoading(true);
       try {
         if (category === "zikr" && selectedSubcategory) {
-          const data = await getAvailableItemsByCategory(selectedSubcategory as any);
+          const data = await getAvailableItemsByCategory(selectedSubcategory);
           setItems(data);
         } else if (category === "quran") {
           if (selectedSurah) {
@@ -87,7 +88,7 @@ export const ItemSelector = ({
     );
   });
 
-  const handleItemClick = (item: any) => {
+  const handleItemClick = (item: DhikrItem) => {
     let itemType: string = "";
     if (category === "zikr") {
       itemType = selectedSubcategory || "dua";
@@ -115,7 +116,7 @@ export const ItemSelector = ({
         <Select
           value={selectedItemId || ""}
           onValueChange={(value) => {
-            const prayerTypes: Record<string, any> = {
+            const prayerTypes: Record<string, { id: string; title: string; description: string }> = {
               "tahajjud": { id: "tahajjud", title: "Тахаджуд", description: "Ночной намаз" },
               "istighfar": { id: "istighfar", title: "Истигфар", description: "Намаз покаяния" },
               "sunnah": { id: "sunnah", title: "Сунна намаз", description: "Дополнительный намаз" },
@@ -124,8 +125,8 @@ export const ItemSelector = ({
             const prayer = prayerTypes[value];
             if (prayer) {
               onItemSelect(prayer.id, "prayer", {
-                title: prayer.title,
-                description: prayer.description,
+                translation: prayer.title,
+                reference: prayer.description,
               });
             }
           }}

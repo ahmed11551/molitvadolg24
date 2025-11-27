@@ -2,7 +2,7 @@
 // Обрабатывает: POST /calculate, GET /snapshot, PATCH /progress, GET /report.pdf
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +13,11 @@ const corsHeaders = {
 interface Env {
   SUPABASE_URL: string;
   SUPABASE_ANON_KEY: string;
+}
+
+interface ProgressEntry {
+  type: string;
+  amount: number;
 }
 
 Deno.serve(async (req: Request) => {
@@ -98,7 +103,7 @@ Deno.serve(async (req: Request) => {
 // POST /calculate - Рассчитать долг намазов
 async function handleCalculate(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string | null
 ) {
   const body = await req.json();
@@ -232,7 +237,7 @@ async function handleCalculate(
 // GET /snapshot - Получить последний расчет и прогресс
 async function handleSnapshot(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string | null
 ) {
   if (!userId) {
@@ -283,7 +288,7 @@ async function handleSnapshot(
 // PATCH /progress - Обновить прогресс восполнения
 async function handleProgress(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string | null
 ) {
   if (!userId) {
@@ -324,7 +329,7 @@ async function handleProgress(
 
   // Применяем обновления из body.entries
   if (body.entries && Array.isArray(body.entries)) {
-    body.entries.forEach((entry: any) => {
+    body.entries.forEach((entry: ProgressEntry) => {
       if (currentProgress.completed_prayers[entry.type] !== undefined) {
         currentProgress.completed_prayers[entry.type] += entry.amount;
       }
@@ -357,7 +362,7 @@ async function handleProgress(
 // GET /report.pdf - Скачать PDF отчет
 async function handleReportPDF(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string | null
 ) {
   if (!userId) {
@@ -398,7 +403,7 @@ async function handleReportPDF(
 // POST /calculations - Асинхронный расчет
 async function handleAsyncCalculate(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string | null
 ) {
   if (!userId) {
@@ -442,7 +447,7 @@ async function handleAsyncCalculate(
 // GET /calculations/:jobId - Статус асинхронного расчета
 async function handleCalculationStatus(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string | null,
   jobId: string
 ) {

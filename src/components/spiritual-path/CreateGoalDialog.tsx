@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { spiritualPathAPI } from "@/lib/api";
 import { ItemSelector } from "./ItemSelector";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { GoalCategory, GoalType, GoalPeriod, GoalMetric, KnowledgeSubcategory, LinkedCounterType } from "@/types/spiritual-path";
+import type { Goal, GoalCategory, GoalType, GoalPeriod, GoalMetric, KnowledgeSubcategory, LinkedCounterType } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
 
 interface CreateGoalDialogProps {
@@ -89,8 +89,8 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
   const [linkedCounterType, setLinkedCounterType] = useState<LinkedCounterType | "">("");
   const [isLearning, setIsLearning] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string>("");
-  const [selectedItemType, setSelectedItemType] = useState<string>("");
-  const [selectedItemData, setSelectedItemData] = useState<any>(null);
+  const [selectedItemType, setSelectedItemType] = useState<Goal["item_type"]>(undefined);
+  const [selectedItemData, setSelectedItemData] = useState<Goal["item_data"]>(null);
 
   // Автоматический расчет end_date на основе period
   const calculateEndDate = (period: GoalPeriod, start: Date): Date | null => {
@@ -217,10 +217,10 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
         daily_plan: dailyPlan || undefined,
         // Сохраняем данные элемента
         item_id: selectedItemId || undefined,
-        item_type: selectedItemType as any || undefined,
+        item_type: selectedItemType,
         item_data: selectedItemData || undefined,
         is_learning: isLearning,
-      } as any);
+      });
 
       toast({
         title: "Цель создана!",
@@ -336,11 +336,11 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
               <ItemSelector
                 category={category as GoalCategory}
                 selectedItemId={selectedItemId}
-                selectedItemType={selectedItemType as any}
+                selectedItemType={selectedItemType}
                 onItemSelect={(itemId, itemType, itemData) => {
                   setSelectedItemId(itemId);
-                  setSelectedItemType(itemType);
-                  setSelectedItemData(itemData);
+                  setSelectedItemType(itemType as Goal["item_type"]);
+                  setSelectedItemData(itemData as Goal["item_data"]);
                   // Автоматически заполняем название и описание
                   if (itemData.title) {
                     setTitle(itemData.title);

@@ -72,7 +72,7 @@ export const DuaCardV2 = memo(({ dua, number, categoryColor }: DuaCardV2Props) =
           setIsLoadingAudio(false);
         });
     }
-  }, [dua.id, dua.audioUrl]);
+  }, [dua.id, dua.audioUrl, audioUrl]);
 
   // Initialize audio
   useEffect(() => {

@@ -1,6 +1,10 @@
 // API сервис для интеграции с e-Replika API и внутренними эндпоинтами
 // Документация: https://bot.e-replika.ru/docs#/
 
+import type { UserPrayerDebt, MissedPrayers } from "@/types/prayer-debt";
+import type { Goal } from "@/types/spiritual-path";
+import type { TasbihGoal, TasbihSession } from "@/types/smart-tasbih";
+
 const DEFAULT_EREPLIKA_API_BASE = "https://bot.e-replika.ru/api";
 const INTERNAL_API_URL = import.meta.env.VITE_INTERNAL_API_URL || "/api";
 
@@ -61,6 +65,131 @@ function getSupabaseHeaders(): HeadersInit {
     "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
     "apikey": SUPABASE_ANON_KEY,
   };
+}
+
+// Типы для сырых данных из API
+interface RawDuaRecord {
+  id?: string;
+  dua_id?: string;
+  _id?: string;
+  arabic?: string;
+  text_arabic?: string;
+  arabic_text?: string;
+  transcription?: string;
+  translit?: string;
+  latin_transcription?: string;
+  russian_transcription?: string;
+  russianTranscription?: string;
+  cyrillic_transcription?: string;
+  translation?: string;
+  meaning?: string;
+  text?: string;
+  reference?: string;
+  source?: string;
+  audio_url?: string;
+  audioUrl?: string;
+  audio?: string;
+  category?: string;
+  category_id?: string;
+}
+
+interface RawAdhkarRecord {
+  id?: string;
+  adhkar_id?: string;
+  _id?: string;
+  arabic?: string;
+  text_arabic?: string;
+  transcription?: string;
+  translit?: string;
+  translation?: string;
+  meaning?: string;
+  text?: string;
+  reference?: string;
+  audio_url?: string;
+  audioUrl?: string;
+  category?: string;
+  count?: number;
+  title?: string;
+}
+
+interface RawSurahRecord {
+  id?: string;
+  surah_id?: string;
+  number?: number;
+  name?: string;
+  name_arabic?: string;
+  name_translation?: string;
+  ayahs_count?: number;
+}
+
+interface RawAyahRecord {
+  id?: string;
+  ayah_id?: string;
+  surah_number?: number;
+  ayah_number?: number;
+  arabic?: string;
+  transcription?: string;
+  translation?: string;
+  audio_url?: string;
+}
+
+interface RawNameOfAllahRecord {
+  id?: string;
+  name_id?: string;
+  number?: number;
+  arabic?: string;
+  name_arabic?: string;
+  transcription?: string;
+  translation?: string;
+  meaning?: string;
+}
+
+// Типы для smart-tasbih API
+interface BootstrapUser {
+  id: string;
+  locale?: string;
+  madhab?: string;
+  tz?: string;
+}
+
+interface BootstrapResponse {
+  user: BootstrapUser;
+  active_goal?: TasbihGoal | null;
+  daily_azkar?: {
+    id: string;
+    arabic: string;
+    translation: string;
+  } | null;
+  recent_items: Array<{
+    id: string;
+    title: string;
+    category: string;
+  }>;
+}
+
+interface CounterTapResponse {
+  value_after: number;
+  goal_progress?: {
+    progress: number;
+    is_completed: boolean;
+  } | null;
+  daily_azkar?: {
+    id: string;
+    arabic: string;
+    translation: string;
+  } | null;
+}
+
+interface UpdatedGoal {
+  goal_id: string;
+  value: number;
+}
+
+interface OfflineEvent {
+  id: string;
+  type: string;
+  data: Record<string, unknown>;
+  timestamp: string;
 }
 
 // Получение user_id
@@ -319,16 +448,16 @@ export const eReplikaAPI = {
 
       const data = await response.json();
       // Поддерживаем разные форматы ответа
-      let duas: any[] = [];
+      let duas: RawDuaRecord[] = [];
       if (Array.isArray(data)) {
-        duas = data;
+        duas = data as RawDuaRecord[];
       } else if (data.duas && Array.isArray(data.duas)) {
-        duas = data.duas;
+        duas = data.duas as RawDuaRecord[];
       } else if (data.data && Array.isArray(data.data)) {
-        duas = data.data;
+        duas = data.data as RawDuaRecord[];
       }
 
-      return duas.map((dua: any) => ({
+      return duas.map((dua: RawDuaRecord) => ({
         id: dua.id || dua.dua_id || dua._id,
         arabic: dua.arabic || dua.text_arabic || dua.arabic_text || "",
         transcription: dua.transcription || dua.translit || dua.latin_transcription || "",
@@ -430,16 +559,16 @@ export const eReplikaAPI = {
       }
 
       const data = await response.json();
-      let adhkar: any[] = [];
+      let adhkar: RawAdhkarRecord[] = [];
       if (Array.isArray(data)) {
-        adhkar = data;
+        adhkar = data as RawAdhkarRecord[];
       } else if (data.adhkar && Array.isArray(data.adhkar)) {
-        adhkar = data.adhkar;
+        adhkar = data.adhkar as RawAdhkarRecord[];
       } else if (data.data && Array.isArray(data.data)) {
-        adhkar = data.data;
+        adhkar = data.data as RawAdhkarRecord[];
       }
 
-      return adhkar.map((item: any) => ({
+      return adhkar.map((item: RawAdhkarRecord) => ({
         id: item.id || item.adhkar_id || item._id,
         title: item.title || item.name || "",
         arabic: item.arabic || item.text_arabic || item.arabic_text || "",
@@ -481,16 +610,16 @@ export const eReplikaAPI = {
       }
 
       const data = await response.json();
-      let salawat: any[] = [];
+      let salawat: RawAdhkarRecord[] = [];
       if (Array.isArray(data)) {
-        salawat = data;
+        salawat = data as RawAdhkarRecord[];
       } else if (data.salawat && Array.isArray(data.salawat)) {
-        salawat = data.salawat;
+        salawat = data.salawat as RawAdhkarRecord[];
       } else if (data.data && Array.isArray(data.data)) {
-        salawat = data.data;
+        salawat = data.data as RawAdhkarRecord[];
       }
 
-      return salawat.map((item: any) => ({
+      return salawat.map((item: RawAdhkarRecord) => ({
         id: item.id || item.salawat_id || item._id,
         arabic: item.arabic || item.text_arabic || item.arabic_text || "",
         transcription: item.transcription || item.translit || item.latin_transcription || "",
@@ -530,16 +659,16 @@ export const eReplikaAPI = {
       }
 
       const data = await response.json();
-      let kalimas: any[] = [];
+      let kalimas: RawAdhkarRecord[] = [];
       if (Array.isArray(data)) {
-        kalimas = data;
+        kalimas = data as RawAdhkarRecord[];
       } else if (data.kalimas && Array.isArray(data.kalimas)) {
-        kalimas = data.kalimas;
+        kalimas = data.kalimas as RawAdhkarRecord[];
       } else if (data.data && Array.isArray(data.data)) {
-        kalimas = data.data;
+        kalimas = data.data as RawAdhkarRecord[];
       }
 
-      return kalimas.map((item: any) => ({
+      return kalimas.map((item: RawAdhkarRecord) => ({
         id: item.id || item.kalima_id || item._id,
         arabic: item.arabic || item.text_arabic || item.arabic_text || "",
         transcription: item.transcription || item.translit || item.latin_transcription || "",
@@ -588,16 +717,16 @@ export const eReplikaAPI = {
       }
 
       const data = await response.json();
-      let ayahs: any[] = [];
+      let ayahs: RawAyahRecord[] = [];
       if (Array.isArray(data)) {
-        ayahs = data;
+        ayahs = data as RawAyahRecord[];
       } else if (data.ayahs && Array.isArray(data.ayahs)) {
-        ayahs = data.ayahs;
+        ayahs = data.ayahs as RawAyahRecord[];
       } else if (data.data && Array.isArray(data.data)) {
-        ayahs = data.data;
+        ayahs = data.data as RawAyahRecord[];
       }
 
-      return ayahs.map((item: any) => ({
+      return ayahs.map((item: RawAyahRecord) => ({
         id: item.id || `${item.surah_number || item.surah}_${item.ayah_number || item.ayah}`,
         surahNumber: item.surah_number || item.surah || 0,
         ayahNumber: item.ayah_number || item.ayah || 0,
@@ -637,16 +766,16 @@ export const eReplikaAPI = {
       }
 
       const data = await response.json();
-      let surahs: any[] = [];
+      let surahs: RawSurahRecord[] = [];
       if (Array.isArray(data)) {
-        surahs = data;
+        surahs = data as RawSurahRecord[];
       } else if (data.surahs && Array.isArray(data.surahs)) {
-        surahs = data.surahs;
+        surahs = data.surahs as RawSurahRecord[];
       } else if (data.data && Array.isArray(data.data)) {
-        surahs = data.data;
+        surahs = data.data as RawSurahRecord[];
       }
 
-      return surahs.map((item: any) => ({
+      return surahs.map((item: RawSurahRecord) => ({
         id: item.id || `surah_${item.number || item.surah_number}`,
         number: item.number || item.surah_number || 0,
         name: item.name || item.name_english || "",
@@ -693,16 +822,16 @@ export const eReplikaAPI = {
             });
             if (altResponse.ok) {
               const data = await altResponse.json();
-              let names: any[] = [];
+              let names: RawNameOfAllahRecord[] = [];
               if (Array.isArray(data)) {
-                names = data;
+                names = data as RawNameOfAllahRecord[];
               } else if (data.names && Array.isArray(data.names)) {
-                names = data.names;
+                names = data.names as RawNameOfAllahRecord[];
               } else if (data.data && Array.isArray(data.data)) {
-                names = data.data;
+                names = data.data as RawNameOfAllahRecord[];
               }
 
-              return names.map((item: any) => ({
+              return names.map((item: RawNameOfAllahRecord) => ({
                 id: item.id || `name_${item.number || item.index}`,
                 number: item.number || item.index || 0,
                 arabic: item.arabic || item.text_arabic || item.arabic_text || "",
@@ -723,16 +852,16 @@ export const eReplikaAPI = {
       }
 
       const data = await response.json();
-      let names: any[] = [];
+      let names: RawNameOfAllahRecord[] = [];
       if (Array.isArray(data)) {
-        names = data;
+        names = data as RawNameOfAllahRecord[];
       } else if (data.names && Array.isArray(data.names)) {
-        names = data.names;
+        names = data.names as RawNameOfAllahRecord[];
       } else if (data.data && Array.isArray(data.data)) {
-        names = data.data;
+        names = data.data as RawNameOfAllahRecord[];
       }
 
-      return names.map((item: any) => ({
+      return names.map((item: RawNameOfAllahRecord) => ({
         id: item.id || `name_${item.number || item.index}`,
         number: item.number || item.index || 0,
         arabic: item.arabic || item.text_arabic || item.arabic_text || "",
@@ -750,7 +879,7 @@ export const eReplikaAPI = {
 
   // Генерация PDF отчета через e-Replika API
   // Эндпоинт согласно документации: /reports/pdf
-  async generatePDFReport(userId: string, userData?: any): Promise<Blob> {
+  async generatePDFReport(userId: string, userData?: UserPrayerDebt): Promise<Blob> {
     try {
       const response = await fetch(`${API_BASE_URL}/reports/pdf`, {
         method: "POST",
@@ -798,10 +927,6 @@ export const prayerDebtAPI = {
   // Рассчитать долг намазов
   async calculateDebt(request: CalculationRequest & { 
     user_id?: string;
-    debt_calculation?: any; 
-    repayment_progress?: any;
-    missed_prayers?: MissedPrayers;
-    travel_prayers?: TravelPrayers;
   }): Promise<UserPrayerDebt> {
     const userId = getUserId();
     
@@ -850,7 +975,14 @@ export const prayerDebtAPI = {
           debt_calculation: userData.debt_calculation,
           repayment_progress: userData.repayment_progress,
           overall_progress_percent: 0,
-          remaining_prayers: {} as any,
+          remaining_prayers: {
+            fajr: 0,
+            dhuhr: 0,
+            asr: 0,
+            maghrib: 0,
+            isha: 0,
+            witr: 0,
+          },
         };
       }
       throw new Error("user_id required");
@@ -882,7 +1014,14 @@ export const prayerDebtAPI = {
         debt_calculation: userData.debt_calculation,
         repayment_progress: userData.repayment_progress,
         overall_progress_percent: 0,
-        remaining_prayers: {} as any,
+        remaining_prayers: {
+          fajr: 0,
+          dhuhr: 0,
+          asr: 0,
+          maghrib: 0,
+          isha: 0,
+          witr: 0,
+        },
       };
     }
 
@@ -1038,12 +1177,7 @@ export const prayerDebtAPI = {
 // API для умного тасбиха
 export const smartTasbihAPI = {
   // Получить состояние для инициализации (bootstrap)
-  async bootstrap(): Promise<{
-    user: any;
-    active_goal?: any;
-    daily_azkar?: any;
-    recent_items: any[];
-  }> {
+  async bootstrap(): Promise<BootstrapResponse> {
     try {
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/smart-tasbih-api/bootstrap`, {
         method: "GET",
@@ -1074,7 +1208,7 @@ export const smartTasbihAPI = {
     goal_type: "recite" | "learn";
     target_count: number;
     prayer_segment?: string;
-  }): Promise<any> {
+  }): Promise<TasbihGoal> {
     try {
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/smart-tasbih-api/goals`, {
         method: "POST",
@@ -1099,7 +1233,7 @@ export const smartTasbihAPI = {
     category: string;
     item_id?: string;
     prayer_segment?: string;
-  }): Promise<any> {
+  }): Promise<TasbihSession> {
     try {
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/smart-tasbih-api/sessions/start`, {
         method: "POST",
@@ -1125,11 +1259,7 @@ export const smartTasbihAPI = {
     event_type: string;
     offline_id?: string;
     prayer_segment?: string;
-  }): Promise<{
-    value_after: number;
-    goal_progress?: any;
-    daily_azkar?: any;
-  }> {
+  }): Promise<CounterTapResponse> {
     try {
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/smart-tasbih-api/counter/tap`, {
         method: "POST",
@@ -1152,7 +1282,7 @@ export const smartTasbihAPI = {
   },
 
   // Отметка о заучивании
-  async markLearned(goal_id: string): Promise<any> {
+  async markLearned(goal_id: string): Promise<TasbihGoal> {
     try {
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/smart-tasbih-api/learn/mark`, {
         method: "POST",
@@ -1175,7 +1305,7 @@ export const smartTasbihAPI = {
   },
 
   // Получить ежедневный отчет
-  async getDailyReport(date?: string): Promise<any> {
+  async getDailyReport(date?: string): Promise<Record<string, unknown>> {
     try {
       const url = date
         ? `${SUPABASE_FUNCTIONS_URL}/smart-tasbih-api/reports/daily?date=${date}`
@@ -1198,7 +1328,7 @@ export const smartTasbihAPI = {
   },
 
   // Синхронизация офлайн-событий
-  async syncOfflineEvents(events: any[]): Promise<void> {
+  async syncOfflineEvents(events: OfflineEvent[]): Promise<void> {
     try {
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/smart-tasbih-api/sync/offline`, {
         method: "POST",
@@ -1415,7 +1545,7 @@ export const spiritualPathAPI = {
   },
 
   // Синхронизация с тасбихом
-  async syncCounter(counterType: string, value: number, date?: string): Promise<{ success: boolean; updated_goals: any[] }> {
+  async syncCounter(counterType: string, value: number, date?: string): Promise<{ success: boolean; updated_goals: UpdatedGoal[] }> {
     const userId = getUserId();
     if (!userId) {
       throw new Error("user_id required");
@@ -1897,9 +2027,9 @@ export const spiritualPathAPI = {
     localStorage.setItem("spiritual_path_goals", JSON.stringify(filtered));
   },
 
-  syncCounterInLocalStorage(counterType: string, value: number, date?: string): { success: boolean; updated_goals: any[] } {
+  syncCounterInLocalStorage(counterType: string, value: number, date?: string): { success: boolean; updated_goals: UpdatedGoal[] } {
     const goals = this.getGoalsFromLocalStorage("active");
-    const updatedGoals: any[] = [];
+    const updatedGoals: UpdatedGoal[] = [];
     const today = date || new Date().toISOString().split("T")[0];
 
     goals.forEach((goal) => {

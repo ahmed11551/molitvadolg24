@@ -102,30 +102,34 @@ export const QiblaCompass = ({ onDirectionChange }: QiblaCompassProps) => {
     } else {
       setError("Геолокация не поддерживается вашим браузером");
     }
-  }, []);
+  }, [onDirectionChange]);
 
   // Отслеживание ориентации устройства (компас)
   useEffect(() => {
-    if (typeof DeviceOrientationEvent !== "undefined" && 
-        typeof (DeviceOrientationEvent as any).requestPermission === "function") {
-      // iOS 13+ требует разрешения
-      (DeviceOrientationEvent as any)
-        .requestPermission()
-        .then((response: string) => {
-          if (response === "granted") {
-            startCompass();
-          } else {
+    const requestPermissionAndStart = async () => {
+      if (
+        typeof DeviceOrientationEvent !== "undefined" &&
+        typeof (DeviceOrientationEvent as DeviceOrientationEvent & {
+          requestPermission?: () => Promise<DeviceOrientationEventPermissionState>;
+        }).requestPermission === "function"
+      ) {
+        try {
+          const response = await (DeviceOrientationEvent as DeviceOrientationEvent & {
+            requestPermission?: () => Promise<DeviceOrientationEventPermissionState>;
+          }).requestPermission?.();
+          if (response !== "granted") {
             setError("Разрешение на использование компаса не предоставлено");
+            return;
           }
-        })
-        .catch(() => {
+        } catch {
           setError("Не удалось получить доступ к компасу");
-        });
-    } else {
+          return;
+        }
+      }
       startCompass();
-    }
+    };
 
-    function startCompass() {
+    const startCompass = () => {
       const handleOrientation = (event: DeviceOrientationEvent) => {
         if (event.alpha !== null) {
           setDeviceOrientation(event.alpha);
@@ -133,11 +137,18 @@ export const QiblaCompass = ({ onDirectionChange }: QiblaCompassProps) => {
       };
 
       window.addEventListener("deviceorientation", handleOrientation);
-      
+
       return () => {
         window.removeEventListener("deviceorientation", handleOrientation);
       };
-    }
+    };
+
+    const cleanup = requestPermissionAndStart();
+    return () => {
+      if (typeof cleanup === "function") {
+        cleanup();
+      }
+    };
   }, []);
 
   // Расчет угла для стрелки Киблы относительно компаса

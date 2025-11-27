@@ -38,7 +38,14 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { spiritualPathAPI } from "@/lib/api";
-import { getDhikrItemById, getAvailableItemsByCategory, getAyahs, getSurahs, getNamesOfAllah } from "@/lib/dhikr-data";
+import {
+  getDhikrItemById,
+  getAvailableItemsByCategory,
+  getAyahs,
+  getSurahs,
+  getNamesOfAllah,
+  type DhikrItem,
+} from "@/lib/dhikr-data";
 import type { Goal } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
 import {
@@ -82,12 +89,54 @@ interface AIRecommendation {
   priority: "high" | "medium" | "low";
 }
 
+interface TasbihContent {
+  arabic: string;
+  transcription: string;
+  russianTranscription?: string;
+  translation?: string;
+  audioUrl: string | null;
+  reference?: string;
+}
+
+interface TasbihCardProps {
+  content: TasbihContent;
+  selectedGoal: Goal | null;
+  currentCount: number;
+  progress: number;
+  isComplete: boolean;
+  isLearningGoal: boolean;
+  displaySettings: DisplaySettings;
+  onDisplaySettingsChange: (settings: DisplaySettings) => void;
+  onCount: () => void;
+  onReset: () => void;
+  onLearned: () => void;
+  audioUrl: string | null;
+  isPlaying: boolean;
+  onPlayPause: () => void;
+}
+
+type DhikrItemTypeKey = Parameters<typeof getDhikrItemById>[1];
+
+const CATEGORY_TO_ITEM_TYPE: Record<Exclude<CategoryType, "goals">, DhikrItemTypeKey | null> = {
+  dua: "dua",
+  adhkar: "adhkar",
+  salawat: "salawat",
+  kalima: "kalima",
+  quran: "ayah",
+  names_of_allah: "name_of_allah",
+};
+
+const getItemTypeForCategory = (category: CategoryType): DhikrItemTypeKey | null => {
+  if (category === "goals") return null;
+  return CATEGORY_TO_ITEM_TYPE[category];
+};
+
 export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
   const { toast } = useToast();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>("goals");
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<DhikrItem | null>(null);
   const [currentCount, setCurrentCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,7 +152,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>([]);
   const [showAIRecommendations, setShowAIRecommendations] = useState(true);
-  const [availableItems, setAvailableItems] = useState<any[]>([]);
+  const [availableItems, setAvailableItems] = useState<DhikrItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
 
   useEffect(() => {
@@ -122,12 +171,11 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
   }, [goalId, goals]);
 
   useEffect(() => {
-    if (selectedCategory !== "goals" && selectedCategory !== "quran") {
-      loadCategoryItems();
-    } else if (selectedCategory === "names_of_allah") {
-      loadCategoryItems();
+    if (selectedCategory === "goals" || selectedCategory === "quran") {
+      return;
     }
-  }, [selectedCategory]);
+    loadCategoryItems(selectedCategory);
+  }, [selectedCategory, loadCategoryItems]);
 
   const loadGoals = async () => {
     setLoading(true);
@@ -147,11 +195,11 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
     }
   };
 
-  const loadCategoryItems = async () => {
+  const loadCategoryItems = useCallback(async (category: Exclude<CategoryType, "goals" | "quran">) => {
     setLoadingItems(true);
     try {
-      let items: any[] = [];
-      switch (selectedCategory) {
+      let items: DhikrItem[] = [];
+      switch (category) {
         case "dua":
           items = await getAvailableItemsByCategory("dua");
           break;
@@ -174,7 +222,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
     } finally {
       setLoadingItems(false);
     }
-  };
+  }, []);
 
   // AI-рекомендации на основе целей и времени
   const loadAIRecommendations = async () => {
@@ -283,15 +331,18 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
     }
   };
 
-  const handleItemSelect = async (item: any) => {
+  const handleItemSelect = async (item: DhikrItem) => {
     setSelectedItem(item);
     setSelectedGoal(null);
     setCurrentCount(0);
+    setAudioUrl(item.audioUrl ?? null);
     
     // Загружаем полные данные элемента
-    if (item.id && selectedCategory !== "goals") {
+    if (item.id) {
       try {
-        const fullItem = await getDhikrItemById(item.id, selectedCategory as any);
+        const itemType = getItemTypeForCategory(selectedCategory);
+        if (!itemType) return;
+        const fullItem = await getDhikrItemById(item.id, itemType);
         if (fullItem) {
           setSelectedItem(fullItem);
           setAudioUrl(fullItem.audioUrl || null);
@@ -350,7 +401,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
     setCurrentCount(0);
   };
 
-  const getGoalContent = useMemo(() => {
+  const goalContent = useMemo<TasbihContent | null>(() => {
     if (selectedGoal) {
       if (selectedGoal.item_data) {
         return {
@@ -669,8 +720,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
 
             <TabsContent value="quran" className="mt-4">
               <QuranSelector
-                onSurahSelect={async (surahNumber) => {
-                  const ayahs = await getAyahs(surahNumber);
+                onSurahSelect={(_surahNumber, ayahs) => {
                   setAvailableItems(ayahs);
                   setSelectedCategory("quran");
                 }}
@@ -734,9 +784,9 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
       </Card>
 
       {/* Карточка тасбиха */}
-      {getGoalContent && (
+      {goalContent && (
         <TasbihCard
-          content={getGoalContent}
+          content={goalContent}
           selectedGoal={selectedGoal}
           currentCount={currentCount}
           progress={progress}
@@ -791,14 +841,16 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
   );
 };
 
+interface QuranSelectorProps {
+  onSurahSelect: (surahNumber: number, ayahs: DhikrItem[]) => void;
+  onAyahSelect: (ayah: DhikrItem) => void;
+}
+
 // Компонент для выбора из Корана
-const QuranSelector = ({ onSurahSelect, onAyahSelect }: {
-  onSurahSelect: (surahNumber: number) => void;
-  onAyahSelect: (ayah: any) => void;
-}) => {
-  const [surahs, setSurahs] = useState<any[]>([]);
+const QuranSelector = ({ onSurahSelect, onAyahSelect }: QuranSelectorProps) => {
+  const [surahs, setSurahs] = useState<DhikrItem[]>([]);
   const [selectedSurah, setSelectedSurah] = useState<number | null>(null);
-  const [ayahs, setAyahs] = useState<any[]>([]);
+  const [ayahs, setAyahs] = useState<DhikrItem[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -823,6 +875,7 @@ const QuranSelector = ({ onSurahSelect, onAyahSelect }: {
     try {
       const data = await getAyahs(surahNumber);
       setAyahs(data);
+      onSurahSelect(surahNumber, data);
     } catch (error) {
       console.error("Error loading ayahs:", error);
     } finally {
@@ -881,7 +934,7 @@ const QuranSelector = ({ onSurahSelect, onAyahSelect }: {
             <Card
               key={surah.id}
               className="cursor-pointer hover:bg-secondary/50 transition-colors"
-              onClick={() => handleSurahSelect(surah.number)}
+              onClick={() => surah.number && handleSurahSelect(surah.number)}
             >
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
@@ -891,7 +944,9 @@ const QuranSelector = ({ onSurahSelect, onAyahSelect }: {
                     </p>
                     <p className="text-xs text-muted-foreground">{surah.arabic}</p>
                   </div>
-                  <Badge variant="outline">{surah.number} аятов</Badge>
+                  {typeof surah.number === "number" && (
+                    <Badge variant="outline">{surah.number} аятов</Badge>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -918,7 +973,8 @@ const TasbihCard = ({
   audioUrl,
   isPlaying,
   onPlayPause,
-}: any) => {
+}: TasbihCardProps) => {
+  const resolvedAudioUrl = audioUrl ?? content.audioUrl;
   return (
     <Card className="bg-gradient-card border-primary/20 shadow-lg">
       <CardHeader>
@@ -1054,7 +1110,7 @@ const TasbihCard = ({
                 <Play className="w-5 h-5" />
               )}
             </Button>
-            {audioUrl && <audio src={audioUrl} />}
+            {resolvedAudioUrl && <audio src={resolvedAudioUrl} />}
           </div>
         )}
 

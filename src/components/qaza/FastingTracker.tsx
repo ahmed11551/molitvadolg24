@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useFastingTracker } from "@/hooks/useFastingTracker";
+import { useRamadanTracker } from "@/hooks/useRamadanTracker";
 import { cn } from "@/lib/utils";
 import { CalendarDays, Flame, Plus, Sparkles } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formatDate = (date?: string) => {
   if (!date) return "не запланировано";
@@ -34,17 +42,52 @@ const getPlanAccent = (type: string) => {
 };
 
 export const FastingTracker = () => {
-  const { plans, summary, logFast, scheduleFast, cancelScheduledDate, changeTarget } =
+  const {
+    plans,
+    summary,
+    logFast,
+    scheduleFast,
+    cancelScheduledDate,
+    changeTarget,
+    setCompletion,
+  } =
     useFastingTracker();
   const [pendingDate, setPendingDate] = useState<Record<string, string>>({});
   const [pendingTarget, setPendingTarget] = useState<Record<string, string>>({});
+  const ramadanPlan = plans.find((plan) => plan.type === "ramadan");
+  const ramadanTarget = ramadanPlan?.targetDays ?? 30;
+  const {
+    year: ramadanYear,
+    completedDays: ramadanCompletedDays,
+    toggleDay: toggleRamadanDay,
+    resetYear: resetRamadanYear,
+    setYear: setRamadanYear,
+  } = useRamadanTracker(ramadanTarget);
+  const ramadanPercent =
+    ramadanTarget > 0
+      ? Math.round((ramadanCompletedDays.length / ramadanTarget) * 100)
+      : 0;
+  const otherPlans = useMemo(
+    () => plans.filter((plan) => plan.id !== ramadanPlan?.id),
+    [plans, ramadanPlan?.id]
+  );
+  const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, index) => currentYear - 2 + index);
+  }, []);
+
+  useEffect(() => {
+    if (ramadanPlan) {
+      setCompletion(ramadanPlan.id, ramadanCompletedDays.length);
+    }
+  }, [ramadanPlan, ramadanCompletedDays.length, setCompletion]);
 
   const nextFocus = useMemo(() => {
-    const withUpcoming = plans
+    const withUpcoming = otherPlans
       .filter((plan) => plan.upcomingDates.length > 0)
       .sort((a, b) => a.upcomingDates[0].localeCompare(b.upcomingDates[0]));
     return withUpcoming[0];
-  }, [plans]);
+  }, [otherPlans]);
 
   return (
     <div className="space-y-6">
@@ -89,8 +132,83 @@ export const FastingTracker = () => {
         </CardContent>
       </Card>
 
+      {ramadanPlan && (
+        <Card className="border-primary/40 bg-background/90">
+          <CardHeader className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Flame className="w-5 h-5 text-primary" />
+                Рамадан {ramadanYear}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Отмечайте каждый день поста, чтобы видеть прогресс в выбранном году.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select
+                value={String(ramadanYear)}
+                onValueChange={(value) => setRamadanYear(Number(value))}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Год" />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((year) => (
+                    <SelectItem key={year} value={String(year)}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="ghost" size="sm" onClick={resetRamadanYear}>
+                Сбросить
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-2xl font-semibold">
+                  {ramadanCompletedDays.length}/{ramadanTarget} дней
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  Прогресс {ramadanPercent}%
+                </p>
+              </div>
+            </div>
+            <Progress value={ramadanPercent} />
+            <div className="grid grid-cols-5 sm:grid-cols-6 gap-2 pt-2">
+              {Array.from({ length: ramadanTarget }, (_, index) => {
+                const dayNumber = index + 1;
+                const isCompleted = ramadanCompletedDays.includes(dayNumber);
+                return (
+                  <button
+                    key={`ramadan-day-${dayNumber}`}
+                    type="button"
+                    onClick={() => toggleRamadanDay(dayNumber)}
+                    className={cn(
+                      "h-12 rounded-xl border text-xs font-semibold transition flex flex-col items-center justify-center",
+                      isCompleted
+                        ? "bg-primary text-white border-primary shadow-sm"
+                        : "bg-white/80 text-foreground border-border hover:border-primary/80"
+                    )}
+                  >
+                    <span>День</span>
+                    <span>{dayNumber}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Дни сохраняются для каждого года отдельно. Можно планировать вперёд или отмечать
+              прошлые дни поста.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-2">
-        {plans.map((plan) => {
+        {otherPlans.map((plan) => {
           const completionPercent =
             plan.targetDays > 0
               ? Math.min(100, (plan.completedDays / plan.targetDays) * 100)

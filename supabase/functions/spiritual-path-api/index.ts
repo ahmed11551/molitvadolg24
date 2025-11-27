@@ -2,7 +2,49 @@
 // Обрабатывает: CRUD для целей, бейджей, streaks, групп, AI-отчетов
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
+
+// Типы для данных
+interface GoalUpdate {
+  title?: string;
+  description?: string;
+  category?: string;
+  knowledge_subcategory?: string;
+  type?: string;
+  period?: string;
+  metric?: string;
+  target_value?: number;
+  current_value?: number;
+  start_date?: string;
+  end_date?: string;
+  linked_counter_type?: string;
+  status?: string;
+  daily_plan?: number | null;
+  group_id?: string;
+  is_group_goal?: boolean;
+  item_id?: string;
+  item_type?: string;
+  item_data?: Record<string, unknown>;
+  is_learning?: boolean;
+}
+
+interface Badge {
+  id: string;
+  user_id: string;
+  badge_type: string;
+  level: string;
+  goal_id?: string;
+  achieved_at: string;
+}
+
+interface Goal {
+  id: string;
+  user_id: string;
+  title: string;
+  category: string;
+  status: string;
+  [key: string]: unknown;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -131,7 +173,7 @@ Deno.serve(async (req: Request) => {
 // GET /goals - Получить список целей
 async function handleGetGoals(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ) {
   const url = new URL(req.url);
@@ -157,7 +199,7 @@ async function handleGetGoals(
 // POST /goals - Создать цель
 async function handleCreateGoal(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ) {
   const body = await req.json();
@@ -212,7 +254,7 @@ async function handleCreateGoal(
 // PUT /goals/{id} - Обновить цель
 async function handleUpdateGoal(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   goalId: string
 ) {
@@ -246,7 +288,7 @@ async function handleUpdateGoal(
     }
   }
 
-  const updateData: any = { ...body };
+  const updateData: GoalUpdate = { ...body };
   if (dailyPlan !== undefined) {
     updateData.daily_plan = dailyPlan;
   }
@@ -264,7 +306,7 @@ async function handleUpdateGoal(
   }
 
   // Если цель завершена, проверяем бейджи
-  let newBadges: any[] = [];
+  let newBadges: Badge[] = [];
   if (data.status === "completed") {
     const today = new Date().toISOString().split("T")[0];
     await updateStreaks(supabase, userId, data, today);
@@ -286,7 +328,7 @@ async function handleUpdateGoal(
 // DELETE /goals/{id} - Удалить цель
 async function handleDeleteGoal(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   goalId: string
 ) {
@@ -309,7 +351,7 @@ async function handleDeleteGoal(
 // POST /counter/sync - Синхронизация данных тасбиха с целями
 async function handleCounterSync(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ) {
   const body = await req.json();
@@ -329,7 +371,7 @@ async function handleCounterSync(
 
   const progressUpdates = [];
   const today = date || new Date().toISOString().split("T")[0];
-  const newBadges: any[] = [];
+  const newBadges: Badge[] = [];
 
   for (const goal of goals || []) {
     // Добавляем прогресс для цели
@@ -408,7 +450,7 @@ async function handleCounterSync(
 // POST /goals/{id}/progress - Добавить прогресс вручную
 async function handleAddProgress(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   goalId: string
 ) {
@@ -502,7 +544,7 @@ async function handleAddProgress(
 // GET /badges - Получить бейджи пользователя
 async function handleGetBadges(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ) {
   const { data, error } = await supabase
@@ -524,7 +566,7 @@ async function handleGetBadges(
 // GET /streaks - Получить streaks пользователя
 async function handleGetStreaks(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ) {
   const { data, error } = await supabase
@@ -546,7 +588,7 @@ async function handleGetStreaks(
 // GET /groups - Получить группы пользователя
 async function handleGetGroups(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ) {
   const { data, error } = await supabase
@@ -573,7 +615,7 @@ async function handleGetGroups(
 // POST /groups - Создать группу
 async function handleCreateGroup(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ) {
   const body = await req.json();
@@ -613,7 +655,7 @@ async function handleCreateGroup(
 // POST /groups/{id}/join - Присоединиться к группе
 async function handleJoinGroup(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   groupId: string
 ) {
@@ -679,7 +721,7 @@ async function handleJoinGroup(
 // GET /analytics/report - Получить AI-отчет
 async function handleGetAIReport(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ) {
   const url = new URL(req.url);
@@ -714,7 +756,7 @@ async function handleGetAIReport(
 // POST /qaza/calculate - Рассчитать каза
 async function handleCalculateQaza(
   req: Request,
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ) {
   const body = await req.json();
@@ -736,9 +778,9 @@ async function handleCalculateQaza(
 
 // Вспомогательная функция: Обновление streaks
 async function updateStreaks(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
-  goal: any,
+  goal: Goal,
   progressDate: string
 ) {
   const today = new Date(progressDate);
@@ -875,11 +917,11 @@ async function updateStreaks(
 
 // Вспомогательная функция: Проверка и выдача бейджей
 async function checkAndAwardBadges(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
-  goal: any
-): Promise<any[]> {
-  const newBadges: any[] = [];
+  goal: Goal
+): Promise<Badge[]> {
+  const newBadges: Badge[] = [];
 
   // 1. Проверка prayer_consistency (для целей категории prayer)
   if (goal.category === "prayer") {

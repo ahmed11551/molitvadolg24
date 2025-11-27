@@ -1,6 +1,6 @@
 // Быстрый поиск по всем дуа
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, X } from "lucide-react";
@@ -25,6 +25,18 @@ interface DuaSearchProps {
   onDuaSelect?: (dua: Dua) => void;
 }
 
+type RemoteDuaRecord = Dua & {
+  category_id?: string;
+  text_arabic?: string;
+  text_transcription?: string;
+  russian_transcription?: string;
+  text_translation?: string;
+  name_english?: string;
+  hadith_reference?: string;
+  audio_url?: string | null;
+  audio?: string | null;
+};
+
 export const DuaSearch = ({ searchQuery: externalQuery, onDuaSelect }: DuaSearchProps) => {
   const [internalQuery, setInternalQuery] = useState("");
   const searchQuery = externalQuery !== undefined ? externalQuery : internalQuery;
@@ -32,23 +44,19 @@ export const DuaSearch = ({ searchQuery: externalQuery, onDuaSelect }: DuaSearch
   const [loading, setLoading] = useState(true);
   const [selectedDua, setSelectedDua] = useState<Dua | null>(null);
 
-  useEffect(() => {
-    loadAllDuas();
-  }, []);
-
-  const loadAllDuas = async () => {
+  const loadAllDuas = useCallback(async () => {
     setLoading(true);
     try {
       const data = await eReplikaAPI.getDuas();
       setAllDuas(
-        data.map((dua: any) => ({
+        (data as RemoteDuaRecord[]).map((dua) => ({
           id: dua.id,
           arabic: dua.arabic || dua.text_arabic || "",
           transcription: dua.transcription || dua.text_transcription || "",
           russianTranscription: dua.russian_transcription || dua.russianTranscription,
           translation: dua.translation || dua.text_translation || dua.name_english || "",
           reference: dua.reference || dua.hadith_reference,
-          audioUrl: dua.audio_url || dua.audioUrl || null,
+          audioUrl: dua.audio_url ?? dua.audioUrl ?? dua.audio ?? null,
           category: dua.category_id || dua.category || "general",
         }))
       );
@@ -57,7 +65,11 @@ export const DuaSearch = ({ searchQuery: externalQuery, onDuaSelect }: DuaSearch
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadAllDuas();
+  }, [loadAllDuas]);
 
   // Быстрый поиск по всем полям
   const filteredDuas = useMemo(() => {

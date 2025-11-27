@@ -33,8 +33,8 @@ class ResizeObserverMock {
   disconnect = vi.fn();
 }
 
-global.ResizeObserver = ResizeObserverMock as any;
-window.ResizeObserver = ResizeObserverMock as any;
+global.ResizeObserver = ResizeObserverMock as typeof ResizeObserver;
+window.ResizeObserver = ResizeObserverMock as typeof ResizeObserver;
 
 // Mock HTMLMediaElement methods
 HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);

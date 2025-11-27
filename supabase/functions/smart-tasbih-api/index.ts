@@ -2,7 +2,55 @@
 // Обрабатывает: bootstrap, goals, sessions, counter/tap, learn/mark, reports
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
+
+// Типы для данных
+interface RequestBody {
+  user_id?: string;
+  [key: string]: unknown;
+}
+
+interface GoalBody {
+  category: string;
+  item_id?: string;
+  goal_type: "recite" | "learn";
+  target_count: number;
+  prayer_segment?: string;
+}
+
+interface SessionBody {
+  goal_id?: string;
+  category: string;
+  item_id?: string;
+  prayer_segment?: string;
+}
+
+interface CounterTapBody {
+  session_id: string;
+  delta: number;
+  event_type: string;
+  offline_id?: string;
+  prayer_segment?: string;
+}
+
+interface MarkLearnedBody {
+  goal_id: string;
+}
+
+interface SyncOfflineBody {
+  events: Array<{
+    id: string;
+    type: string;
+    data: Record<string, unknown>;
+    timestamp: string;
+  }>;
+}
+
+interface RecentItem {
+  id: string;
+  title: string;
+  category: string;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,7 +91,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Для POST запросов получаем body
-    let requestBody: any = null;
+    let requestBody: RequestBody | null = null;
     if (method === "POST" || method === "PUT") {
       try {
         requestBody = await req.json();
@@ -97,7 +145,7 @@ Deno.serve(async (req: Request) => {
 });
 
 // Bootstrap - получение состояния для инициализации
-async function handleBootstrap(supabase: any, userId: string) {
+async function handleBootstrap(supabase: SupabaseClient, userId: string) {
   try {
     // Получаем активную цель
     const { data: activeGoal } = await supabase
@@ -140,7 +188,7 @@ async function handleBootstrap(supabase: any, userId: string) {
     }
 
     // Получаем последние элементы (можно расширить)
-    const recentItems: any[] = [];
+    const recentItems: RecentItem[] = [];
 
     return new Response(
       JSON.stringify({
@@ -165,7 +213,7 @@ async function handleBootstrap(supabase: any, userId: string) {
 }
 
 // Создание/обновление цели
-async function handleCreateOrUpdateGoal(body: any, supabase: any, userId: string) {
+async function handleCreateOrUpdateGoal(body: GoalBody, supabase: SupabaseClient, userId: string) {
   try {
     const { category, item_id, goal_type, target_count, prayer_segment } = body;
 
@@ -228,7 +276,7 @@ async function handleCreateOrUpdateGoal(body: any, supabase: any, userId: string
 }
 
 // Начало сессии
-async function handleStartSession(body: any, supabase: any, userId: string) {
+async function handleStartSession(body: SessionBody, supabase: SupabaseClient, userId: string) {
   try {
     const { goal_id, category, item_id, prayer_segment } = body;
 
@@ -264,7 +312,7 @@ async function handleStartSession(body: any, supabase: any, userId: string) {
 }
 
 // Фиксация действия (tap)
-async function handleCounterTap(body: any, supabase: any, userId: string) {
+async function handleCounterTap(body: CounterTapBody, supabase: SupabaseClient, userId: string) {
   try {
     const { session_id, delta, event_type, offline_id, prayer_segment } = body;
 
@@ -377,7 +425,7 @@ async function handleCounterTap(body: any, supabase: any, userId: string) {
 }
 
 // Отметка о заучивании
-async function handleMarkLearned(body: any, supabase: any, userId: string) {
+async function handleMarkLearned(body: MarkLearnedBody, supabase: SupabaseClient, userId: string) {
   try {
     const { goal_id } = body;
 
@@ -420,7 +468,7 @@ async function handleMarkLearned(body: any, supabase: any, userId: string) {
 }
 
 // Ежедневный отчет
-async function handleDailyReport(req: Request, supabase: any, userId: string) {
+async function handleDailyReport(req: Request, supabase: SupabaseClient, userId: string) {
   try {
     const url = new URL(req.url);
     const date = url.searchParams.get("date") || new Date().toISOString().split("T")[0];
@@ -479,7 +527,7 @@ async function handleDailyReport(req: Request, supabase: any, userId: string) {
 }
 
 // Синхронизация офлайн-событий
-async function handleSyncOffline(body: any, supabase: any, userId: string) {
+async function handleSyncOffline(body: SyncOfflineBody, supabase: SupabaseClient, userId: string) {
   try {
     const { events } = body;
 
