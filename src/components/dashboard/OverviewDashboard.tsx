@@ -77,7 +77,7 @@ const ProgressDots = ({ current, total }: { current: number; total: number }) =>
           key={i}
           className={cn(
             "w-2 h-2 rounded-full transition-colors",
-            i < filledDots ? "bg-amber-600" : "bg-amber-200"
+            i < filledDots ? "bg-emerald-600" : "bg-emerald-200"
           )}
         />
       ))}
@@ -101,7 +101,7 @@ const GoalCard = ({ goal, onClick }: { goal: Goal; onClick: () => void }) => {
         "flex items-center gap-4 text-left"
       )}
     >
-      <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-700 flex-shrink-0">
+      <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700 flex-shrink-0">
         {getCategoryIcon(goal.category, goal.title)}
       </div>
 
@@ -110,9 +110,9 @@ const GoalCard = ({ goal, onClick }: { goal: Goal; onClick: () => void }) => {
           {goal.title}
         </h3>
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 bg-amber-100 rounded-full overflow-hidden">
+          <div className="flex-1 h-1.5 bg-emerald-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-amber-500 rounded-full transition-all duration-500"
+              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
@@ -123,7 +123,7 @@ const GoalCard = ({ goal, onClick }: { goal: Goal; onClick: () => void }) => {
       </div>
 
       {isComplete ? (
-        <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
           <Check className="w-4 h-4 text-white" />
         </div>
       ) : (
@@ -183,7 +183,7 @@ export const OverviewDashboard = () => {
           <h2 className="text-lg font-bold text-gray-900">Каза-намазы</h2>
           <button
             onClick={() => navigate("/")}
-            className="text-amber-600 text-sm font-medium flex items-center gap-1"
+            className="text-emerald-600 text-sm font-medium flex items-center gap-1"
           >
             Подробнее
             <ChevronRight className="w-4 h-4" />
@@ -199,7 +199,7 @@ export const OverviewDashboard = () => {
                 cy="80"
                 r="70"
                 fill="none"
-                stroke="#fef3c7"
+                stroke="#d1fae5"
                 strokeWidth="12"
               />
               <circle
@@ -207,7 +207,7 @@ export const OverviewDashboard = () => {
                 cy="80"
                 r="70"
                 fill="none"
-                stroke="#f59e0b"
+                stroke="#059669"
                 strokeWidth="12"
                 strokeLinecap="round"
                 strokeDasharray={440}
@@ -226,9 +226,9 @@ export const OverviewDashboard = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-amber-50 rounded-xl p-3 text-center">
-            <p className="text-xl font-bold text-amber-700">{prayerProgress.completed}</p>
-            <p className="text-xs text-amber-600">Восполнено</p>
+          <div className="bg-emerald-50 rounded-xl p-3 text-center">
+            <p className="text-xl font-bold text-emerald-700">{prayerProgress.completed}</p>
+            <p className="text-xs text-emerald-600">Восполнено</p>
           </div>
           <div className="bg-gray-50 rounded-xl p-3 text-center">
             <p className="text-xl font-bold text-gray-700">{prayerProgress.remaining}</p>
@@ -277,7 +277,7 @@ export const OverviewDashboard = () => {
             <h2 className="text-lg font-bold text-gray-900">Цели на сегодня</h2>
             <button
               onClick={() => navigate("/goals")}
-              className="text-amber-600 text-sm font-medium"
+              className="text-emerald-600 text-sm font-medium"
             >
               Все
             </button>
@@ -300,8 +300,8 @@ export const OverviewDashboard = () => {
           onClick={() => navigate("/goals")}
           className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition-all"
         >
-          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
-            <Target className="w-5 h-5 text-amber-600" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <Target className="w-5 h-5 text-emerald-600" />
           </div>
           <span className="text-sm font-medium text-gray-900">Новая цель</span>
         </button>
@@ -309,8 +309,8 @@ export const OverviewDashboard = () => {
           onClick={() => navigate("/tasbih")}
           className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition-all"
         >
-          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-amber-600" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-emerald-600" />
           </div>
           <span className="text-sm font-medium text-gray-900">Тасбих</span>
         </button>
@@ -319,15 +319,15 @@ export const OverviewDashboard = () => {
       {/* Empty State */}
       {goals.length === 0 && prayerProgress.total === 0 && (
         <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
-          <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-8 h-8 text-amber-400" />
+          <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="w-8 h-8 text-emerald-400" />
           </div>
           <h3 className="font-semibold text-gray-900 mb-2">Начните свой путь</h3>
           <p className="text-sm text-gray-500 mb-4">
             Рассчитайте долги или создайте первую цель
           </p>
           <div className="flex gap-2 justify-center">
-            <button className="px-4 py-2 bg-amber-500 text-white rounded-full text-sm font-medium hover:bg-amber-600 transition-colors">
+            <button className="px-4 py-2 bg-emerald-500 text-white rounded-full text-sm font-medium hover:bg-emerald-600 transition-colors">
               Калькулятор
             </button>
             <button 

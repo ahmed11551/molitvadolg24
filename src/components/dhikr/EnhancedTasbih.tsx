@@ -84,10 +84,10 @@ interface TasbihContent {
 type DhikrItemTypeKey = Parameters<typeof getDhikrItemById>[1];
 
 const CATEGORIES: { id: CategoryType; label: string; icon: React.ReactNode; color: string }[] = [
-  { id: "goals", label: "Цели", icon: <Target className="w-5 h-5" />, color: "bg-amber-500" },
-  { id: "dhikr", label: "Зикры", icon: <Star className="w-5 h-5" />, color: "bg-amber-600" },
-  { id: "quran", label: "Коран", icon: <BookOpen className="w-5 h-5" />, color: "bg-amber-700" },
-  { id: "names", label: "99 Имён", icon: <Sparkles className="w-5 h-5" />, color: "bg-amber-800" },
+  { id: "goals", label: "Цели", icon: <Target className="w-5 h-5" />, color: "bg-emerald-500" },
+  { id: "dhikr", label: "Зикры", icon: <Star className="w-5 h-5" />, color: "bg-emerald-600" },
+  { id: "quran", label: "Коран", icon: <BookOpen className="w-5 h-5" />, color: "bg-emerald-700" },
+  { id: "names", label: "99 Имён", icon: <Sparkles className="w-5 h-5" />, color: "bg-emerald-800" },
 ];
 
 export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
@@ -478,8 +478,8 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                 size={280}
                 strokeWidth={16}
                 showValue={false}
-                color={isComplete ? "#10b981" : "#f59e0b"}
-                trackColor="#fef3c7"
+                color={isComplete ? "#10b981" : "#059669"}
+                trackColor="#d1fae5"
                 className="drop-shadow-2xl"
               >
                 <div className="flex flex-col items-center">
@@ -563,8 +563,8 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                 ) : (
         /* Empty state */
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-32 h-32 rounded-full bg-amber-50 flex items-center justify-center mb-6">
-            <Sparkles className="w-12 h-12 text-amber-300" />
+          <div className="w-32 h-32 rounded-full bg-emerald-50 flex items-center justify-center mb-6">
+            <Sparkles className="w-12 h-12 text-emerald-300" />
           </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Начните тасбих</h2>
           <p className="text-gray-500 text-center mb-8 max-w-xs">
@@ -572,7 +572,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
           </p>
           <Button
             size="lg"
-            className="rounded-full px-8 bg-amber-500 hover:bg-amber-600"
+            className="rounded-full px-8 bg-emerald-500 hover:bg-emerald-600"
             onClick={() => setSelectorOpen(true)}
           >
             Выбрать зикр
@@ -637,7 +637,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                         className={cn(
                         "w-full p-4 rounded-2xl text-left transition-all",
                         "bg-card hover:bg-accent/50 border border-border/50",
-                        selectedGoal?.id === goal.id && "border-amber-500 bg-amber-50"
+                        selectedGoal?.id === goal.id && "border-emerald-500 bg-emerald-50"
                         )}
                       >
                           <div className="flex items-center justify-between">
@@ -719,7 +719,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                       className={cn(
                         "w-full p-4 rounded-2xl text-left transition-all",
                         "bg-card hover:bg-accent/50 border border-border/50",
-                        selectedItem?.id === item.id && "border-amber-500 bg-amber-50"
+                        selectedItem?.id === item.id && "border-emerald-500 bg-emerald-50"
                       )}
                     >
                       <p className="font-medium line-clamp-1">

@@ -52,8 +52,8 @@ const Dhikr = () => {
               className={cn(
                 "flex items-center gap-2 px-5 py-3 rounded-full whitespace-nowrap transition-all flex-shrink-0 font-medium",
                 activeTab === tab.id
-                  ? "bg-amber-500 text-white shadow-md"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-amber-300"
+                  ? "bg-emerald-500 text-white shadow-md"
+                  : "bg-white text-gray-600 border border-gray-200 hover:border-emerald-300"
               )}
             >
               {tab.icon}

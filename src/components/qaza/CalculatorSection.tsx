@@ -153,7 +153,7 @@ export const CalculatorSection = () => {
           onClick={() => setMode("manual")}
           className="w-full bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 text-left"
         >
-          <div className="w-14 h-14 rounded-xl bg-amber-50 flex items-center justify-center text-amber-700">
+          <div className="w-14 h-14 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700">
             <CheckSquare className="w-7 h-7" />
           </div>
           <div className="flex-1">
@@ -167,7 +167,7 @@ export const CalculatorSection = () => {
           onClick={() => setMode("calculator")}
           className="w-full bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 text-left"
         >
-          <div className="w-14 h-14 rounded-xl bg-amber-50 flex items-center justify-center text-amber-700">
+          <div className="w-14 h-14 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700">
             <Calculator className="w-7 h-7" />
           </div>
           <div className="flex-1">
@@ -186,7 +186,7 @@ export const CalculatorSection = () => {
       <div className="space-y-4">
         <button
           onClick={() => setMode("choice")}
-          className="flex items-center gap-2 text-amber-600 font-medium mb-4"
+          className="flex items-center gap-2 text-emerald-600 font-medium mb-4"
         >
           ← Назад
         </button>
@@ -200,7 +200,7 @@ export const CalculatorSection = () => {
     <div className="space-y-6">
       <button
         onClick={() => setMode("choice")}
-        className="flex items-center gap-2 text-amber-600 font-medium"
+        className="flex items-center gap-2 text-emerald-600 font-medium"
       >
         ← Назад
       </button>
@@ -220,8 +220,8 @@ export const CalculatorSection = () => {
       {/* Личные данные */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
-            <User className="w-5 h-5 text-amber-700" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <User className="w-5 h-5 text-emerald-700" />
           </div>
           <h3 className="font-semibold text-gray-900">Личные данные</h3>
         </div>
@@ -250,7 +250,7 @@ export const CalculatorSection = () => {
                   className={cn(
                     "flex-1 py-3 rounded-xl font-medium transition-colors",
                     gender === option.value
-                      ? "bg-amber-500 text-white"
+                      ? "bg-emerald-500 text-white"
                       : "bg-gray-100 text-gray-600"
                   )}
                 >
@@ -350,8 +350,8 @@ export const CalculatorSection = () => {
       {/* Путешествия */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
-            <Plane className="w-5 h-5 text-amber-700" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <Plane className="w-5 h-5 text-emerald-700" />
           </div>
           <h3 className="font-semibold text-gray-900">Путешествия (сафар)</h3>
         </div>
@@ -389,7 +389,7 @@ export const CalculatorSection = () => {
       <Button
         onClick={handleCalculate}
         disabled={loading || !birthDate}
-        className="w-full h-14 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-lg"
+        className="w-full h-14 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-lg"
       >
         {loading ? "Расчёт..." : "Рассчитать долги"}
       </Button>

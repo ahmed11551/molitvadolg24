@@ -70,8 +70,8 @@ const Index = () => {
               className={cn(
                 "flex items-center gap-2 px-4 py-2.5 rounded-full whitespace-nowrap transition-all flex-shrink-0 text-sm font-medium",
                 activeTab === tab.id
-                  ? "bg-amber-500 text-white shadow-md"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-amber-300"
+                  ? "bg-emerald-500 text-white shadow-md"
+                  : "bg-white text-gray-600 border border-gray-200 hover:border-emerald-300"
               )}
             >
               {tab.icon}

@@ -235,7 +235,7 @@ export const DuaSectionV2 = () => {
           className={cn(
             "px-4 py-2 rounded-full text-sm font-medium transition-colors",
             activeTab === "categories"
-              ? "bg-amber-500 text-white"
+              ? "bg-emerald-500 text-white"
               : "bg-white text-gray-600 border border-gray-200"
           )}
         >
@@ -246,7 +246,7 @@ export const DuaSectionV2 = () => {
           className={cn(
             "px-4 py-2 rounded-full text-sm font-medium transition-colors",
             activeTab === "favorites"
-              ? "bg-amber-500 text-white"
+              ? "bg-emerald-500 text-white"
               : "bg-white text-gray-600 border border-gray-200"
           )}
         >
@@ -273,7 +273,7 @@ export const DuaSectionV2 = () => {
               onClick={() => setSelectedCategory(category.id)}
               className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 text-left"
             >
-              <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-700">
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700">
                 {category.icon}
               </div>
               <div className="flex-1">
@@ -291,8 +291,8 @@ export const DuaSectionV2 = () => {
         <div className="space-y-3">
           {favorites.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-amber-300" />
+              <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-emerald-300" />
               </div>
               <p className="text-gray-500">Нет избранных дуа</p>
               <p className="text-sm text-gray-400 mt-1">

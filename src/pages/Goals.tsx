@@ -68,8 +68,8 @@ const ProgressDots = ({ current, total }: { current: number; total: number }) =>
           className={cn(
             "w-2 h-2 rounded-full transition-colors",
             i < filledDots 
-              ? "bg-amber-600" 
-              : "bg-amber-200"
+              ? "bg-emerald-600" 
+              : "bg-emerald-200"
           )}
         />
       ))}
@@ -104,7 +104,7 @@ const GoalCard = ({
       )}
     >
       {/* Иконка */}
-      <div className="w-14 h-14 rounded-xl bg-amber-50 flex items-center justify-center text-amber-700 flex-shrink-0">
+      <div className="w-14 h-14 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700 flex-shrink-0">
         {getCategoryIcon(goal.category, goal.title)}
       </div>
 
@@ -116,9 +116,9 @@ const GoalCard = ({
         
         {/* Прогресс бар */}
         <div className="flex items-center gap-3">
-          <div className="flex-1 h-2 bg-amber-100 rounded-full overflow-hidden">
+          <div className="flex-1 h-2 bg-emerald-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-amber-500 rounded-full transition-all duration-500"
+              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
@@ -134,7 +134,7 @@ const GoalCard = ({
       {/* Точки прогресса или галочка */}
       <div className="flex-shrink-0">
         {isComplete ? (
-          <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center">
             <Check className="w-5 h-5 text-white" />
           </div>
         ) : (
@@ -214,7 +214,7 @@ const Goals = () => {
           <h1 className="text-2xl font-bold text-gray-900">Цели и привычки</h1>
           <button
             onClick={() => setFilter(filter === "all" ? "active" : "all")}
-            className="text-amber-600 font-medium text-sm"
+            className="text-emerald-600 font-medium text-sm"
           >
             {filter === "all" ? "Активные" : "Все"}
           </button>
@@ -243,7 +243,7 @@ const Goals = () => {
               className={cn(
                 "px-4 py-2 rounded-full text-sm font-medium transition-colors",
                 filter === tab.id
-                  ? "bg-amber-500 text-white"
+                  ? "bg-emerald-500 text-white"
                   : "bg-white text-gray-600 border border-gray-200"
               )}
             >
@@ -264,15 +264,15 @@ const Goals = () => {
             ))
           ) : (
             <div className="text-center py-12">
-              <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="w-10 h-10 text-amber-300" />
+              <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-10 h-10 text-emerald-300" />
               </div>
               <p className="text-gray-500 mb-4">
                 {searchQuery ? "Ничего не найдено" : "Нет целей"}
               </p>
               <Button 
                 onClick={() => setCreateDialogOpen(true)} 
-                className="rounded-full bg-amber-500 hover:bg-amber-600"
+                className="rounded-full bg-emerald-500 hover:bg-emerald-600"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Создать цель
@@ -289,7 +289,7 @@ const Goals = () => {
               onClick={() => setTemplatesOpen(true)}
               className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4"
             >
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white flex-shrink-0">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white flex-shrink-0">
                 <Sparkles className="w-6 h-6" />
               </div>
               <div className="flex-1 text-left">
@@ -308,7 +308,7 @@ const Goals = () => {
         onOpenChange={setCreateDialogOpen}
         onGoalCreated={loadData}
       >
-        <button className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-amber-500 text-white shadow-lg hover:bg-amber-600 transition-colors flex items-center justify-center z-40">
+        <button className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-emerald-500 text-white shadow-lg hover:bg-emerald-600 transition-colors flex items-center justify-center z-40">
           <Plus className="w-6 h-6" />
         </button>
       </CreateGoalDialog>

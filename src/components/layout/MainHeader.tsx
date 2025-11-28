@@ -27,7 +27,7 @@ export const MainHeader = () => {
       <div className="container mx-auto px-4 py-3 max-w-lg">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
-            <div className="w-11 h-11 rounded-xl overflow-hidden shadow-sm bg-amber-500 flex items-center justify-center">
+            <div className="w-11 h-11 rounded-xl overflow-hidden shadow-sm bg-emerald-500 flex items-center justify-center">
               {!logoError ? (
                 <img 
                   src={logoUrl}

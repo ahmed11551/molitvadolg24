@@ -31,13 +31,13 @@ export const BottomNav = () => {
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all duration-200 min-w-[64px]",
                   isActive
-                    ? "text-amber-600"
+                    ? "text-emerald-600"
                     : "text-gray-400 hover:text-gray-600"
                 )}
               >
                 <div className={cn(
                   "flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200",
-                  isActive && "bg-amber-50"
+                  isActive && "bg-emerald-50"
                 )}>
                   <Icon className={cn(
                     "w-5 h-5 transition-transform duration-200",
@@ -46,7 +46,7 @@ export const BottomNav = () => {
                 </div>
                 <span className={cn(
                   "text-[11px] font-medium leading-none",
-                  isActive && "text-amber-600"
+                  isActive && "text-emerald-600"
                 )}>
                   {label}
                 </span>
