@@ -1,6 +1,6 @@
 // Страница Цели и Привычки - дизайн как в Goal app
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
@@ -222,6 +222,7 @@ const Goals = () => {
 
   // Вычисляем статистику
   const currentStreak = streaks.find(s => s.streak_type === "daily_all")?.current_streak || 0;
+  const longestStreak = streaks.find(s => s.streak_type === "daily_all")?.longest_streak || currentStreak;
   const completedGoals = goals.filter(g => g.status === "completed").length;
   const activeGoals = goals.filter(g => g.status === "active").length;
   const totalBadges = badges.length;
@@ -316,56 +317,181 @@ const Goals = () => {
     );
   }
 
+  // Генерация дней недели
+  const weekDays = useMemo(() => {
+    const today = new Date();
+    const days = [];
+    for (let i = -3; i <= 3; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      days.push({
+        date,
+        dayName: date.toLocaleDateString("ru", { weekday: "short" }),
+        dayNum: date.getDate(),
+        isToday: i === 0,
+      });
+    }
+    return days;
+  }, []);
+
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       <MainHeader />
 
-      <main className="container mx-auto px-4 py-6 max-w-lg">
+      <main className="container mx-auto px-4 py-4 max-w-lg">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">Цели и привычки</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Сегодня</h1>
           <button
             onClick={() => navigate("/statistics")}
-            className="text-emerald-600 font-medium text-sm flex items-center gap-1"
+            className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors"
           >
-            <BarChart3 className="w-4 h-4" />
-            Статистика
+            <BarChart3 className="w-5 h-5 text-gray-600" />
           </button>
         </div>
 
-        {/* Stats Cards */}
+        {/* Горизонтальный календарь - как на скриншоте */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+          {weekDays.map((day) => {
+            const isSelected = day.date.toDateString() === selectedDate.toDateString();
+            return (
+              <button
+                key={day.dayNum}
+                onClick={() => setSelectedDate(day.date)}
+                className={cn(
+                  "flex flex-col items-center min-w-[52px] py-2 px-3 rounded-2xl transition-all",
+                  isSelected
+                    ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200"
+                    : "bg-white text-gray-600 border border-gray-100 hover:border-emerald-200"
+                )}
+              >
+                <span className={cn(
+                  "text-xs font-medium mb-1",
+                  isSelected ? "text-emerald-100" : "text-gray-400"
+                )}>
+                  {day.dayName}
+                </span>
+                <span className={cn(
+                  "text-lg font-bold",
+                  isSelected ? "text-white" : "text-gray-900"
+                )}>
+                  {day.dayNum}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Виджет статистики - как Analytics на скриншоте */}
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-5 mb-6 shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            {/* Круговые виджеты прогресса */}
+            <div className="flex gap-4">
+              {/* Недельный прогресс */}
+              <div className="text-center">
+                <div className="relative w-16 h-16">
+                  <svg className="w-full h-full -rotate-90">
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="#374151" strokeWidth="4" />
+                    <circle 
+                      cx="32" cy="32" r="28" fill="none" 
+                      stroke="#10b981" strokeWidth="4" strokeLinecap="round"
+                      strokeDasharray={176} 
+                      strokeDashoffset={176 - (176 * Math.min(activeGoals * 15, 100)) / 100}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-white text-sm font-bold">{Math.min(activeGoals * 15, 100)}%</span>
+                  </div>
+                </div>
+                <p className="text-gray-400 text-xs mt-1">Неделя</p>
+              </div>
+              
+              {/* Месячный прогресс */}
+              <div className="text-center">
+                <div className="relative w-16 h-16">
+                  <svg className="w-full h-full -rotate-90">
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="#374151" strokeWidth="4" />
+                    <circle 
+                      cx="32" cy="32" r="28" fill="none" 
+                      stroke="#22c55e" strokeWidth="4" strokeLinecap="round"
+                      strokeDasharray={176} 
+                      strokeDashoffset={176 - (176 * Math.min(completedGoals * 10 + 30, 100)) / 100}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-white text-sm font-bold">{Math.min(completedGoals * 10 + 30, 100)}%</span>
+                  </div>
+                </div>
+                <p className="text-gray-400 text-xs mt-1">Месяц</p>
+              </div>
+            </div>
+
+            {/* Streak виджет */}
+            <div className="bg-slate-700/50 rounded-2xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
+                  <Flame className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{currentStreak}</p>
+                  <p className="text-xs text-gray-400">Текущий</p>
+                </div>
+              </div>
+              <div className="flex gap-4 text-center">
+                <div>
+                  <p className="text-emerald-400 font-bold">{longestStreak}</p>
+                  <p className="text-[10px] text-gray-500">Рекорд</p>
+                </div>
+                <div>
+                  <p className="text-emerald-400 font-bold">{completedGoals}</p>
+                  <p className="text-[10px] text-gray-500">Всего</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Мини-статистика */}
         <div className="grid grid-cols-4 gap-2 mb-6">
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
-            <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center mx-auto mb-1">
-              <Flame className="w-4 h-4 text-orange-500" />
+          <button 
+            onClick={() => navigate("/statistics")}
+            className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center hover:shadow-md transition-all active:scale-95"
+          >
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mx-auto mb-1.5 shadow-md">
+              <Flame className="w-4 h-4 text-white" />
             </div>
             <p className="text-lg font-bold text-gray-900">{currentStreak}</p>
-            <p className="text-[10px] text-gray-500">Дней</p>
-          </div>
+            <p className="text-[9px] text-gray-400 font-medium">ДНЕЙ</p>
+          </button>
           
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center mx-auto mb-1">
-              <TrendingUp className="w-4 h-4 text-emerald-500" />
+          <button className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center hover:shadow-md transition-all active:scale-95">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center mx-auto mb-1.5 shadow-md">
+              <TrendingUp className="w-4 h-4 text-white" />
             </div>
             <p className="text-lg font-bold text-gray-900">{activeGoals}</p>
-            <p className="text-[10px] text-gray-500">Активных</p>
-          </div>
+            <p className="text-[9px] text-gray-400 font-medium">АКТИВНЫХ</p>
+          </button>
           
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center mx-auto mb-1">
-              <Check className="w-4 h-4 text-blue-500" />
+          <button className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center hover:shadow-md transition-all active:scale-95">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center mx-auto mb-1.5 shadow-md">
+              <Check className="w-4 h-4 text-white" />
             </div>
             <p className="text-lg font-bold text-gray-900">{completedGoals}</p>
-            <p className="text-[10px] text-gray-500">Выполнено</p>
-          </div>
+            <p className="text-[9px] text-gray-400 font-medium">ГОТОВО</p>
+          </button>
           
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
-            <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center mx-auto mb-1">
-              <Trophy className="w-4 h-4 text-yellow-500" />
+          <button 
+            onClick={() => navigate("/statistics")}
+            className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center hover:shadow-md transition-all active:scale-95"
+          >
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center mx-auto mb-1.5 shadow-md">
+              <Trophy className="w-4 h-4 text-white" />
             </div>
             <p className="text-lg font-bold text-gray-900">{totalBadges}</p>
-            <p className="text-[10px] text-gray-500">Бейджей</p>
-          </div>
+            <p className="text-[9px] text-gray-400 font-medium">БЕЙДЖЕЙ</p>
+          </button>
         </div>
 
         {/* Search */}
@@ -450,14 +576,14 @@ const Goals = () => {
         )}
       </main>
 
-      {/* FAB - Floating Action Button */}
+      {/* FAB - Floating Action Button (как на скриншоте) */}
       <CreateGoalDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onGoalCreated={loadData}
       >
-        <button className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-emerald-500 text-white shadow-lg hover:bg-emerald-600 transition-colors flex items-center justify-center z-40">
-          <Plus className="w-6 h-6" />
+        <button className="fixed bottom-24 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 text-white shadow-xl shadow-emerald-300/50 hover:shadow-2xl hover:shadow-emerald-400/50 hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center z-40">
+          <Plus className="w-7 h-7" strokeWidth={2.5} />
         </button>
       </CreateGoalDialog>
 
