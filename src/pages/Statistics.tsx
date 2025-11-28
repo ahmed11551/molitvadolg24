@@ -26,6 +26,13 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { format, subDays, startOfWeek, eachDayOfInterval } from "date-fns";
 import { ru } from "date-fns/locale";
+import {
+  StreakWidget,
+  ActivityHeatmapWidget,
+  CircularProgressWidget,
+  StatsNumbersWidget,
+} from "@/components/widgets/ProgressWidgets";
+import { getAchievementProgress } from "@/lib/achievements";
 
 // Информация о бейджах
 const BADGE_INFO: Record<string, { label: string; icon: string; color: string }> = {
@@ -135,19 +142,13 @@ const Statistics = () => {
           <h1 className="text-2xl font-bold text-gray-900">Статистика</h1>
         </div>
 
-        {/* Streak Card */}
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 shadow-lg mb-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 text-sm mb-1">Текущая серия</p>
-              <p className="text-5xl font-bold">{currentStreak}</p>
-              <p className="text-orange-100 text-sm mt-1">дней подряд</p>
-            </div>
-            <div className="text-right">
-              <Flame className="w-16 h-16 text-orange-200" />
-              <p className="text-orange-100 text-xs mt-2">Рекорд: {longestStreak} дн.</p>
-            </div>
-          </div>
+        {/* Streak Card - улучшенный виджет */}
+        <div className="mb-6">
+          <StreakWidget
+            currentStreak={currentStreak}
+            longestStreak={longestStreak}
+            onClick={() => navigate("/goals")}
+          />
         </div>
 
         {/* Weekly Activity */}
@@ -244,51 +245,37 @@ const Statistics = () => {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <Target className="w-5 h-5 text-emerald-500" />
-              </div>
-              <span className="text-sm text-gray-500">Целей</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{activeGoals + completedGoals}</p>
-            <p className="text-xs text-emerald-600">{completedGoals} выполнено</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-blue-500" />
-              </div>
-              <span className="text-sm text-gray-500">Прогресс</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{totalProgress}</p>
-            <p className="text-xs text-blue-600">всего действий</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
-                <BookOpen className="w-5 h-5 text-purple-500" />
-              </div>
-              <span className="text-sm text-gray-500">Каза</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{qazaPercent}%</p>
-            <p className="text-xs text-purple-600">{qazaCompleted} из {qazaTotal}</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-yellow-50 flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-yellow-500" />
-              </div>
-              <span className="text-sm text-gray-500">Бейджей</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{badges.length}</p>
-            <p className="text-xs text-yellow-600">получено</p>
-          </div>
+        {/* Stats Grid - улучшенные виджеты */}
+        <div className="mb-6">
+          <StatsNumbersWidget
+            stats={[
+              {
+                label: "Всего целей",
+                value: activeGoals + completedGoals,
+                icon: <Target className="w-4 h-4" />,
+                color: "bg-gradient-to-br from-emerald-500 to-green-600",
+                change: completedGoals > 0 ? Math.round((completedGoals / (activeGoals + completedGoals)) * 100) : 0,
+              },
+              {
+                label: "Действий",
+                value: totalProgress,
+                icon: <TrendingUp className="w-4 h-4" />,
+                color: "bg-gradient-to-br from-blue-500 to-indigo-600",
+              },
+              {
+                label: "Каза",
+                value: `${qazaPercent}%`,
+                icon: <BookOpen className="w-4 h-4" />,
+                color: "bg-gradient-to-br from-purple-500 to-violet-600",
+              },
+              {
+                label: "Бейджей",
+                value: badges.length,
+                icon: <Trophy className="w-4 h-4" />,
+                color: "bg-gradient-to-br from-amber-500 to-orange-600",
+              },
+            ]}
+          />
         </div>
 
         {/* Badges Section */}

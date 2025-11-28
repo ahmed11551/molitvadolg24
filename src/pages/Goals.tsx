@@ -45,6 +45,14 @@ import {
   markDailyResetComplete,
   shouldShowReminder 
 } from "@/lib/goal-analyzer";
+import {
+  StreakWidget,
+  AchievementWidget,
+  AIInsightWidget,
+  QuickActionsWidget,
+  CategoryProgressWidget,
+  StatsNumbersWidget,
+} from "@/components/widgets/ProgressWidgets";
 
 // Иконки для разных категорий целей
 // Исламские советы дня (Life Hacks как в Goal app)
@@ -795,8 +803,52 @@ const Goals = () => {
           );
         })()}
 
+        {/* Виджет достижений */}
+        {badges.length > 0 && (
+          <div className="mb-6">
+            <AchievementWidget 
+              badges={badges} 
+              onViewAll={() => navigate("/statistics")} 
+            />
+          </div>
+        )}
+
+        {/* Quick Actions - быстрые действия */}
+        <QuickActionsWidget
+          actions={[
+            {
+              id: "tasbih",
+              icon: <Sparkles className="w-5 h-5" />,
+              label: "Тасбих",
+              color: "bg-gradient-to-br from-emerald-500 to-green-600",
+              onClick: () => navigate("/tasbih"),
+            },
+            {
+              id: "dhikr",
+              icon: <BookOpen className="w-5 h-5" />,
+              label: "Зикры",
+              color: "bg-gradient-to-br from-blue-500 to-indigo-600",
+              onClick: () => navigate("/dhikr"),
+            },
+            {
+              id: "qaza",
+              icon: <Moon className="w-5 h-5" />,
+              label: "Каза",
+              color: "bg-gradient-to-br from-purple-500 to-violet-600",
+              onClick: () => navigate("/"),
+            },
+            {
+              id: "stats",
+              icon: <BarChart3 className="w-5 h-5" />,
+              label: "Статистика",
+              color: "bg-gradient-to-br from-amber-500 to-orange-600",
+              onClick: () => navigate("/statistics"),
+            },
+          ]}
+        />
+
         {/* Search */}
-        <div className="relative mb-4">
+        <div className="relative mb-4 mt-6">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <Input
             placeholder="Поиск целей..."
