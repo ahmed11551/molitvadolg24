@@ -966,9 +966,11 @@ export const prayerDebtAPI = {
   async getSnapshot(): Promise<DebtSnapshot> {
     const userId = getUserId();
     
+    // Всегда пробуем сначала localStorage
+    const userData = localStorageAPI.getUserData();
+    
     if (!userId) {
       // Fallback на localStorage
-      const userData = localStorageAPI.getUserData();
       if (userData) {
         return {
           user_id: userData.user_id,
@@ -985,7 +987,21 @@ export const prayerDebtAPI = {
           },
         };
       }
-      throw new Error("user_id required");
+      // Возвращаем пустой snapshot вместо ошибки
+      return {
+        user_id: `local_${Date.now()}`,
+        debt_calculation: {
+          period: { start: new Date().toISOString(), end: new Date().toISOString() },
+          missed_prayers: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0, witr: 0 },
+          travel_prayers: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0, witr: 0 },
+        },
+        repayment_progress: {
+          completed_prayers: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0, witr: 0 },
+          last_updated: new Date().toISOString(),
+        },
+        overall_progress_percent: 0,
+        remaining_prayers: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0, witr: 0 },
+      };
     }
 
     // Пробуем Supabase Edge Function
@@ -1006,8 +1022,7 @@ export const prayerDebtAPI = {
       console.warn("Supabase API недоступен, используем localStorage:", error);
     }
 
-    // Fallback на localStorage
-    const userData = localStorageAPI.getUserData();
+    // Fallback на localStorage (используем userData объявленный выше)
     if (userData && userData.user_id === userId) {
       return {
         user_id: userData.user_id,
@@ -1025,15 +1040,49 @@ export const prayerDebtAPI = {
       };
     }
 
-    throw new Error("No data found");
+    // Возвращаем пустой snapshot если данных нет
+    return {
+      user_id: userId || `local_${Date.now()}`,
+      debt_calculation: {
+        period: { start: new Date().toISOString(), end: new Date().toISOString() },
+        missed_prayers: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0, witr: 0 },
+        travel_prayers: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0, witr: 0 },
+      },
+      repayment_progress: {
+        completed_prayers: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0, witr: 0 },
+        last_updated: new Date().toISOString(),
+      },
+      overall_progress_percent: 0,
+      remaining_prayers: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0, witr: 0 },
+    };
   },
 
   // Обновить прогресс восполнения
   async updateProgress(request: ProgressUpdateRequest): Promise<RepaymentProgress> {
     const userId = getUserId();
     
+    // Если нет userId, сразу используем localStorage
     if (!userId) {
-      throw new Error("user_id required");
+      const userData = localStorageAPI.getUserData();
+      if (userData && userData.repayment_progress) {
+        if (request.entries && userData.repayment_progress.completed_prayers) {
+          request.entries.forEach((entry) => {
+            const prayerKey = entry.type as keyof typeof userData.repayment_progress.completed_prayers;
+            if (userData.repayment_progress.completed_prayers[prayerKey] !== undefined) {
+              (userData.repayment_progress.completed_prayers[prayerKey] as number) = 
+                (userData.repayment_progress.completed_prayers[prayerKey] as number || 0) + entry.amount;
+            }
+          });
+        }
+        userData.repayment_progress.last_updated = new Date().toISOString();
+        localStorageAPI.saveUserData(userData);
+        return userData.repayment_progress;
+      }
+      // Возвращаем пустой прогресс
+      return {
+        completed_prayers: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0, witr: 0 },
+        last_updated: new Date().toISOString(),
+      };
     }
 
     // Пробуем Supabase Edge Function
@@ -1060,7 +1109,7 @@ export const prayerDebtAPI = {
 
     // Fallback на localStorage
     const userData = localStorageAPI.getUserData();
-    if (userData && userData.user_id === userId) {
+    if (userData) {
       // Обновляем прогресс локально
       if (request.entries && userData.repayment_progress?.completed_prayers) {
         request.entries.forEach((entry) => {
@@ -1139,8 +1188,21 @@ export const prayerDebtAPI = {
   async downloadPDFReport(): Promise<Blob> {
     const userId = getUserId();
     
+    // Если нет userId, генерируем простой текстовый отчёт
     if (!userId) {
-      throw new Error("user_id required");
+      const userData = localStorageAPI.getUserData();
+      const text = `Отчёт о каза-намазах\n\nДата: ${new Date().toLocaleDateString("ru-RU")}\n\n` +
+        (userData ? 
+          `Выполнено намазов:\n` +
+          `Фаджр: ${userData.repayment_progress?.completed_prayers?.fajr || 0}\n` +
+          `Зухр: ${userData.repayment_progress?.completed_prayers?.dhuhr || 0}\n` +
+          `Аср: ${userData.repayment_progress?.completed_prayers?.asr || 0}\n` +
+          `Магриб: ${userData.repayment_progress?.completed_prayers?.maghrib || 0}\n` +
+          `Иша: ${userData.repayment_progress?.completed_prayers?.isha || 0}\n` +
+          `Витр: ${userData.repayment_progress?.completed_prayers?.witr || 0}\n`
+          : "Данные не найдены"
+        );
+      return new Blob([text], { type: "text/plain" });
     }
 
     // Пробуем Supabase Edge Function
@@ -1705,8 +1767,19 @@ export const spiritualPathAPI = {
 
   async createGroup(name: string, goalId: string): Promise<GoalGroup> {
     const userId = getUserId();
+    
+    // Группы требуют онлайн-подключения, возвращаем локальную группу
     if (!userId) {
-      throw new Error("user_id required");
+      const localGroup: GoalGroup = {
+        id: `local_group_${Date.now()}`,
+        name,
+        goal_id: goalId,
+        created_by: `local_${Date.now()}`,
+        invite_code: `LOCAL${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        members: [],
+        created_at: new Date(),
+      };
+      return localGroup;
     }
 
     try {
@@ -1732,8 +1805,21 @@ export const spiritualPathAPI = {
 
   async joinGroup(groupIdOrCode: string): Promise<{ success: boolean; group: GoalGroup }> {
     const userId = getUserId();
+    
+    // Присоединение к группе требует онлайн
     if (!userId) {
-      throw new Error("user_id required");
+      return {
+        success: false,
+        group: {
+          id: groupIdOrCode,
+          name: "Группа недоступна",
+          goal_id: "",
+          created_by: "",
+          invite_code: groupIdOrCode,
+          members: [],
+          created_at: new Date(),
+        },
+      };
     }
 
     try {
@@ -1760,8 +1846,10 @@ export const spiritualPathAPI = {
   // AI-отчеты
   async getAIReport(type: "weekly" | "monthly" | "custom" = "weekly"): Promise<AIReport> {
     const userId = getUserId();
+    
+    // Если нет userId, сразу генерируем локальный отчёт
     if (!userId) {
-      throw new Error("user_id required");
+      return this.generateLocalAIReport(type);
     }
 
     try {
@@ -1854,7 +1942,7 @@ export const spiritualPathAPI = {
 
     return {
       id: `local-${Date.now()}`,
-      user_id: userId,
+      user_id: userId || `local_${Date.now()}`,
       period_start: periodStart.toISOString(),
       period_end: now.toISOString(),
       type,
@@ -1865,11 +1953,92 @@ export const spiritualPathAPI = {
     };
   },
 
+  // Генерация локального AI-отчёта
+  generateLocalAIReport(type: "weekly" | "monthly" | "custom" = "weekly"): AIReport {
+    const userData = localStorageAPI.getUserData();
+    const goals = localStorageAPI.getGoals();
+    
+    const now = new Date();
+    const periodStart = type === "weekly" 
+      ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      : type === "monthly" 
+        ? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const completedGoals = goals.filter(g => g.status === "completed").length;
+    const activeGoals = goals.filter(g => g.status === "active").length;
+    const totalProgress = goals.reduce((sum, g) => sum + g.current_value, 0);
+    
+    const qazaCompleted = userData?.repayment_progress?.completed_prayers
+      ? Object.values(userData.repayment_progress.completed_prayers).reduce((sum, v) => sum + (v || 0), 0)
+      : 0;
+
+    const insights: AIReport["insights"] = [
+      {
+        type: "achievement",
+        title: "Ваш прогресс",
+        description: `Вы выполнили ${completedGoals} целей и сделали ${totalProgress} действий`,
+        metric: "Всего",
+        value: totalProgress,
+      },
+      {
+        type: "trend",
+        title: "Активные цели",
+        description: `У вас ${activeGoals} активных целей. Продолжайте в том же духе!`,
+        metric: "Активные",
+        value: activeGoals,
+      },
+      {
+        type: "motivation",
+        title: "Мотивация дня",
+        description: "Каждый намаз приближает вас к цели. Пусть Аллах примет ваши усилия!",
+      },
+    ];
+
+    if (qazaCompleted > 0) {
+      insights.push({
+        type: "achievement",
+        title: "Каза-намазы",
+        description: `Вы восполнили ${qazaCompleted} намазов. Ма ша Аллах!`,
+        metric: "Восполнено",
+        value: qazaCompleted,
+      });
+    }
+
+    return {
+      id: `local-${Date.now()}`,
+      user_id: `local_${Date.now()}`,
+      period_start: periodStart.toISOString(),
+      period_end: now.toISOString(),
+      type,
+      insights,
+      recommendations: [
+        "Старайтесь восполнять каза после каждого обязательного намаза",
+        "Установите ежедневную цель хотя бы на 5 дополнительных намазов",
+        "Используйте тасбих для поминания Аллаха в свободное время",
+      ],
+      predictions: [
+        {
+          metric: "Завершение целей",
+          predicted_value: `${Math.max(1, Math.ceil(activeGoals * 0.7))} целей`,
+          confidence: 75,
+          timeframe: type === "weekly" ? "На следующей неделе" : "В следующем месяце",
+        },
+      ],
+      generated_at: now.toISOString(),
+    };
+  },
+
   // Умные уведомления
   async getNotificationSettings(): Promise<NotificationSettings> {
     const userId = getUserId();
+    
+    // Если нет userId, возвращаем настройки по умолчанию
     if (!userId) {
-      throw new Error("user_id required");
+      return {
+        ...DEFAULT_NOTIFICATION_SETTINGS,
+        user_id: `local_${Date.now()}`,
+      };
     }
 
     try {
@@ -1902,15 +2071,18 @@ export const spiritualPathAPI = {
 
   async updateNotificationSettings(settings: Partial<NotificationSettings>): Promise<NotificationSettings> {
     const userId = getUserId();
-    if (!userId) {
-      throw new Error("user_id required");
-    }
-
+    
     const payload: NotificationSettings = {
       ...DEFAULT_NOTIFICATION_SETTINGS,
       ...settings,
-      user_id: userId,
+      user_id: userId || `local_${Date.now()}`,
     };
+    
+    // Если нет userId, сохраняем локально и возвращаем
+    if (!userId) {
+      localStorage.setItem("notification_settings", JSON.stringify(payload));
+      return payload;
+    }
 
     try {
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/notifications/settings`, {
@@ -1965,8 +2137,16 @@ export const spiritualPathAPI = {
 
   async sendTestNotification(): Promise<void> {
     const userId = getUserId();
+    
+    // Если нет userId, показываем локальное уведомление
     if (!userId) {
-      throw new Error("user_id required");
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Тестовое уведомление", {
+          body: "Уведомления работают в локальном режиме!",
+          icon: "/icon-192.png",
+        });
+      }
+      return;
     }
 
     try {
@@ -1994,16 +2174,19 @@ export const spiritualPathAPI = {
     subscribed_at?: string;
   }): Promise<void> {
     const userId = getUserId();
-    if (!userId) {
-      throw new Error("user_id required");
-    }
 
     const body = {
-      user_id: userId,
+      user_id: userId || `local_${Date.now()}`,
       platform: payload.platform || (typeof navigator !== "undefined" ? navigator.userAgent : "web"),
       subscription: payload.subscription,
       subscribed_at: payload.subscribed_at || new Date().toISOString(),
     };
+
+    // Если нет userId, сохраняем только локально
+    if (!userId) {
+      localStorage.setItem(PUSH_SUBSCRIPTION_STORAGE_KEY, JSON.stringify(body));
+      return;
+    }
 
     try {
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/notifications/push-subscription`, {
@@ -2045,8 +2228,17 @@ export const spiritualPathAPI = {
   // Калькулятор каза
   async calculateQaza(calculation: QazaCalculation): Promise<QazaCalculation> {
     const userId = getUserId();
+    
+    // Если нет userId, сохраняем локально и возвращаем
     if (!userId) {
-      throw new Error("user_id required");
+      const localCalc = {
+        ...calculation,
+        id: `local_calc_${Date.now()}`,
+        user_id: `local_${Date.now()}`,
+        calculated_at: new Date().toISOString(),
+      };
+      localStorage.setItem("qaza_calculation", JSON.stringify(localCalc));
+      return localCalc;
     }
 
     try {
