@@ -62,29 +62,44 @@ const getCategoryIcon = (category: string, title: string) => {
   return <Sparkles className="w-6 h-6" />;
 };
 
-// Компонент точек прогресса (как на скриншоте)
+// Компонент точек прогресса (стиль Goal app)
 const ProgressDots = ({ current, total }: { current: number; total: number }) => {
   const dots = Math.min(total, 5); // Максимум 5 точек
-  const filledDots = Math.min(current, dots);
+  const filledDots = Math.min(Math.ceil((current / total) * dots), dots);
   
   return (
-    <div className="flex gap-1.5">
-      {Array.from({ length: dots }).map((_, i) => (
-        <div
-          key={i}
-          className={cn(
-            "w-2 h-2 rounded-full transition-colors",
-            i < filledDots 
-              ? "bg-emerald-600" 
-              : "bg-emerald-200"
-          )}
-        />
-      ))}
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex gap-1">
+        {Array.from({ length: dots }).map((_, i) => (
+          <div
+            key={i}
+            className={cn(
+              "w-2.5 h-2.5 rounded-full transition-all duration-300",
+              i < filledDots 
+                ? "bg-emerald-500 scale-110" 
+                : "bg-gray-200"
+            )}
+          />
+        ))}
+      </div>
+      <span className="text-[10px] text-gray-400">{Math.round((current / total) * 100)}%</span>
     </div>
   );
 };
 
-// Компонент карточки цели (как на скриншоте)
+// Цвета для категорий (как в Goal app)
+const getCategoryColors = (category: string) => {
+  switch (category) {
+    case "prayer": return { bg: "from-blue-400 to-blue-600", light: "bg-blue-50", text: "text-blue-600" };
+    case "quran": return { bg: "from-emerald-400 to-emerald-600", light: "bg-emerald-50", text: "text-emerald-600" };
+    case "zikr": return { bg: "from-purple-400 to-purple-600", light: "bg-purple-50", text: "text-purple-600" };
+    case "sadaqa": return { bg: "from-pink-400 to-pink-600", light: "bg-pink-50", text: "text-pink-600" };
+    case "knowledge": return { bg: "from-amber-400 to-amber-600", light: "bg-amber-50", text: "text-amber-600" };
+    default: return { bg: "from-emerald-400 to-emerald-600", light: "bg-emerald-50", text: "text-emerald-600" };
+  }
+};
+
+// Компонент карточки цели (стиль Goal app)
 const GoalCard = ({ 
   goal, 
   onClick 
@@ -96,6 +111,7 @@ const GoalCard = ({
     ? (goal.current_value / goal.target_value) * 100 
     : 0;
   const isComplete = goal.current_value >= goal.target_value;
+  const colors = getCategoryColors(goal.category);
   
   // Определяем отображение прогресса
   const isTimeBasedGoal = goal.title.toLowerCase().includes("мин") || 
@@ -106,30 +122,43 @@ const GoalCard = ({
       onClick={onClick}
       className={cn(
         "w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100",
-        "hover:shadow-md transition-all duration-200",
-        "flex items-center gap-4 text-left"
+        "hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]",
+        "transition-all duration-200",
+        "flex items-center gap-4 text-left",
+        isComplete && "ring-2 ring-emerald-200 bg-emerald-50/30"
       )}
     >
-      {/* Иконка */}
-      <div className="w-14 h-14 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700 flex-shrink-0">
-        {getCategoryIcon(goal.category, goal.title)}
+      {/* Иконка с градиентом */}
+      <div className={cn(
+        "w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md",
+        `bg-gradient-to-br ${colors.bg}`
+      )}>
+        <div className="text-white">
+          {getCategoryIcon(goal.category, goal.title)}
+        </div>
       </div>
 
       {/* Контент */}
       <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-gray-900 mb-2 truncate">
-          {goal.title}
-        </h3>
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="font-semibold text-gray-900 truncate">
+            {goal.title}
+          </h3>
+          {isComplete && <span className="text-emerald-500">✓</span>}
+        </div>
         
-        {/* Прогресс бар */}
+        {/* Прогресс бар с анимацией */}
         <div className="flex items-center gap-3">
-          <div className="flex-1 h-2 bg-emerald-100 rounded-full overflow-hidden">
+          <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+              className={cn(
+                "h-full rounded-full transition-all duration-700 ease-out",
+                `bg-gradient-to-r ${colors.bg}`
+              )}
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
-          <span className="text-sm text-gray-500 font-medium whitespace-nowrap">
+          <span className={cn("text-sm font-semibold whitespace-nowrap", colors.text)}>
             {isTimeBasedGoal 
               ? `${goal.current_value} мин`
               : `${goal.current_value}/${goal.target_value}`
@@ -138,10 +167,10 @@ const GoalCard = ({
         </div>
       </div>
 
-      {/* Точки прогресса или галочка */}
+      {/* Процент или галочка */}
       <div className="flex-shrink-0">
         {isComplete ? (
-          <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-200">
             <Check className="w-5 h-5 text-white" />
           </div>
         ) : (

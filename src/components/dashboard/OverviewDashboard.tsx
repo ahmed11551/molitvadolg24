@@ -241,42 +241,69 @@ export const OverviewDashboard = ({ onNavigateToCalculator }: OverviewDashboardP
         </div>
       </div>
 
-      {/* Stats Row */}
+      {/* Stats Row - Interactive Cards */}
       <div className="grid grid-cols-3 gap-3">
         <button
           onClick={() => navigate("/goals")}
-          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md transition-all"
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
-          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-2">
-            <Target className="w-5 h-5 text-blue-500" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center mx-auto mb-2 shadow-lg shadow-blue-200">
+            <Target className="w-6 h-6 text-white" />
           </div>
-          <p className="text-xl font-bold text-gray-900">{goals.length}</p>
+          <p className="text-2xl font-bold text-gray-900">{goals.length}</p>
           <p className="text-xs text-gray-500">Целей</p>
         </button>
 
         <button
-          onClick={() => navigate("/goals")}
-          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md transition-all"
+          onClick={() => navigate("/statistics")}
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
           title="Серия дней без пропусков"
         >
-          <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center mx-auto mb-2">
-            <Flame className="w-5 h-5 text-orange-500" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mx-auto mb-2 shadow-lg shadow-orange-200">
+            <Flame className="w-6 h-6 text-white" />
           </div>
-          <p className="text-xl font-bold text-gray-900">{currentStreak}</p>
-          <p className="text-xs text-gray-500">Дней</p>
+          <p className="text-2xl font-bold text-gray-900">{currentStreak}</p>
+          <p className="text-xs text-gray-500">Дней 🔥</p>
         </button>
 
         <button
           onClick={() => navigate("/tasbih")}
-          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md transition-all"
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mx-auto mb-2">
-            <Sparkles className="w-5 h-5 text-emerald-500" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center mx-auto mb-2 shadow-lg shadow-emerald-200">
+            <Sparkles className="w-6 h-6 text-white" />
           </div>
-          <p className="text-xl font-bold text-gray-900">∞</p>
+          <p className="text-2xl font-bold text-gray-900">∞</p>
           <p className="text-xs text-gray-500">Тасбих</p>
         </button>
       </div>
+
+      {/* AI Coach Widget - как в Goal app */}
+      <button
+        onClick={() => navigate("/statistics")}
+        className="w-full bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 rounded-2xl p-4 shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+            <span className="text-3xl">🤖</span>
+          </div>
+          <div className="flex-1 text-left">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-bold text-white">AI Помощник</h3>
+              <span className="px-2 py-0.5 bg-white/20 rounded-full text-[10px] text-white font-medium">
+                НОВОЕ
+              </span>
+            </div>
+            <p className="text-white/80 text-sm">
+              {goals.length > 0 
+                ? `У вас ${goals.length} целей. Продолжайте в том же духе!`
+                : "Создайте первую цель для персональных советов"
+              }
+            </p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-white/60" />
+        </div>
+      </button>
 
       {/* Today's Goals */}
       {todayGoals.length > 0 && (
@@ -302,25 +329,31 @@ export const OverviewDashboard = ({ onNavigateToCalculator }: OverviewDashboardP
         </div>
       )}
 
-      {/* Quick Actions */}
+      {/* Quick Actions - красивые кнопки с градиентом */}
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => navigate("/goals")}
-          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition-all"
+          className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-4 border border-emerald-200 flex items-center gap-3 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-            <Target className="w-5 h-5 text-emerald-600" />
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md">
+            <Target className="w-6 h-6 text-white" />
           </div>
-          <span className="text-sm font-medium text-gray-900">Новая цель</span>
+          <div className="text-left">
+            <span className="text-sm font-semibold text-gray-900 block">Новая цель</span>
+            <span className="text-xs text-emerald-600">+ Добавить</span>
+          </div>
         </button>
         <button
           onClick={() => navigate("/tasbih")}
-          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition-all"
+          className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 border border-purple-200 flex items-center gap-3 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-emerald-600" />
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center shadow-md">
+            <Sparkles className="w-6 h-6 text-white" />
           </div>
-          <span className="text-sm font-medium text-gray-900">Тасбих</span>
+          <div className="text-left">
+            <span className="text-sm font-semibold text-gray-900 block">Тасбих</span>
+            <span className="text-xs text-purple-600">Начать</span>
+          </div>
         </button>
       </div>
 
