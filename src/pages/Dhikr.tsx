@@ -1,4 +1,4 @@
-// Страница Зикры - Дуа, Азкары, Салаваты, Калимы
+// Страница Зикры - дизайн Goal app
 
 import { useState, useRef, useEffect } from "react";
 import { MainHeader } from "@/components/layout/MainHeader";
@@ -12,11 +12,11 @@ import { Heart, Star, Sparkles, BookOpen } from "lucide-react";
 
 type TabType = "dua" | "adhkar" | "salawat" | "kalima";
 
-const TABS: { id: TabType; label: string; icon: React.ReactNode; color: string }[] = [
-  { id: "dua", label: "Дуа", icon: <Heart className="w-5 h-5" />, color: "bg-rose-500" },
-  { id: "adhkar", label: "Азкары", icon: <Star className="w-5 h-5" />, color: "bg-amber-500" },
-  { id: "salawat", label: "Салаваты", icon: <Sparkles className="w-5 h-5" />, color: "bg-emerald-500" },
-  { id: "kalima", label: "Калимы", icon: <BookOpen className="w-5 h-5" />, color: "bg-blue-500" },
+const TABS: { id: TabType; label: string; icon: React.ReactNode }[] = [
+  { id: "dua", label: "Дуа", icon: <Heart className="w-4 h-4" /> },
+  { id: "adhkar", label: "Азкары", icon: <Star className="w-4 h-4" /> },
+  { id: "salawat", label: "Салаваты", icon: <Sparkles className="w-4 h-4" /> },
+  { id: "kalima", label: "Калимы", icon: <BookOpen className="w-4 h-4" /> },
 ];
 
 const Dhikr = () => {
@@ -34,22 +34,14 @@ const Dhikr = () => {
   }, [activeTab]);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-gray-50 pb-24">
       <MainHeader />
 
       <main className="container mx-auto px-4 py-6 max-w-lg">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Зикры</h1>
-          <p className="text-sm text-muted-foreground">
-            Дуа, азкары и поминания
-          </p>
-        </div>
-
         {/* Category Tabs */}
         <div
           ref={tabsRef}
-          className="flex gap-2 mb-6 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4"
+          className="flex gap-2 mb-6 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {TABS.map((tab) => (
@@ -58,14 +50,14 @@ const Dhikr = () => {
               data-tab={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-2 px-5 py-3 rounded-full whitespace-nowrap transition-all flex-shrink-0",
+                "flex items-center gap-2 px-5 py-3 rounded-full whitespace-nowrap transition-all flex-shrink-0 font-medium",
                 activeTab === tab.id
-                  ? `${tab.color} text-white shadow-lg`
-                  : "bg-muted hover:bg-muted/80"
+                  ? "bg-amber-500 text-white shadow-md"
+                  : "bg-white text-gray-600 border border-gray-200 hover:border-amber-300"
               )}
             >
               {tab.icon}
-              <span className="font-medium">{tab.label}</span>
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>

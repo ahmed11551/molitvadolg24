@@ -1,10 +1,6 @@
-// Обзор в стиле Goal app - чистый минималистичный дизайн
+// Обзор - дизайн как в Goal app с карточками целей
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CircularProgress } from "@/components/ui/circular-progress";
 import { useUserData } from "@/hooks/useUserData";
 import { spiritualPathAPI } from "@/lib/api";
 import type { Goal, Streak } from "@/types/spiritual-path";
@@ -12,10 +8,14 @@ import {
   ArrowRight,
   Flame,
   Target,
-  TrendingUp,
-  Clock,
-  CheckCircle2,
+  Check,
   Sparkles,
+  BookOpen,
+  Star,
+  Moon,
+  Sun,
+  Heart,
+  ChevronRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,98 @@ const computePrayerProgress = (userData: ReturnType<typeof useUserData>["userDat
 
   const percent = total > 0 ? Math.min(100, (completed / total) * 100) : 0;
   return { percent, completed, total, remaining: Math.max(total - completed, 0) };
+};
+
+// Иконки для разных категорий
+const getCategoryIcon = (category: string, title: string) => {
+  const lowerTitle = title.toLowerCase();
+  if (lowerTitle.includes("утренн") || lowerTitle.includes("фаджр")) {
+    return <Sun className="w-6 h-6" />;
+  }
+  if (lowerTitle.includes("вечерн") || lowerTitle.includes("магриб")) {
+    return <Moon className="w-6 h-6" />;
+  }
+  if (lowerTitle.includes("коран") || lowerTitle.includes("чтени")) {
+    return <BookOpen className="w-6 h-6" />;
+  }
+  if (lowerTitle.includes("зикр") || lowerTitle.includes("тасбих")) {
+    return <Sparkles className="w-6 h-6" />;
+  }
+  if (lowerTitle.includes("благ") || lowerTitle.includes("садак")) {
+    return <Heart className="w-6 h-6" />;
+  }
+  if (category === "zikr") {
+    return <Star className="w-6 h-6" />;
+  }
+  return <Sparkles className="w-6 h-6" />;
+};
+
+// Компонент точек прогресса
+const ProgressDots = ({ current, total }: { current: number; total: number }) => {
+  const dots = Math.min(total, 5);
+  const filledDots = Math.min(current, dots);
+  
+  return (
+    <div className="flex gap-1.5">
+      {Array.from({ length: dots }).map((_, i) => (
+        <div
+          key={i}
+          className={cn(
+            "w-2 h-2 rounded-full transition-colors",
+            i < filledDots ? "bg-amber-600" : "bg-amber-200"
+          )}
+        />
+      ))}
+    </div>
+  );
+};
+
+// Компонент карточки цели (как на скриншоте)
+const GoalCard = ({ goal, onClick }: { goal: Goal; onClick: () => void }) => {
+  const progress = goal.target_value > 0 
+    ? (goal.current_value / goal.target_value) * 100 
+    : 0;
+  const isComplete = goal.current_value >= goal.target_value;
+  
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100",
+        "hover:shadow-md transition-all duration-200",
+        "flex items-center gap-4 text-left"
+      )}
+    >
+      <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-700 flex-shrink-0">
+        {getCategoryIcon(goal.category, goal.title)}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold text-gray-900 mb-1.5 truncate text-sm">
+          {goal.title}
+        </h3>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-1.5 bg-amber-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-amber-500 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(progress, 100)}%` }}
+            />
+          </div>
+          <span className="text-xs text-gray-500 font-medium">
+            {goal.current_value}/{goal.target_value}
+          </span>
+        </div>
+      </div>
+
+      {isComplete ? (
+        <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+          <Check className="w-4 h-4 text-white" />
+        </div>
+      ) : (
+        <ProgressDots current={goal.current_value} total={goal.target_value} />
+      )}
+    </button>
+  );
 };
 
 export const OverviewDashboard = () => {
@@ -71,29 +163,14 @@ export const OverviewDashboard = () => {
 
   const prayerProgress = useMemo(() => computePrayerProgress(userData), [userData]);
   const currentStreak = streaks.find(s => s.current_streak > 0)?.current_streak || 0;
-  const activeGoalsCount = goals.length;
   
-  // Цели на сегодня
-  const todayGoals = goals.filter(g => {
-    if (!g.daily_plan || g.daily_plan === 0) return false;
-    return g.current_value < g.daily_plan;
-  }).slice(0, 3);
-
-  // Срочные цели (осталось меньше 3 дней)
-  const urgentGoals = goals
-    .filter(g => g.end_date)
-    .filter(g => {
-      const daysLeft = Math.ceil(
-        (new Date(g.end_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-      );
-      return daysLeft <= 3 && daysLeft >= 0;
-    })
-    .slice(0, 2);
+  // Цели на сегодня (первые 4)
+  const todayGoals = goals.slice(0, 4);
 
   if (loading || goalsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-pulse text-muted-foreground">Загрузка...</div>
+        <div className="animate-pulse text-gray-400">Загрузка...</div>
       </div>
     );
   }
@@ -101,215 +178,166 @@ export const OverviewDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Main Progress Card */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-semibold">Каза-намазы</h2>
-              <p className="text-sm text-muted-foreground">
-                {prayerProgress.remaining > 0 
-                  ? `Осталось ${prayerProgress.remaining} намазов`
-                  : "Все намазы восполнены!"
-                }
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-full"
-              onClick={() => navigate("/?tab=calculator")}
-            >
-              Подробнее
-              <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">Каза-намазы</h2>
+          <button
+            onClick={() => navigate("/")}
+            className="text-amber-600 text-sm font-medium flex items-center gap-1"
+          >
+            Подробнее
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
 
-          <div className="flex items-center justify-center py-4">
-            <CircularProgress
-              value={prayerProgress.completed}
-              max={prayerProgress.total || 1}
-              size={180}
-              strokeWidth={14}
-              color={prayerProgress.percent >= 100 ? "hsl(var(--chart-2))" : "hsl(var(--primary))"}
-            >
-              <div className="text-center">
-                <span className="text-4xl font-bold">{Math.round(prayerProgress.percent)}%</span>
-                <p className="text-xs text-muted-foreground mt-1">выполнено</p>
-              </div>
-            </CircularProgress>
+        {/* Circular Progress */}
+        <div className="flex items-center justify-center py-6">
+          <div className="relative w-40 h-40">
+            <svg className="w-full h-full transform -rotate-90">
+              <circle
+                cx="80"
+                cy="80"
+                r="70"
+                fill="none"
+                stroke="#fef3c7"
+                strokeWidth="12"
+              />
+              <circle
+                cx="80"
+                cy="80"
+                r="70"
+                fill="none"
+                stroke="#f59e0b"
+                strokeWidth="12"
+                strokeLinecap="round"
+                strokeDasharray={440}
+                strokeDashoffset={440 - (440 * prayerProgress.percent) / 100}
+                className="transition-all duration-1000"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-bold text-gray-900">
+                {Math.round(prayerProgress.percent)}%
+              </span>
+              <span className="text-xs text-gray-500">выполнено</span>
+            </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="text-center p-3 rounded-2xl bg-muted/50">
-              <p className="text-2xl font-bold text-primary">{prayerProgress.completed}</p>
-              <p className="text-xs text-muted-foreground">Восполнено</p>
-            </div>
-            <div className="text-center p-3 rounded-2xl bg-muted/50">
-              <p className="text-2xl font-bold">{prayerProgress.total}</p>
-              <p className="text-xs text-muted-foreground">Всего долгов</p>
-            </div>
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-amber-50 rounded-xl p-3 text-center">
+            <p className="text-xl font-bold text-amber-700">{prayerProgress.completed}</p>
+            <p className="text-xs text-amber-600">Восполнено</p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="bg-gray-50 rounded-xl p-3 text-center">
+            <p className="text-xl font-bold text-gray-700">{prayerProgress.remaining}</p>
+            <p className="text-xs text-gray-500">Осталось</p>
+          </div>
+        </div>
+      </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-3 gap-3">
         <button
           onClick={() => navigate("/goals")}
-          className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-center hover:bg-blue-500/15 transition-colors"
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md transition-all"
         >
-          <Target className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold">{activeGoalsCount}</p>
-          <p className="text-xs text-muted-foreground">Целей</p>
+          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-2">
+            <Target className="w-5 h-5 text-blue-500" />
+          </div>
+          <p className="text-xl font-bold text-gray-900">{goals.length}</p>
+          <p className="text-xs text-gray-500">Целей</p>
         </button>
 
-        <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-center">
-          <Flame className="w-6 h-6 text-orange-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold">{currentStreak}</p>
-          <p className="text-xs text-muted-foreground">Дней подряд</p>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
+          <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center mx-auto mb-2">
+            <Flame className="w-5 h-5 text-orange-500" />
+          </div>
+          <p className="text-xl font-bold text-gray-900">{currentStreak}</p>
+          <p className="text-xs text-gray-500">Дней</p>
         </div>
 
         <button
           onClick={() => navigate("/tasbih")}
-          className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center hover:bg-emerald-500/15 transition-colors"
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md transition-all"
         >
-          <Sparkles className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold">∞</p>
-          <p className="text-xs text-muted-foreground">Тасбих</p>
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+            <Sparkles className="w-5 h-5 text-emerald-500" />
+          </div>
+          <p className="text-xl font-bold text-gray-900">∞</p>
+          <p className="text-xs text-gray-500">Тасбих</p>
         </button>
       </div>
 
-      {/* Today's Tasks */}
+      {/* Today's Goals */}
       {todayGoals.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold flex items-center gap-2">
-                <Clock className="w-4 h-4 text-primary" />
-                На сегодня
-              </h3>
-              <Badge variant="secondary">{todayGoals.length}</Badge>
-            </div>
-            <div className="space-y-3">
-              {todayGoals.map((goal) => {
-                const progress = goal.daily_plan 
-                  ? (goal.current_value / goal.daily_plan) * 100 
-                  : 0;
-                return (
-                  <button
-                    key={goal.id}
-                    onClick={() => navigate(`/tasbih?goal=${goal.id}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors text-left"
-                  >
-                    <CircularProgress
-                      value={goal.current_value}
-                      max={goal.daily_plan || 1}
-                      size={44}
-                      strokeWidth={4}
-                      showValue={false}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{goal.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {goal.current_value} / {goal.daily_plan}
-                      </p>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Urgent Goals */}
-      {urgentGoals.length > 0 && (
-        <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardContent className="p-4">
-            <h3 className="font-semibold flex items-center gap-2 mb-4 text-amber-600">
-              <TrendingUp className="w-4 h-4" />
-              Срочные цели
-            </h3>
-            <div className="space-y-3">
-              {urgentGoals.map((goal) => {
-                const daysLeft = Math.ceil(
-                  (new Date(goal.end_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                );
-                const progress = (goal.current_value / goal.target_value) * 100;
-                
-                return (
-                  <button
-                    key={goal.id}
-                    onClick={() => navigate(`/tasbih?goal=${goal.id}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-background/80 hover:bg-background transition-colors text-left"
-                  >
-                    <CircularProgress
-                      value={goal.current_value}
-                      max={goal.target_value}
-                      size={44}
-                      strokeWidth={4}
-                      showValue={false}
-                      color="hsl(var(--chart-4))"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{goal.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {goal.current_value} / {goal.target_value}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="flex-shrink-0 text-amber-600 border-amber-500/30">
-                      {daysLeft}д
-                    </Badge>
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-gray-900">Цели на сегодня</h2>
+            <button
+              onClick={() => navigate("/goals")}
+              className="text-amber-600 text-sm font-medium"
+            >
+              Все
+            </button>
+          </div>
+          <div className="space-y-3">
+            {todayGoals.map((goal) => (
+              <GoalCard
+                key={goal.id}
+                goal={goal}
+                onClick={() => navigate(`/tasbih?goal=${goal.id}`)}
+              />
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">
-        <Button
-          variant="outline"
-          className="h-auto py-4 rounded-2xl flex flex-col items-center gap-2"
+        <button
           onClick={() => navigate("/goals")}
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition-all"
         >
-          <Target className="w-5 h-5 text-primary" />
-          <span className="text-sm">Новая цель</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-auto py-4 rounded-2xl flex flex-col items-center gap-2"
+          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+            <Target className="w-5 h-5 text-amber-600" />
+          </div>
+          <span className="text-sm font-medium text-gray-900">Новая цель</span>
+        </button>
+        <button
           onClick={() => navigate("/tasbih")}
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition-all"
         >
-          <Sparkles className="w-5 h-5 text-primary" />
-          <span className="text-sm">Тасбих</span>
-        </Button>
+          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-amber-600" />
+          </div>
+          <span className="text-sm font-medium text-gray-900">Тасбих</span>
+        </button>
       </div>
 
       {/* Empty State */}
-      {activeGoalsCount === 0 && prayerProgress.total === 0 && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="font-semibold mb-2">Начните свой путь</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Рассчитайте долги или создайте первую цель
-            </p>
-            <div className="flex gap-2 justify-center">
-              <Button size="sm" className="rounded-full">
-                Калькулятор
-              </Button>
-              <Button size="sm" variant="outline" className="rounded-full" onClick={() => navigate("/goals")}>
-                Цели
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      {goals.length === 0 && prayerProgress.total === 0 && (
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+          <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="w-8 h-8 text-amber-400" />
+          </div>
+          <h3 className="font-semibold text-gray-900 mb-2">Начните свой путь</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Рассчитайте долги или создайте первую цель
+          </p>
+          <div className="flex gap-2 justify-center">
+            <button className="px-4 py-2 bg-amber-500 text-white rounded-full text-sm font-medium hover:bg-amber-600 transition-colors">
+              Калькулятор
+            </button>
+            <button 
+              onClick={() => navigate("/goals")}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              Цели
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

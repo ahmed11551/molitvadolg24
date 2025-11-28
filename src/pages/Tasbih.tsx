@@ -1,4 +1,4 @@
-// Страница Тасбих с интеграцией целей и зикров
+// Страница Тасбих - дизайн Goal app
 
 import { useSearchParams } from "react-router-dom";
 import { MainHeader } from "@/components/layout/MainHeader";
@@ -10,7 +10,7 @@ const Tasbih = () => {
   const goalId = searchParams.get("goal") || undefined;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-gray-50 pb-24">
       <MainHeader />
       <main className="container mx-auto max-w-lg">
         <EnhancedTasbih goalId={goalId} />
@@ -21,4 +21,3 @@ const Tasbih = () => {
 };
 
 export default Tasbih;
-

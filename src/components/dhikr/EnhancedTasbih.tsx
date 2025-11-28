@@ -84,10 +84,10 @@ interface TasbihContent {
 type DhikrItemTypeKey = Parameters<typeof getDhikrItemById>[1];
 
 const CATEGORIES: { id: CategoryType; label: string; icon: React.ReactNode; color: string }[] = [
-  { id: "goals", label: "Цели", icon: <Target className="w-5 h-5" />, color: "bg-blue-500" },
-  { id: "dhikr", label: "Зикры", icon: <Star className="w-5 h-5" />, color: "bg-emerald-500" },
-  { id: "quran", label: "Коран", icon: <BookOpen className="w-5 h-5" />, color: "bg-amber-500" },
-  { id: "names", label: "99 Имён", icon: <Sparkles className="w-5 h-5" />, color: "bg-purple-500" },
+  { id: "goals", label: "Цели", icon: <Target className="w-5 h-5" />, color: "bg-amber-500" },
+  { id: "dhikr", label: "Зикры", icon: <Star className="w-5 h-5" />, color: "bg-amber-600" },
+  { id: "quran", label: "Коран", icon: <BookOpen className="w-5 h-5" />, color: "bg-amber-700" },
+  { id: "names", label: "99 Имён", icon: <Sparkles className="w-5 h-5" />, color: "bg-amber-800" },
 ];
 
 export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
@@ -636,7 +636,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                         className={cn(
                         "w-full p-4 rounded-2xl text-left transition-all",
                         "bg-card hover:bg-accent/50 border border-border/50",
-                        selectedGoal?.id === goal.id && "border-primary bg-primary/5"
+                        selectedGoal?.id === goal.id && "border-amber-500 bg-amber-50"
                         )}
                       >
                           <div className="flex items-center justify-between">
@@ -718,7 +718,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                       className={cn(
                         "w-full p-4 rounded-2xl text-left transition-all",
                         "bg-card hover:bg-accent/50 border border-border/50",
-                        selectedItem?.id === item.id && "border-primary bg-primary/5"
+                        selectedItem?.id === item.id && "border-amber-500 bg-amber-50"
                       )}
                     >
                       <p className="font-medium line-clamp-1">

@@ -14,13 +14,12 @@ export const BottomNav = () => {
     { path: "/tasbih", icon: Sparkles, label: "Тасбих" },
   ];
 
-  // Скрываем навигацию на десктопе, если не в Telegram Mini App
   if (!isMobile) {
     return null;
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border/50 z-50 safe-area-inset-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 safe-area-inset-bottom shadow-lg">
       <div className="container mx-auto px-2 max-w-lg">
         <div className="flex justify-around items-center h-16">
           {navItems.map(({ path, icon: Icon, label }) => {
@@ -32,13 +31,13 @@ export const BottomNav = () => {
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all duration-200 min-w-[64px]",
                   isActive
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-amber-600"
+                    : "text-gray-400 hover:text-gray-600"
                 )}
               >
                 <div className={cn(
                   "flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200",
-                  isActive && "bg-primary/10"
+                  isActive && "bg-amber-50"
                 )}>
                   <Icon className={cn(
                     "w-5 h-5 transition-transform duration-200",
@@ -47,7 +46,7 @@ export const BottomNav = () => {
                 </div>
                 <span className={cn(
                   "text-[11px] font-medium leading-none",
-                  isActive && "text-primary"
+                  isActive && "text-amber-600"
                 )}>
                   {label}
                 </span>

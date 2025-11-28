@@ -23,11 +23,11 @@ export const MainHeader = () => {
   const logoUrl = "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/cc/e2/51/cce2511d-7436-95af-c944-7dda394c0c3b/AppIcon-0-0-1x_U007emarketing-0-8-0-0-85-220.png/1200x630wa.png";
 
   return (
-    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/30">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
       <div className="container mx-auto px-4 py-3 max-w-lg">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
-            <div className="w-11 h-11 rounded-xl overflow-hidden shadow-md bg-primary flex items-center justify-center">
+            <div className="w-11 h-11 rounded-xl overflow-hidden shadow-sm bg-amber-500 flex items-center justify-center">
               {!logoError ? (
                 <img 
                   src={logoUrl}
@@ -36,13 +36,13 @@ export const MainHeader = () => {
                   onError={() => setLogoError(true)}
                 />
               ) : (
-                <Sparkles className="w-6 h-6 text-primary-foreground" />
+                <Sparkles className="w-6 h-6 text-white" />
               )}
             </div>
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-bold truncate">{title}</h1>
-            <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+            <h1 className="text-lg font-bold text-gray-900 truncate">{title}</h1>
+            <p className="text-xs text-gray-500 truncate">{subtitle}</p>
           </div>
         </div>
       </div>
