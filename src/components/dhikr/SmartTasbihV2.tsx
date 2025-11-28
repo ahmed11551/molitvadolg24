@@ -435,8 +435,8 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
           const itemType = mapCategoryToDhikrType(goal.category);
           if (itemType) {
             const itemData = await getDhikrItemById(goal.item_id, itemType);
-            if (itemData) {
-              setSelectedItem(itemData);
+          if (itemData) {
+            setSelectedItem(itemData);
             }
           }
         } catch (error) {
