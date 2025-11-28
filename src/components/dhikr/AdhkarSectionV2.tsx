@@ -74,9 +74,16 @@ export const AdhkarSectionV2 = () => {
       try {
         const apiData = await eReplikaAPI.getAdhkar();
         if (apiData && apiData.length > 0) {
-          data = apiData.map((item: any) => ({
-            ...item,
+          data = apiData.map((item) => ({
+            id: item.id || "",
+            title: item.title || "",
+            arabic: item.arabic || "",
+            transcription: item.transcription || "",
+            russianTranscription: item.russianTranscription,
+            translation: item.translation || "",
+            count: item.count || 33,
             category: item.category_id || item.category || "general",
+            audioUrl: item.audioUrl || null,
           }));
         }
       } catch (e) {
@@ -104,8 +111,8 @@ export const AdhkarSectionV2 = () => {
 
       // Группируем по категориям
       const categoriesMap = new Map<string, Adhkar[]>();
-      data.forEach((item: any) => {
-        const categoryId = item.category_id || item.category || "general";
+      data.forEach((item: Adhkar) => {
+        const categoryId = item.category || "general";
         if (!categoriesMap.has(categoryId)) {
           categoriesMap.set(categoryId, []);
         }

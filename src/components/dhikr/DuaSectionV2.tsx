@@ -85,8 +85,14 @@ export const DuaSectionV2 = () => {
       try {
         const apiData = await eReplikaAPI.getDuas();
         if (apiData && apiData.length > 0) {
-          data = apiData.map((item: any) => ({
-            ...item,
+          data = apiData.map((item) => ({
+            id: item.id || "",
+            arabic: item.arabic || "",
+            transcription: item.transcription || "",
+            russianTranscription: item.russianTranscription,
+            translation: item.translation || "",
+            reference: item.reference,
+            audioUrl: item.audioUrl || null,
             category: item.category_id || item.category || "general",
           }));
         }
@@ -114,8 +120,8 @@ export const DuaSectionV2 = () => {
 
       // Группируем по категориям
       const categoriesMap = new Map<string, Dua[]>();
-      data.forEach((dua: any) => {
-        const categoryId = dua.category_id || dua.category || "general";
+      data.forEach((dua: Dua) => {
+        const categoryId = dua.category || "general";
         if (!categoriesMap.has(categoryId)) {
           categoriesMap.set(categoryId, []);
         }

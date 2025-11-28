@@ -269,6 +269,24 @@ const Goals = () => {
   const [filter, setFilter] = useState<"all" | "active" | "completed">("active");
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [goalDetailOpen, setGoalDetailOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Генерация дней недели (должен быть до conditional returns)
+  const weekDays = useMemo(() => {
+    const today = new Date();
+    const days = [];
+    for (let i = -3; i <= 3; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      days.push({
+        date,
+        dayName: date.toLocaleDateString("ru", { weekday: "short" }),
+        dayNum: date.getDate(),
+        isToday: i === 0,
+      });
+    }
+    return days;
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -454,25 +472,6 @@ const Goals = () => {
       </div>
     );
   }
-
-  // Генерация дней недели
-  const weekDays = useMemo(() => {
-    const today = new Date();
-    const days = [];
-    for (let i = -3; i <= 3; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      days.push({
-        date,
-        dayName: date.toLocaleDateString("ru", { weekday: "short" }),
-        dayNum: date.getDate(),
-        isToday: i === 0,
-      });
-    }
-    return days;
-  }, []);
-
-  const [selectedDate, setSelectedDate] = useState(new Date());
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
