@@ -1687,56 +1687,126 @@ export const spiritualPathAPI = {
 
   // Бейджи
   async getBadges(): Promise<Badge[]> {
+    // Импортируем функцию проверки достижений
+    const { checkAchievements, getEarnedBadges } = await import("./achievements");
+    
+    // Проверяем новые достижения
+    checkAchievements();
+    
+    // Возвращаем все заработанные бейджи
+    const localBadges = getEarnedBadges();
+    
+    // Пробуем также получить с сервера (если есть userId)
     const userId = getUserId();
-    if (!userId) {
-      return [];
-    }
+    if (userId) {
+      try {
+        const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/badges`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+            "apikey": SUPABASE_ANON_KEY,
+          },
+        });
 
-    try {
-      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/badges`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-          "apikey": SUPABASE_ANON_KEY,
-        },
-      });
-
-      if (response.ok) {
-        return await response.json();
+        if (response.ok) {
+          const serverBadges = await response.json();
+          // Объединяем локальные и серверные бейджи
+          const allBadgeIds = new Set(localBadges.map(b => b.id));
+          for (const badge of serverBadges) {
+            if (!allBadgeIds.has(badge.id)) {
+              localBadges.push(badge);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn("Supabase API недоступен:", error);
       }
-    } catch (error) {
-      console.warn("Supabase API недоступен:", error);
     }
 
-    return [];
+    return localBadges;
   },
 
   // Streaks
   async getStreaks(): Promise<Streak[]> {
-    const userId = getUserId();
-    if (!userId) {
-      return [];
+    // Получаем локальные streaks из localStorage
+    const localStreaks: Streak[] = JSON.parse(localStorage.getItem("streaks") || "[]");
+    
+    // Если нет локальных данных, создаём начальный streak
+    if (localStreaks.length === 0) {
+      const initialStreak: Streak = {
+        id: "daily_all_streak",
+        user_id: "local",
+        streak_type: "daily_all",
+        current_streak: 0,
+        longest_streak: 0,
+        last_activity: new Date().toISOString(),
+        streak_data: {},
+      };
+      localStreaks.push(initialStreak);
+      localStorage.setItem("streaks", JSON.stringify(localStreaks));
     }
-
-    try {
-      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/streaks`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-          "apikey": SUPABASE_ANON_KEY,
-        },
-      });
-
-      if (response.ok) {
-        return await response.json();
+    
+    // Добавляем streaks по категориям
+    const { getCategoryStreaks } = await import("./achievements");
+    const categoryStreaks = getCategoryStreaks();
+    
+    for (const [category, count] of Object.entries(categoryStreaks)) {
+      const existingStreak = localStreaks.find(s => s.streak_type === `category_${category}`);
+      if (!existingStreak && count > 0) {
+        localStreaks.push({
+          id: `streak_${category}`,
+          user_id: "local",
+          streak_type: `category_${category}`,
+          current_streak: count,
+          longest_streak: count,
+          last_activity: new Date().toISOString(),
+          streak_data: { category },
+        });
+      } else if (existingStreak) {
+        existingStreak.current_streak = count;
+        if (count > existingStreak.longest_streak) {
+          existingStreak.longest_streak = count;
+        }
       }
-    } catch (error) {
-      console.warn("Supabase API недоступен:", error);
+    }
+    
+    // Пробуем также получить с сервера
+    const userId = getUserId();
+    if (userId) {
+      try {
+        const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/spiritual-path-api/streaks`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+            "apikey": SUPABASE_ANON_KEY,
+          },
+        });
+
+        if (response.ok) {
+          const serverStreaks = await response.json();
+          // Объединяем, предпочитая большие значения
+          for (const serverStreak of serverStreaks) {
+            const localStreak = localStreaks.find(s => s.streak_type === serverStreak.streak_type);
+            if (localStreak) {
+              if (serverStreak.current_streak > localStreak.current_streak) {
+                localStreak.current_streak = serverStreak.current_streak;
+              }
+              if (serverStreak.longest_streak > localStreak.longest_streak) {
+                localStreak.longest_streak = serverStreak.longest_streak;
+              }
+            } else {
+              localStreaks.push(serverStreak);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn("Supabase API недоступен:", error);
+      }
     }
 
-    return [];
+    return localStreaks;
   },
 
   // Группы
@@ -2350,7 +2420,20 @@ export const spiritualPathAPI = {
     if (goal) {
       goal.current_value = (goal.current_value || 0) + value;
       goal.updated_at = new Date();
+      
+      // Проверяем, завершена ли цель
+      if (goal.current_value >= goal.target_value && goal.status !== "completed") {
+        goal.status = "completed";
+      }
+      
       localStorage.setItem("spiritual_path_goals", JSON.stringify(goals));
+      
+      // Обновляем серию по категории
+      import("./achievements").then(({ updateCategoryStreaks, checkAchievements }) => {
+        updateCategoryStreaks(goal.category);
+        // Проверяем новые достижения
+        checkAchievements();
+      });
     }
 
     return progress;
