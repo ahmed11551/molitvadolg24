@@ -40,6 +40,11 @@ import { cn } from "@/lib/utils";
 import { CreateGoalDialog } from "@/components/spiritual-path/CreateGoalDialog";
 import { SmartGoalTemplates } from "@/components/spiritual-path/SmartGoalTemplates";
 import { useNavigate } from "react-router-dom";
+import { 
+  checkAndResetDailyGoals, 
+  markDailyResetComplete,
+  shouldShowReminder 
+} from "@/lib/goal-analyzer";
 
 // Иконки для разных категорий целей
 // Исламские советы дня (Life Hacks как в Goal app)
@@ -292,6 +297,26 @@ const Goals = () => {
     loadData();
   }, []);
 
+  // Проверка напоминаний каждую минуту
+  useEffect(() => {
+    const checkReminder = () => {
+      if (goals.length > 0) {
+        const reminder = shouldShowReminder(goals);
+        if (reminder.show) {
+          toast({
+            title: "⏰ Напоминание",
+            description: reminder.message,
+          });
+        }
+      }
+    };
+    
+    // Проверяем сразу и потом каждую минуту
+    checkReminder();
+    const interval = setInterval(checkReminder, 60000);
+    return () => clearInterval(interval);
+  }, [goals, toast]);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -300,7 +325,44 @@ const Goals = () => {
         spiritualPathAPI.getStreaks(),
         spiritualPathAPI.getBadges(),
       ]);
-      setGoals(goalsData);
+      
+      // Проверяем и сбрасываем ежедневные цели
+      const resetCheck = checkAndResetDailyGoals(goalsData);
+      
+      if (resetCheck.needsReset.length > 0) {
+        // Сбрасываем прогресс ежедневных целей
+        const resetPromises = resetCheck.needsReset.map(async (goal) => {
+          try {
+            await spiritualPathAPI.updateGoal(goal.id, { 
+              current_value: 0,
+              status: "active" 
+            });
+            return { ...goal, current_value: 0, status: "active" as const };
+          } catch (e) {
+            console.log("Could not reset goal:", e);
+            return goal;
+          }
+        });
+        
+        const resetGoals = await Promise.all(resetPromises);
+        
+        // Обновляем локальное состояние
+        const updatedGoals = goalsData.map(g => {
+          const resetGoal = resetGoals.find(rg => rg.id === g.id);
+          return resetGoal || g;
+        });
+        
+        setGoals(updatedGoals);
+        markDailyResetComplete();
+        
+        toast({
+          title: "🌅 Новый день!",
+          description: `Сброшено ${resetCheck.needsReset.length} ежедневных целей. Удачи!`,
+        });
+      } else {
+        setGoals(goalsData);
+      }
+      
       setStreaks(streaksData);
       setBadges(badgesData);
     } catch (error) {
