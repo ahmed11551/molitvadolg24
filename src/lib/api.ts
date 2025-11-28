@@ -1460,8 +1460,11 @@ export const spiritualPathAPI = {
 
   async createGoal(goal: Omit<Goal, "id" | "user_id" | "created_at" | "updated_at">): Promise<Goal> {
     const userId = getUserId();
+    
+    // Если нет userId, сразу используем localStorage
     if (!userId) {
-      throw new Error("user_id required");
+      console.log("No user_id, using localStorage for goal creation");
+      return this.createGoalInLocalStorage(goal);
     }
 
     try {
@@ -1491,8 +1494,10 @@ export const spiritualPathAPI = {
 
   async updateGoal(goalId: string, updates: Partial<Goal>): Promise<Goal> {
     const userId = getUserId();
+    
+    // Если нет userId, используем localStorage
     if (!userId) {
-      throw new Error("user_id required");
+      return this.updateGoalInLocalStorage(goalId, updates);
     }
 
     try {
@@ -1519,8 +1524,11 @@ export const spiritualPathAPI = {
 
   async deleteGoal(goalId: string): Promise<void> {
     const userId = getUserId();
+    
+    // Если нет userId, используем localStorage
     if (!userId) {
-      throw new Error("user_id required");
+      this.deleteGoalFromLocalStorage(goalId);
+      return;
     }
 
     try {
@@ -1547,8 +1555,10 @@ export const spiritualPathAPI = {
   // Синхронизация с тасбихом
   async syncCounter(counterType: string, value: number, date?: string): Promise<{ success: boolean; updated_goals: UpdatedGoal[] }> {
     const userId = getUserId();
+    
+    // Если нет userId, используем localStorage
     if (!userId) {
-      throw new Error("user_id required");
+      return this.syncCounterInLocalStorage(counterType, value, date);
     }
 
     try {
@@ -1580,8 +1590,10 @@ export const spiritualPathAPI = {
   // Добавить прогресс вручную
   async addProgress(goalId: string, value: number, date?: string, notes?: string): Promise<GoalProgress> {
     const userId = getUserId();
+    
+    // Если нет userId, используем localStorage
     if (!userId) {
-      throw new Error("user_id required");
+      return this.addProgressInLocalStorage(goalId, value, date, notes);
     }
 
     try {
