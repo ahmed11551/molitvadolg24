@@ -158,10 +158,12 @@ const getCategoryColors = (category: string) => {
 // Компонент карточки цели (стиль Goal app)
 const GoalCard = ({ 
   goal, 
-  onClick 
+  onClick,
+  onQuickAdd,
 }: { 
   goal: Goal; 
   onClick: () => void;
+  onQuickAdd?: () => void;
 }) => {
   const progress = goal.target_value > 0 
     ? (goal.current_value / goal.target_value) * 100 
@@ -173,11 +175,18 @@ const GoalCard = ({
   const isTimeBasedGoal = goal.title.toLowerCase().includes("мин") || 
                           goal.title.toLowerCase().includes("час");
   
+  const handleQuickAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onQuickAdd && !isComplete) {
+      onQuickAdd();
+    }
+  };
+  
   return (
-    <button
+    <div
       onClick={onClick}
       className={cn(
-        "w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100",
+        "w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer",
         "hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]",
         "transition-all duration-200",
         "flex items-center gap-4 text-left",
@@ -223,20 +232,27 @@ const GoalCard = ({
         </div>
       </div>
 
-      {/* Процент или галочка */}
+      {/* Кнопка быстрого добавления / галочка выполнения */}
       <div className="flex-shrink-0">
         {isComplete ? (
           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-200">
             <Check className="w-5 h-5 text-white" />
           </div>
         ) : (
-          <ProgressDots 
-            current={goal.current_value} 
-            total={goal.target_value} 
-          />
+          <button
+            onClick={handleQuickAdd}
+            className={cn(
+              "w-11 h-11 rounded-full flex items-center justify-center transition-all",
+              "bg-gray-100 hover:bg-emerald-500 hover:text-white text-gray-600",
+              "active:scale-90 shadow-sm hover:shadow-md"
+            )}
+            title="Добавить +1"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
         )}
       </div>
-    </button>
+    </div>
   );
 };
 
@@ -306,6 +322,55 @@ const Goals = () => {
     }
   };
 
+  // Быстрое добавление +1 к цели (без открытия детальной панели)
+  const handleQuickAdd = async (goal: Goal) => {
+    try {
+      await spiritualPathAPI.addProgress(goal.id, 1);
+      
+      const newValue = goal.current_value + 1;
+      const isCompleted = newValue >= goal.target_value;
+      const newStatus = isCompleted ? "completed" : goal.status;
+      
+      // Если цель достигнута - обновляем статус
+      if (isCompleted && goal.status !== "completed") {
+        try {
+          await spiritualPathAPI.updateGoal(goal.id, { 
+            status: "completed",
+            current_value: newValue 
+          });
+        } catch (e) {
+          console.log("Could not update goal status:", e);
+        }
+      }
+      
+      // Обновляем список целей
+      setGoals(goals.map(g => 
+        g.id === goal.id 
+          ? { ...g, current_value: newValue, status: newStatus }
+          : g
+      ));
+
+      if (isCompleted && goal.status !== "completed") {
+        toast({
+          title: "🎉 Цель достигнута!",
+          description: "Ма ша Аллах! Цель перемещена в 'Выполненные'",
+        });
+      } else {
+        toast({
+          title: `+1 к "${goal.title}"`,
+          description: `${newValue}/${goal.target_value}`,
+        });
+      }
+    } catch (error) {
+      console.error("Error adding progress:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось добавить прогресс",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleAddProgress = async (amount: number) => {
     if (!selectedGoal) return;
     
@@ -314,20 +379,37 @@ const Goals = () => {
       
       // Обновляем локальное состояние
       const newValue = Math.max(0, selectedGoal.current_value + amount);
-      setSelectedGoal({ ...selectedGoal, current_value: newValue });
+      const isCompleted = newValue >= selectedGoal.target_value;
+      const newStatus = isCompleted ? "completed" : selectedGoal.status;
+      
+      // Если цель достигнута - обновляем статус
+      if (isCompleted && selectedGoal.status !== "completed") {
+        try {
+          await spiritualPathAPI.updateGoal(selectedGoal.id, { 
+            status: "completed",
+            current_value: newValue 
+          });
+        } catch (e) {
+          console.log("Could not update goal status:", e);
+        }
+      }
+      
+      setSelectedGoal({ ...selectedGoal, current_value: newValue, status: newStatus });
       
       // Обновляем список целей
       setGoals(goals.map(g => 
         g.id === selectedGoal.id 
-          ? { ...g, current_value: newValue }
+          ? { ...g, current_value: newValue, status: newStatus }
           : g
       ));
 
-      if (newValue >= selectedGoal.target_value && amount > 0) {
+      if (isCompleted && selectedGoal.status !== "completed" && amount > 0) {
         toast({
           title: "🎉 Цель достигнута!",
-          description: "Ма ша Аллах! Поздравляем!",
+          description: "Ма ша Аллах! Поздравляем! Цель перемещена в 'Выполненные'",
         });
+        // Закрываем sheet после небольшой задержки
+        setTimeout(() => setGoalDetailOpen(false), 1500);
       }
     } catch (error) {
       console.error("Error updating progress:", error);
@@ -692,6 +774,7 @@ const Goals = () => {
                 key={goal.id}
                 goal={goal}
                 onClick={() => handleGoalClick(goal)}
+                onQuickAdd={() => handleQuickAdd(goal)}
               />
             ))
           ) : (
