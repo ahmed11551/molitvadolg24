@@ -449,7 +449,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
           {/* Current selection header */}
           <button
             onClick={() => setSelectorOpen(true)}
-            className="flex items-center justify-between p-4 mb-6 rounded-2xl bg-card border border-border/50 hover:bg-accent/50 transition-colors"
+            className="flex items-center justify-between p-4 mb-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all"
           >
             <div className="text-left">
               <p className="text-sm text-muted-foreground">Текущий зикр</p>
@@ -478,18 +478,19 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                 size={280}
                 strokeWidth={16}
                 showValue={false}
-                color={isComplete ? "hsl(var(--chart-2))" : "hsl(var(--primary))"}
+                color={isComplete ? "#10b981" : "#f59e0b"}
+                trackColor="#fef3c7"
                 className="drop-shadow-2xl"
               >
                 <div className="flex flex-col items-center">
-                  <span className="text-6xl font-bold tabular-nums">
+                  <span className="text-6xl font-bold tabular-nums text-gray-900">
                     {currentCount}
                   </span>
-                  <span className="text-lg text-muted-foreground mt-1">
+                  <span className="text-lg text-gray-500 mt-1">
                     из {targetValue}
                   </span>
                   {isComplete && (
-                    <Badge className="mt-3 bg-emerald-500/20 text-emerald-600 border-emerald-500/30">
+                    <Badge className="mt-3 bg-emerald-100 text-emerald-700 border-emerald-200">
                       <Check className="w-3 h-3 mr-1" />
                       Завершено
                     </Badge>
@@ -562,16 +563,16 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                 ) : (
         /* Empty state */
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-32 h-32 rounded-full bg-muted/30 flex items-center justify-center mb-6">
-            <Sparkles className="w-12 h-12 text-muted-foreground/50" />
+          <div className="w-32 h-32 rounded-full bg-amber-50 flex items-center justify-center mb-6">
+            <Sparkles className="w-12 h-12 text-amber-300" />
           </div>
-          <h2 className="text-xl font-semibold mb-2">Начните тасбих</h2>
-          <p className="text-muted-foreground text-center mb-8 max-w-xs">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Начните тасбих</h2>
+          <p className="text-gray-500 text-center mb-8 max-w-xs">
             Выберите зикр или цель для начала поминания
           </p>
           <Button
             size="lg"
-            className="rounded-full px-8"
+            className="rounded-full px-8 bg-amber-500 hover:bg-amber-600"
             onClick={() => setSelectorOpen(true)}
           >
             Выбрать зикр
