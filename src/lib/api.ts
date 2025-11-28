@@ -1766,10 +1766,91 @@ export const spiritualPathAPI = {
         return await response.json();
       }
     } catch (error) {
-      console.warn("Supabase API недоступен:", error);
+      console.warn("Supabase API недоступен, используем локальные данные:", error);
     }
 
-    throw new Error("Failed to get AI report");
+    // Fallback: генерируем отчёт на основе локальных данных
+    const userData = localStorageAPI.getUserData();
+    const goals = localStorageAPI.getGoals();
+    
+    const now = new Date();
+    const periodStart = type === "weekly" 
+      ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      : type === "monthly" 
+        ? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Подсчёт статистики
+    const completedGoals = goals.filter(g => g.status === "completed").length;
+    const activeGoals = goals.filter(g => g.status === "active").length;
+    const totalProgress = goals.reduce((sum, g) => sum + g.current_value, 0);
+    
+    const qazaCompleted = userData?.repayment_progress?.completed_prayers
+      ? Object.values(userData.repayment_progress.completed_prayers).reduce((sum, v) => sum + (v || 0), 0)
+      : 0;
+
+    // Генерируем инсайты на основе данных
+    const insights: AIReport["insights"] = [
+      {
+        type: "achievement",
+        title: "Ваш прогресс",
+        description: `Вы выполнили ${completedGoals} целей и сделали ${totalProgress} действий`,
+        metric: "Всего",
+        value: totalProgress,
+      },
+      {
+        type: "trend",
+        title: "Активные цели",
+        description: `У вас ${activeGoals} активных целей. Продолжайте в том же духе!`,
+        metric: "Активные",
+        value: activeGoals,
+      },
+      {
+        type: "motivation",
+        title: "Мотивация дня",
+        description: "Каждый намаз приближает вас к цели. Пусть Аллах примет ваши усилия!",
+      },
+    ];
+
+    // Добавляем инсайт по каза если есть данные
+    if (qazaCompleted > 0) {
+      insights.push({
+        type: "achievement",
+        title: "Каза-намазы",
+        description: `Вы восполнили ${qazaCompleted} намазов. Ма ша Аллах!`,
+        metric: "Восполнено",
+        value: qazaCompleted,
+      });
+    }
+
+    // Генерируем рекомендации
+    const recommendations = [
+      "Старайтесь восполнять каза после каждого обязательного намаза",
+      "Установите ежедневную цель хотя бы на 5 дополнительных намазов",
+      "Используйте тасбих для поминания Аллаха в свободное время",
+    ];
+
+    // Генерируем прогнозы
+    const predictions: AIReport["predictions"] = [
+      {
+        metric: "Завершение целей",
+        predicted_value: `${Math.max(1, Math.ceil(activeGoals * 0.7))} целей`,
+        confidence: 75,
+        timeframe: type === "weekly" ? "На следующей неделе" : "В следующем месяце",
+      },
+    ];
+
+    return {
+      id: `local-${Date.now()}`,
+      user_id: userId,
+      period_start: periodStart.toISOString(),
+      period_end: now.toISOString(),
+      type,
+      insights,
+      recommendations,
+      predictions,
+      generated_at: now.toISOString(),
+    };
   },
 
   // Умные уведомления

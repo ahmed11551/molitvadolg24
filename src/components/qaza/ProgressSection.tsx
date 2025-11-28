@@ -36,8 +36,13 @@ export const ProgressSection = () => {
               <Button
                 onClick={() => {
                   // Переключение на вкладку калькулятора
-                  const calculatorTab = document.querySelector('[value="calculator"]') as HTMLElement;
-                  if (calculatorTab) calculatorTab.click();
+                  const calculatorTab = document.querySelector('[data-tab="calculator"]') as HTMLElement;
+                  if (calculatorTab) {
+                    calculatorTab.click();
+                  } else {
+                    // Fallback - прокрутка к началу страницы
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
                 }}
                 className="bg-primary"
               >
