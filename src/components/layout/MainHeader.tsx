@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Sparkles, Settings } from "lucide-react";
+import { Sparkles, Settings, Bell } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 export const MainHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isDark } = useTheme();
+  const { toast } = useToast();
   const [logoError, setLogoError] = useState(false);
   
   const getPageInfo = () => {
@@ -64,18 +66,45 @@ export const MainHeader = () => {
             )}>{subtitle}</p>
           </div>
           
-          {/* Settings button */}
-          <button
-            onClick={() => navigate("/settings")}
-            className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-              isDark 
-                ? "bg-gray-800 hover:bg-gray-700 text-gray-300" 
-                : "bg-gray-100 hover:bg-gray-200 text-gray-600"
-            )}
-          >
-            <Settings className="w-5 h-5" />
-          </button>
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            {/* Notifications button */}
+            <button
+              type="button"
+              aria-label="Уведомления"
+              onClick={() => {
+                toast({
+                  title: "Уведомления",
+                  description: "Push-уведомления будут доступны в следующем обновлении",
+                });
+              }}
+              className={cn(
+                "relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95",
+                isDark 
+                  ? "bg-gray-800 hover:bg-gray-700 text-gray-300" 
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+              )}
+            >
+              <Bell className="w-5 h-5" />
+              {/* Notification dot */}
+              <span className="absolute top-2 right-2 w-2 h-2 bg-emerald-500 rounded-full" />
+            </button>
+            
+            {/* Settings button */}
+            <button
+              type="button"
+              aria-label="Настройки"
+              onClick={() => navigate("/settings")}
+              className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95",
+                isDark 
+                  ? "bg-gray-800 hover:bg-gray-700 text-gray-300" 
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+              )}
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
     </header>
