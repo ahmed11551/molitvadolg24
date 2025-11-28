@@ -1,10 +1,8 @@
-// Раздел Азкары - новый дизайн с вкладками "Категории" и "Любимое"
+// Раздел Азкары - дизайн Goal app
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Star, Share2, Heart, ArrowLeft } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Input } from "@/components/ui/input";
+import { Star, Search, ChevronRight, Sun, Moon, Shield, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AdhkarCard } from "./AdhkarCard";
 import { eReplikaAPI } from "@/lib/api";
@@ -29,20 +27,20 @@ interface Adhkar {
 interface Category {
   id: string;
   name: string;
+  icon: React.ReactNode;
   adhkar: Adhkar[];
 }
 
-type RemoteAdhkarRecord = Adhkar & {
-  category_id?: string;
-  category_name?: string;
-  name?: string;
-  text_arabic?: string;
-  text_transcription?: string;
-  russian_transcription?: string;
-  text_translation?: string;
-  name_english?: string;
-  audio_url?: string | null;
-  audio?: string | null;
+// Иконки для категорий
+const getCategoryIcon = (categoryId: string) => {
+  const icons: Record<string, React.ReactNode> = {
+    morning: <Sun className="w-6 h-6" />,
+    evening: <Moon className="w-6 h-6" />,
+    after_prayer: <Sparkles className="w-6 h-6" />,
+    protection: <Shield className="w-6 h-6" />,
+    general: <Star className="w-6 h-6" />,
+  };
+  return icons[categoryId] || <Star className="w-6 h-6" />;
 };
 
 export const AdhkarSectionV2 = () => {
@@ -51,18 +49,18 @@ export const AdhkarSectionV2 = () => {
   const [adhkar, setAdhkar] = useState<Adhkar[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [favorites, setFavorites] = useState<Adhkar[]>([]);
-  const [todayAdhkar, setTodayAdhkar] = useState<Adhkar | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"categories" | "favorites">("categories");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const getCategoryName = useCallback((categoryId: string): string => {
     const categoryNames: Record<string, string> = {
-      morning: "Утренние",
-      evening: "Вечерние",
+      morning: "Утренние азкары",
+      evening: "Вечерние азкары",
       after_prayer: "После намаза",
-      general: "Общие",
       protection: "Защита",
+      general: "Общие азкары",
     };
     return categoryNames[categoryId] || categoryId;
   }, []);
@@ -70,43 +68,13 @@ export const AdhkarSectionV2 = () => {
   const loadAdhkar = useCallback(async () => {
     setLoading(true);
     try {
-      // Используем getAvailableItemsByCategory с fallback на локальные данные
       let data: Adhkar[] = [];
-      let hasError = false;
       
       try {
-        // Сначала пробуем получить из API
         const apiData = await eReplikaAPI.getAdhkar();
         if (apiData && apiData.length > 0) {
           data = apiData;
         } else {
-          // Если API вернул пустой массив, используем fallback
-          try {
-            const fallbackData = await getAvailableItemsByCategory("adhkar");
-            if (fallbackData && fallbackData.length > 0) {
-              data = fallbackData.map((item: DhikrItem): Adhkar => ({
-                id: item.id,
-                title: item.title || "",
-                arabic: item.arabic || "",
-                transcription: item.transcription || "",
-                russianTranscription: item.russianTranscription,
-                translation: item.translation || "",
-                count: item.count || 33,
-                category: item.category || "general",
-                audioUrl: item.audioUrl || null,
-              }));
-            } else {
-              hasError = true;
-            }
-          } catch (fallbackError) {
-            console.warn("Fallback также не сработал:", fallbackError);
-            hasError = true;
-          }
-        }
-      } catch (apiError) {
-        // Если API недоступен, используем fallback
-        console.warn("API недоступен, используем локальные данные:", apiError);
-        try {
           const fallbackData = await getAvailableItemsByCategory("adhkar");
           if (fallbackData && fallbackData.length > 0) {
             data = fallbackData.map((item: DhikrItem): Adhkar => ({
@@ -120,58 +88,47 @@ export const AdhkarSectionV2 = () => {
               category: item.category || "general",
               audioUrl: item.audioUrl || null,
             }));
-          } else {
-            hasError = true;
           }
-        } catch (fallbackError) {
-          console.error("Fallback также не сработал:", fallbackError);
-          hasError = true;
         }
-      }
-
-      if (hasError || data.length === 0) {
-        // Если все попытки не удались, показываем сообщение в интерфейсе
-        setCategories([]);
-        setAdhkar([]);
-        return;
+      } catch {
+        const fallbackData = await getAvailableItemsByCategory("adhkar");
+        if (fallbackData && fallbackData.length > 0) {
+          data = fallbackData.map((item: DhikrItem): Adhkar => ({
+            id: item.id,
+            title: item.title || "",
+            arabic: item.arabic || "",
+            transcription: item.transcription || "",
+            russianTranscription: item.russianTranscription,
+            translation: item.translation || "",
+            count: item.count || 33,
+            category: item.category || "general",
+            audioUrl: item.audioUrl || null,
+          }));
+        }
       }
 
       setAdhkar(data);
 
       // Группируем по категориям
       const categoriesMap = new Map<string, Adhkar[]>();
-      (data as RemoteAdhkarRecord[]).forEach((item) => {
+      data.forEach((item: any) => {
         const categoryId = item.category_id || item.category || "general";
-
         if (!categoriesMap.has(categoryId)) {
           categoriesMap.set(categoryId, []);
         }
-        categoriesMap.get(categoryId)!.push({
-          id: item.id,
-          title: item.title || item.name || "",
-          arabic: item.arabic || item.text_arabic || "",
-          transcription: item.transcription || item.text_transcription || "",
-          russianTranscription: item.russian_transcription || item.russianTranscription,
-          translation: item.translation || item.text_translation || item.name_english || "",
-          count: item.count || 33,
-          category: categoryId,
-          audioUrl: item.audio_url ?? item.audioUrl ?? item.audio ?? null,
-        });
+        categoriesMap.get(categoryId)!.push(item);
       });
 
-      // Преобразуем в массив категорий
       const cats: Category[] = Array.from(categoriesMap.entries()).map(([id, adhkar]) => ({
         id,
         name: getCategoryName(id),
+        icon: getCategoryIcon(id),
         adhkar,
       }));
 
       setCategories(cats);
     } catch (error) {
       console.error("Error loading adhkar:", error);
-      // В случае ошибки показываем хотя бы пустые категории
-      setCategories([]);
-      setAdhkar([]);
     } finally {
       setLoading(false);
     }
@@ -181,7 +138,7 @@ export const AdhkarSectionV2 = () => {
     try {
       const stored = localStorage.getItem(BOOKMARKS_KEY);
       if (stored) {
-        const bookmarksRaw: unknown = JSON.parse(stored);
+        const bookmarksRaw = JSON.parse(stored);
         if (Array.isArray(bookmarksRaw)) {
           setFavorites(bookmarksRaw as Adhkar[]);
         }
@@ -191,44 +148,24 @@ export const AdhkarSectionV2 = () => {
     }
   }, []);
 
-  const loadTodayAdhkar = useCallback(() => {
-    // Выбираем случайный азкар для "Сегодняшний Азкар"
-    if (adhkar.length > 0) {
-      const randomIndex = Math.floor(Math.random() * adhkar.length);
-      setTodayAdhkar(adhkar[randomIndex]);
-    }
-  }, [adhkar]);
-
   useEffect(() => {
     loadAdhkar();
     loadFavorites();
-    loadTodayAdhkar();
-  }, [loadAdhkar, loadFavorites, loadTodayAdhkar]);
+  }, [loadAdhkar, loadFavorites]);
 
-  useEffect(() => {
-    if (adhkar.length > 0 && !todayAdhkar) {
-      loadTodayAdhkar();
-    }
-  }, [adhkar, todayAdhkar, loadTodayAdhkar]);
-
-  const toggleFavorite = (adhkar: Adhkar) => {
+  const toggleFavorite = (item: Adhkar) => {
     try {
       const stored = localStorage.getItem(BOOKMARKS_KEY);
-      const parsed: unknown = stored ? JSON.parse(stored) : [];
-      let bookmarks: Adhkar[] = Array.isArray(parsed) ? (parsed as Adhkar[]) : [];
+      let bookmarks: Adhkar[] = stored ? JSON.parse(stored) : [];
       
-      const isFavorite = bookmarks.some((b) => b.id === adhkar.id);
+      const isFav = bookmarks.some((b) => b.id === item.id);
       
-      if (isFavorite) {
-        bookmarks = bookmarks.filter((b: Adhkar) => b.id !== adhkar.id);
-        toast({
-          title: "Удалено из избранного",
-        });
+      if (isFav) {
+        bookmarks = bookmarks.filter((b) => b.id !== item.id);
+        toast({ title: "Удалено из избранного" });
       } else {
-        bookmarks.push(adhkar);
-        toast({
-          title: "Добавлено в избранное",
-        });
+        bookmarks.push(item);
+        toast({ title: "Добавлено в избранное" });
       }
       
       localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
@@ -238,243 +175,174 @@ export const AdhkarSectionV2 = () => {
     }
   };
 
-  const handleShare = async (adhkar: Adhkar) => {
-    try {
-      const text = `${adhkar.title}\n\n${adhkar.translation}\n\n${adhkar.arabic}\n\n${adhkar.transcription}`;
-      if (navigator.share) {
-        await navigator.share({
-          title: adhkar.title,
-          text: text,
-        });
-      } else {
-        await navigator.clipboard.writeText(text);
-        toast({
-          title: "Скопировано",
-          description: "Азкар скопирован в буфер обмена",
-        });
-      }
-    } catch (error) {
-      console.error("Error sharing:", error);
-    }
-  };
-
-  const isFavorite = (adhkar: Adhkar): boolean => {
-    return favorites.some((f) => f.id === adhkar.id);
-  };
+  // Поиск
+  const filteredAdhkar = searchQuery
+    ? adhkar.filter(a => 
+        a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.translation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.transcription.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="text-muted-foreground">Загрузка...</div>
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-pulse text-gray-400">Загрузка...</div>
+      </div>
+    );
+  }
+
+  // Если выбрана категория - показываем азкары
+  if (selectedCategory) {
+    const category = categories.find(c => c.id === selectedCategory);
+    return (
+      <div className="space-y-4">
+        {/* Кнопка назад */}
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className="flex items-center gap-2 text-amber-600 font-medium"
+        >
+          ← Назад
+        </button>
+
+        <h2 className="text-xl font-bold text-gray-900">{category?.name}</h2>
+
+        <div className="space-y-3">
+          {category?.adhkar.map((item) => (
+            <AdhkarCard
+              key={item.id}
+              dhikr={{
+                id: item.id,
+                title: item.title,
+                arabic: item.arabic,
+                transcription: item.transcription,
+                russianTranscription: item.russianTranscription,
+                translation: item.translation,
+                count: item.count,
+                category: item.category || "general",
+              }}
+            />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Заголовок с кнопкой назад */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-8 w-8"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold">Азкары</h1>
+    <div className="space-y-4">
+      {/* Поиск */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <Input
+          placeholder="Поиск азкаров..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-12 h-12 rounded-xl bg-white border-gray-200"
+        />
       </div>
 
-      {/* Вкладки */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "categories" | "favorites")}>
-        <div className="flex justify-center mt-2 mb-2">
-          <TabsList
-            className={cn(
-              "inline-flex items-center gap-1",
-              "rounded-full border border-border/40 bg-white",
-              "shadow-sm px-1 py-1 w-auto"
-            )}
-          >
-            <TabsTrigger
-              value="categories"
-              className={cn(
-                "px-4 py-1.5 text-sm font-medium rounded-full",
-                "text-foreground/70 transition-all",
-                "data-[state=active]:bg-primary data-[state=active]:text-white",
-                "data-[state=active]:shadow-sm"
-              )}
-            >
-              Категории
-            </TabsTrigger>
-            <TabsTrigger
-              value="favorites"
-              className={cn(
-                "px-4 py-1.5 text-sm font-medium rounded-full",
-                "text-foreground/70 transition-all",
-                "data-[state=active]:bg-primary data-[state=active]:text-white",
-                "data-[state=active]:shadow-sm"
-              )}
-            >
-              Любимое
-            </TabsTrigger>
-          </TabsList>
+      {/* Tabs */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => { setActiveTab("categories"); setSearchQuery(""); }}
+          className={cn(
+            "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+            activeTab === "categories"
+              ? "bg-amber-500 text-white"
+              : "bg-white text-gray-600 border border-gray-200"
+          )}
+        >
+          Категории
+        </button>
+        <button
+          onClick={() => { setActiveTab("favorites"); setSearchQuery(""); }}
+          className={cn(
+            "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+            activeTab === "favorites"
+              ? "bg-amber-500 text-white"
+              : "bg-white text-gray-600 border border-gray-200"
+          )}
+        >
+          Избранное ({favorites.length})
+        </button>
+      </div>
+
+      {/* Результаты поиска */}
+      {searchQuery && (
+        <div className="space-y-3">
+          <p className="text-sm text-gray-500">Найдено: {filteredAdhkar.length}</p>
+          {filteredAdhkar.map((item) => (
+            <AdhkarCard
+              key={item.id}
+              dhikr={{
+                id: item.id,
+                title: item.title,
+                arabic: item.arabic,
+                transcription: item.transcription,
+                russianTranscription: item.russianTranscription,
+                translation: item.translation,
+                count: item.count,
+                category: item.category || "general",
+              }}
+            />
+          ))}
         </div>
+      )}
 
-        <TabsContent value="categories" className="mt-6 space-y-6">
-          {/* Сообщение если нет данных */}
-          {categories.length === 0 && !loading && (
-            <Card className="bg-gradient-card border-border/50">
-              <CardContent className="p-6 text-center space-y-4">
-                <div>
-                  <p className="text-muted-foreground mb-2 font-medium">Азкары временно недоступны</p>
-                  <p className="text-sm text-muted-foreground">
-                    Пожалуйста, проверьте подключение к интернету или попробуйте позже
-                  </p>
-                </div>
-                <Button onClick={loadAdhkar} variant="outline" size="sm">
-                  Попробовать снова
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Сегодняшний Азкар */}
-          {todayAdhkar && (
-            <Card className="bg-gradient-card border-border/50">
-              <CardContent className="p-4 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Heart className="w-5 h-5 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-lg">Сегодняшний Азкар</h3>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="font-semibold">{todayAdhkar.title}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {todayAdhkar.translation}
-                  </p>
-                  <p className="text-sm font-mono italic text-foreground">
-                    {todayAdhkar.transcription}
-                  </p>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleFavorite(todayAdhkar)}
-                    className="flex-1"
-                  >
-                    <Star className={cn(
-                      "w-4 h-4 mr-2",
-                      isFavorite(todayAdhkar) && "fill-yellow-400 text-yellow-400"
-                    )} />
-                    Любимое
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleShare(todayAdhkar)}
-                    className="flex-1"
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Поделиться
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Категории */}
-          <div className="space-y-4">
-            {categories.map((category) => (
-              <Card
-                key={category.id}
-                className="bg-gradient-card border-border/50 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => {
-                  setSelectedCategory(category.id);
-                }}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-lg">{category.name}</h3>
-                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                      <span className="text-sm font-semibold">{category.adhkar.length}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Список азкаров выбранной категории */}
-          {selectedCategory && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg">
-                  {categories.find(c => c.id === selectedCategory)?.name}
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedCategory(null)}
-                >
-                  Закрыть
-                </Button>
+      {/* Категории */}
+      {!searchQuery && activeTab === "categories" && (
+        <div className="space-y-3">
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => setSelectedCategory(category.id)}
+              className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 text-left"
+            >
+              <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-700">
+                {category.icon}
               </div>
-              {categories
-                .find(c => c.id === selectedCategory)
-                ?.adhkar.map((adhkar) => (
-                  <AdhkarCard
-                    key={adhkar.id}
-                    dhikr={{
-                      id: adhkar.id,
-                      title: adhkar.title,
-                      arabic: adhkar.arabic,
-                      transcription: adhkar.transcription,
-                      russianTranscription: adhkar.russianTranscription,
-                      translation: adhkar.translation,
-                      count: adhkar.count,
-                      category: adhkar.category || "general",
-                    }}
-                  />
-                ))}
-            </div>
-          )}
-        </TabsContent>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900">{category.name}</h3>
+                <p className="text-sm text-gray-500">{category.adhkar.length} азкаров</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </button>
+          ))}
+        </div>
+      )}
 
-        <TabsContent value="favorites" className="mt-6 space-y-4">
+      {/* Избранное */}
+      {!searchQuery && activeTab === "favorites" && (
+        <div className="space-y-3">
           {favorites.length === 0 ? (
             <div className="text-center py-12">
-              <Star className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
-              <p className="text-muted-foreground">Нет избранных азкаров</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Добавьте азкары в избранное, чтобы они появились здесь
+              <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-amber-300" />
+              </div>
+              <p className="text-gray-500">Нет избранных азкаров</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Добавьте азкары в избранное
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {favorites.map((adhkar) => (
-                <AdhkarCard
-                  key={adhkar.id}
-                  dhikr={{
-                    id: adhkar.id,
-                    title: adhkar.title,
-                    arabic: adhkar.arabic,
-                    transcription: adhkar.transcription,
-                    russianTranscription: adhkar.russianTranscription,
-                    translation: adhkar.translation,
-                    count: adhkar.count,
-                    category: adhkar.category || "general",
-                  }}
-                />
-              ))}
-            </div>
+            favorites.map((item) => (
+              <AdhkarCard
+                key={item.id}
+                dhikr={{
+                  id: item.id,
+                  title: item.title,
+                  arabic: item.arabic,
+                  transcription: item.transcription,
+                  russianTranscription: item.russianTranscription,
+                  translation: item.translation,
+                  count: item.count,
+                  category: item.category || "general",
+                }}
+              />
+            ))
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   );
 };
-

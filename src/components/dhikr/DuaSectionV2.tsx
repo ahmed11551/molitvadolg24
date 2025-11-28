@@ -1,20 +1,16 @@
-// Раздел Дуа - новый дизайн с вкладками "Категории" и "Любимое"
+// Раздел Дуа - дизайн Goal app
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Star, Share2, Heart, ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Star, Share2, Heart, Search, ChevronRight, ArrowLeft, Sun, Moon, Home, Utensils, Plane, Smile } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DuaCard } from "./DuaCard";
 import { CategoryDuasView } from "./CategoryDuasView";
-import { DuaSearch } from "./DuaSearch";
 import { eReplikaAPI } from "@/lib/api";
 import { getAvailableItemsByCategory, type DhikrItem } from "@/lib/dhikr-data";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
 
 const BOOKMARKS_KEY = "prayer_debt_bookmarks";
 
@@ -32,20 +28,25 @@ interface Dua {
 interface Category {
   id: string;
   name: string;
+  icon: React.ReactNode;
   duas: Dua[];
 }
 
-type RemoteDuaRecord = Dua & {
-  category_id?: string;
-  category_name?: string;
-  text_arabic?: string;
-  text_transcription?: string;
-  russian_transcription?: string;
-  text_translation?: string;
-  name_english?: string;
-  hadith_reference?: string;
-  audio_url?: string | null;
-  audio?: string | null;
+// Иконки для категорий
+const getCategoryIcon = (categoryId: string) => {
+  const icons: Record<string, React.ReactNode> = {
+    morning: <Sun className="w-6 h-6" />,
+    evening: <Moon className="w-6 h-6" />,
+    sleep: <Moon className="w-6 h-6" />,
+    home: <Home className="w-6 h-6" />,
+    family: <Home className="w-6 h-6" />,
+    food: <Utensils className="w-6 h-6" />,
+    travel: <Plane className="w-6 h-6" />,
+    joy: <Smile className="w-6 h-6" />,
+    sorrow: <Smile className="w-6 h-6" />,
+    general: <Heart className="w-6 h-6" />,
+  };
+  return icons[categoryId] || <Heart className="w-6 h-6" />;
 };
 
 export const DuaSectionV2 = () => {
@@ -54,24 +55,23 @@ export const DuaSectionV2 = () => {
   const [duas, setDuas] = useState<Dua[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [favorites, setFavorites] = useState<Dua[]>([]);
-  const [todayDua, setTodayDua] = useState<Dua | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"categories" | "favorites" | "search">("categories");
+  const [activeTab, setActiveTab] = useState<"categories" | "favorites">("categories");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const getCategoryName = useCallback((categoryId: string): string => {
     const categoryNames: Record<string, string> = {
-      morning: "Утро & вечер",
-      evening: "Утро & вечер",
+      morning: "Утренние дуа",
+      evening: "Вечерние дуа",
       sleep: "Перед сном",
-      home: "Дом & семья",
-      family: "Дом & семья",
-      food: "Еда & напиток",
-      travel: "Путешествовать",
-      joy: "Радость & печаль",
-      sorrow: "Радость & печаль",
-      general: "Общие",
+      home: "Дом и семья",
+      family: "Дом и семья",
+      food: "Еда и напитки",
+      travel: "В путешествии",
+      joy: "Радость",
+      sorrow: "В трудности",
+      general: "Общие дуа",
     };
     return categoryNames[categoryId] || categoryId;
   }, []);
@@ -79,42 +79,13 @@ export const DuaSectionV2 = () => {
   const loadDuas = useCallback(async () => {
     setLoading(true);
     try {
-      // Используем getAvailableItemsByCategory с fallback на локальные данные
       let data: Dua[] = [];
-      let hasError = false;
       
       try {
-        // Сначала пробуем получить из API
         const apiData = await eReplikaAPI.getDuas();
         if (apiData && apiData.length > 0) {
           data = apiData;
         } else {
-          // Если API вернул пустой массив, используем fallback
-          try {
-            const fallbackData = await getAvailableItemsByCategory("dua");
-            if (fallbackData && fallbackData.length > 0) {
-              data = fallbackData.map((item: DhikrItem): Dua => ({
-                id: item.id,
-                arabic: item.arabic || "",
-                transcription: item.transcription || "",
-                russianTranscription: item.russianTranscription,
-                translation: item.translation || "",
-                reference: item.reference,
-                audioUrl: item.audioUrl || null,
-                category: "general",
-              }));
-            } else {
-              hasError = true;
-            }
-          } catch (fallbackError) {
-            console.warn("Fallback также не сработал:", fallbackError);
-            hasError = true;
-          }
-        }
-      } catch (apiError) {
-        // Если API недоступен, используем fallback
-        console.warn("API недоступен, используем локальные данные:", apiError);
-        try {
           const fallbackData = await getAvailableItemsByCategory("dua");
           if (fallbackData && fallbackData.length > 0) {
             data = fallbackData.map((item: DhikrItem): Dua => ({
@@ -127,57 +98,46 @@ export const DuaSectionV2 = () => {
               audioUrl: item.audioUrl || null,
               category: "general",
             }));
-          } else {
-            hasError = true;
           }
-        } catch (fallbackError) {
-          console.error("Fallback также не сработал:", fallbackError);
-          hasError = true;
         }
-      }
-
-      if (hasError || data.length === 0) {
-        // Если все попытки не удались, показываем сообщение в интерфейсе
-        setCategories([]);
-        setDuas([]);
-        return;
+      } catch {
+        const fallbackData = await getAvailableItemsByCategory("dua");
+        if (fallbackData && fallbackData.length > 0) {
+          data = fallbackData.map((item: DhikrItem): Dua => ({
+            id: item.id,
+            arabic: item.arabic || "",
+            transcription: item.transcription || "",
+            russianTranscription: item.russianTranscription,
+            translation: item.translation || "",
+            reference: item.reference,
+            audioUrl: item.audioUrl || null,
+            category: "general",
+          }));
+        }
       }
 
       setDuas(data);
 
       // Группируем по категориям
       const categoriesMap = new Map<string, Dua[]>();
-      (data as RemoteDuaRecord[]).forEach((dua) => {
+      data.forEach((dua: any) => {
         const categoryId = dua.category_id || dua.category || "general";
-        
         if (!categoriesMap.has(categoryId)) {
           categoriesMap.set(categoryId, []);
         }
-        categoriesMap.get(categoryId)!.push({
-          id: dua.id,
-          arabic: dua.arabic || dua.text_arabic || "",
-          transcription: dua.transcription || dua.text_transcription || "",
-          russianTranscription: dua.russian_transcription || dua.russianTranscription,
-          translation: dua.translation || dua.text_translation || dua.name_english || "",
-          reference: dua.reference || dua.hadith_reference,
-          audioUrl: dua.audio_url ?? dua.audioUrl ?? dua.audio ?? null,
-          category: categoryId,
-        });
+        categoriesMap.get(categoryId)!.push(dua);
       });
 
-      // Преобразуем в массив категорий
       const cats: Category[] = Array.from(categoriesMap.entries()).map(([id, duas]) => ({
         id,
         name: getCategoryName(id),
+        icon: getCategoryIcon(id),
         duas,
       }));
 
       setCategories(cats);
     } catch (error) {
       console.error("Error loading duas:", error);
-      // В случае ошибки показываем хотя бы пустые категории
-      setCategories([]);
-      setDuas([]);
     } finally {
       setLoading(false);
     }
@@ -187,7 +147,7 @@ export const DuaSectionV2 = () => {
     try {
       const stored = localStorage.getItem(BOOKMARKS_KEY);
       if (stored) {
-        const bookmarksRaw: unknown = JSON.parse(stored);
+        const bookmarksRaw = JSON.parse(stored);
         if (Array.isArray(bookmarksRaw)) {
           setFavorites(bookmarksRaw as Dua[]);
         }
@@ -197,44 +157,24 @@ export const DuaSectionV2 = () => {
     }
   }, []);
 
-  const loadTodayDua = useCallback(() => {
-    // Выбираем случайное дуа для "Сегодняшний Dua"
-    if (duas.length > 0) {
-      const randomIndex = Math.floor(Math.random() * duas.length);
-      setTodayDua(duas[randomIndex]);
-    }
-  }, [duas]);
-
   useEffect(() => {
     loadDuas();
     loadFavorites();
-    loadTodayDua();
-  }, [loadDuas, loadFavorites, loadTodayDua]);
-
-  useEffect(() => {
-    if (duas.length > 0 && !todayDua) {
-      loadTodayDua();
-    }
-  }, [duas, todayDua, loadTodayDua]);
+  }, [loadDuas, loadFavorites]);
 
   const toggleFavorite = (dua: Dua) => {
     try {
       const stored = localStorage.getItem(BOOKMARKS_KEY);
-      const parsed: unknown = stored ? JSON.parse(stored) : [];
-      let bookmarks: Dua[] = Array.isArray(parsed) ? (parsed as Dua[]) : [];
+      let bookmarks: Dua[] = stored ? JSON.parse(stored) : [];
       
-      const isFavorite = bookmarks.some((b) => b.id === dua.id);
+      const isFav = bookmarks.some((b) => b.id === dua.id);
       
-      if (isFavorite) {
-        bookmarks = bookmarks.filter((b: Dua) => b.id !== dua.id);
-        toast({
-          title: "Удалено из избранного",
-        });
+      if (isFav) {
+        bookmarks = bookmarks.filter((b) => b.id !== dua.id);
+        toast({ title: "Удалено из избранного" });
       } else {
         bookmarks.push(dua);
-        toast({
-          title: "Добавлено в избранное",
-        });
+        toast({ title: "Добавлено в избранное" });
       }
       
       localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
@@ -244,235 +184,128 @@ export const DuaSectionV2 = () => {
     }
   };
 
-  const handleShare = async (dua: Dua) => {
-    try {
-      const text = `${dua.translation}\n\n${dua.arabic}\n\n${dua.transcription}`;
-      if (navigator.share) {
-        await navigator.share({
-          title: "Дуа",
-          text: text,
-        });
-      } else {
-        await navigator.clipboard.writeText(text);
-        toast({
-          title: "Скопировано",
-          description: "Дуа скопировано в буфер обмена",
-        });
-      }
-    } catch (error) {
-      console.error("Error sharing:", error);
-    }
-  };
-
   const isFavorite = (dua: Dua): boolean => {
     return favorites.some((f) => f.id === dua.id);
   };
 
+  // Поиск
+  const filteredDuas = searchQuery
+    ? duas.filter(d => 
+        d.translation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        d.transcription.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="text-muted-foreground">Загрузка...</div>
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-pulse text-gray-400">Загрузка...</div>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Заголовок с кнопкой назад */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-8 w-8"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold">Дуа</h1>
-      </div>
+  // Если выбрана категория
+  if (selectedCategory) {
+    return (
+      <CategoryDuasView
+        categoryId={selectedCategory}
+        categoryName={categories.find(c => c.id === selectedCategory)?.name || ""}
+        onBack={() => setSelectedCategory(null)}
+      />
+    );
+  }
 
-      {/* Быстрый поиск */}
+  return (
+    <div className="space-y-4">
+      {/* Поиск */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         <Input
-          placeholder="Быстрый поиск дуа..."
+          placeholder="Поиск дуа..."
           value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            if (e.target.value) {
-              setActiveTab("search");
-            }
-          }}
-          className="pl-10"
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-12 h-12 rounded-xl bg-white border-gray-200"
         />
       </div>
 
-      {/* Вкладки */}
-      <Tabs
-        value={activeTab}
-        onValueChange={(v) => {
-          setActiveTab(v as "categories" | "favorites" | "search");
-          if (v !== "search") {
-            setSearchQuery("");
-          }
-        }}
-      >
-        <div className="flex justify-center mt-2 mb-2">
-          <TabsList
-            className={cn(
-              "inline-flex items-center gap-1",
-              "rounded-full border border-border/40 bg-white",
-              "shadow-sm px-1 py-1 w-auto"
-            )}
-          >
-            <TabsTrigger
-              value="categories"
-              className={cn(
-                "px-4 py-1.5 text-sm font-medium rounded-full",
-                "text-foreground/70 transition-all",
-                "data-[state=active]:bg-primary data-[state=active]:text-white",
-                "data-[state=active]:shadow-sm"
-              )}
-            >
-              Категории
-            </TabsTrigger>
-            <TabsTrigger
-              value="favorites"
-              className={cn(
-                "px-4 py-1.5 text-sm font-medium rounded-full",
-                "text-foreground/70 transition-all",
-                "data-[state=active]:bg-primary data-[state=active]:text-white",
-                "data-[state=active]:shadow-sm"
-              )}
-            >
-              Любимое
-            </TabsTrigger>
-          </TabsList>
+      {/* Tabs */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => { setActiveTab("categories"); setSearchQuery(""); }}
+          className={cn(
+            "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+            activeTab === "categories"
+              ? "bg-amber-500 text-white"
+              : "bg-white text-gray-600 border border-gray-200"
+          )}
+        >
+          Категории
+        </button>
+        <button
+          onClick={() => { setActiveTab("favorites"); setSearchQuery(""); }}
+          className={cn(
+            "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+            activeTab === "favorites"
+              ? "bg-amber-500 text-white"
+              : "bg-white text-gray-600 border border-gray-200"
+          )}
+        >
+          Избранное ({favorites.length})
+        </button>
+      </div>
+
+      {/* Результаты поиска */}
+      {searchQuery && (
+        <div className="space-y-3">
+          <p className="text-sm text-gray-500">Найдено: {filteredDuas.length}</p>
+          {filteredDuas.map((dua) => (
+            <DuaCard key={dua.id} dua={dua} categoryColor="category-general" />
+          ))}
         </div>
+      )}
 
-        <TabsContent value="categories" className="mt-6 space-y-6">
-          {/* Сообщение если нет данных */}
-          {categories.length === 0 && !loading && (
-            <Card className="bg-gradient-card border-border/50">
-              <CardContent className="p-6 text-center space-y-4">
-                <div>
-                  <p className="text-muted-foreground mb-2 font-medium">Дуа временно недоступны</p>
-                  <p className="text-sm text-muted-foreground">
-                    Пожалуйста, проверьте подключение к интернету или попробуйте позже
-                  </p>
-                </div>
-                <Button onClick={loadDuas} variant="outline" size="sm">
-                  Попробовать снова
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+      {/* Категории */}
+      {!searchQuery && activeTab === "categories" && (
+        <div className="space-y-3">
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => setSelectedCategory(category.id)}
+              className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 text-left"
+            >
+              <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-700">
+                {category.icon}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900">{category.name}</h3>
+                <p className="text-sm text-gray-500">{category.duas.length} дуа</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </button>
+          ))}
+        </div>
+      )}
 
-          {/* Сегодняшний Dua */}
-          {todayDua && (
-            <Card className="bg-gradient-card border-border/50">
-              <CardContent className="p-4 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Heart className="w-5 h-5 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-lg">Сегодняшний Dua</h3>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    {todayDua.translation}
-                  </p>
-                  <p className="text-sm font-mono italic text-foreground">
-                    {todayDua.transcription}
-                  </p>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleFavorite(todayDua)}
-                    className="flex-1"
-                  >
-                    <Star className={cn(
-                      "w-4 h-4 mr-2",
-                      isFavorite(todayDua) && "fill-yellow-400 text-yellow-400"
-                    )} />
-                    Любимое
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleShare(todayDua)}
-                    className="flex-1"
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Поделиться
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Просмотр категории или список категорий */}
-          {selectedCategory ? (
-            <CategoryDuasView
-              categoryId={selectedCategory}
-              categoryName={categories.find(c => c.id === selectedCategory)?.name || ""}
-              onBack={() => setSelectedCategory(null)}
-            />
-          ) : (
-            <div className="space-y-4">
-              {categories.map((category) => (
-                <Card
-                  key={category.id}
-                  className="bg-gradient-card border-border/50 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => {
-                    setSelectedCategory(category.id);
-                  }}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-lg">{category.name}</h3>
-                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                        <span className="text-sm font-semibold">{category.duas.length}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="search" className="mt-6">
-          <DuaSearch searchQuery={searchQuery} />
-        </TabsContent>
-
-        <TabsContent value="favorites" className="mt-6 space-y-4">
+      {/* Избранное */}
+      {!searchQuery && activeTab === "favorites" && (
+        <div className="space-y-3">
           {favorites.length === 0 ? (
             <div className="text-center py-12">
-              <Star className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
-              <p className="text-muted-foreground">Нет избранных дуа</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Добавьте дуа в избранное, чтобы они появились здесь
+              <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-amber-300" />
+              </div>
+              <p className="text-gray-500">Нет избранных дуа</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Добавьте дуа в избранное
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {favorites.map((dua) => (
-                <DuaCard
-                  key={dua.id}
-                  dua={dua}
-                  categoryColor="category-general"
-                />
-              ))}
-            </div>
+            favorites.map((dua) => (
+              <DuaCard key={dua.id} dua={dua} categoryColor="category-general" />
+            ))
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   );
 };
-
