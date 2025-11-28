@@ -1,141 +1,82 @@
-import { useState, useEffect, useRef } from "react";
+// Страница Зикры - Дуа, Азкары, Салаваты, Калимы
+
+import { useState, useRef, useEffect } from "react";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DuaSection } from "@/components/dhikr/DuaSection";
 import { DuaSectionV2 } from "@/components/dhikr/DuaSectionV2";
-import { AdhkarSection } from "@/components/dhikr/AdhkarSection";
 import { AdhkarSectionV2 } from "@/components/dhikr/AdhkarSectionV2";
 import { SalawatSection } from "@/components/dhikr/SalawatSection";
 import { KalimaSection } from "@/components/dhikr/KalimaSection";
-import { SmartTasbih } from "@/components/dhikr/SmartTasbih";
-import { EnhancedTasbih } from "@/components/dhikr/EnhancedTasbih";
-import { SmartTasbihV2 } from "@/components/dhikr/SmartTasbihV2";
 import { cn } from "@/lib/utils";
-import { useSearchParams } from "react-router-dom";
+import { Heart, Star, Sparkles, BookOpen } from "lucide-react";
+
+type TabType = "dua" | "adhkar" | "salawat" | "kalima";
+
+const TABS: { id: TabType; label: string; icon: React.ReactNode; color: string }[] = [
+  { id: "dua", label: "Дуа", icon: <Heart className="w-5 h-5" />, color: "bg-rose-500" },
+  { id: "adhkar", label: "Азкары", icon: <Star className="w-5 h-5" />, color: "bg-amber-500" },
+  { id: "salawat", label: "Салаваты", icon: <Sparkles className="w-5 h-5" />, color: "bg-emerald-500" },
+  { id: "kalima", label: "Калимы", icon: <BookOpen className="w-5 h-5" />, color: "bg-blue-500" },
+];
 
 const Dhikr = () => {
-  const [searchParams] = useSearchParams();
-  const goalId = searchParams.get("goal");
-  const tabsListRef = useRef<HTMLDivElement>(null);
-  const [showLeftGradient, setShowLeftGradient] = useState(false);
-  const [showRightGradient, setShowRightGradient] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabType>("dua");
+  const tabsRef = useRef<HTMLDivElement>(null);
 
+  // Автоскролл к активной вкладке
   useEffect(() => {
-    const container = tabsListRef.current;
-    if (!container) return;
-
-    const checkScroll = () => {
-      const { scrollWidth, clientWidth } = container;
-      setShowRightGradient(scrollWidth > clientWidth + 1);
-    };
-
-    checkScroll();
-    const timeout = setTimeout(checkScroll, 150);
-
-    return () => clearTimeout(timeout);
-  }, []);
-
-  const updateGradients = () => {
-    const container = tabsListRef.current;
-    if (!container) return;
-
-    const { scrollLeft, scrollWidth, clientWidth } = container;
-    setShowLeftGradient(scrollLeft > 0);
-    setShowRightGradient(scrollLeft < scrollWidth - clientWidth - 1);
-  };
-
-  useEffect(() => {
-    const container = tabsListRef.current;
-    if (!container) return;
-
-    container.addEventListener("scroll", updateGradients, { passive: true });
-    window.addEventListener("resize", updateGradients);
-    const timeout = setTimeout(updateGradients, 200);
-
-    return () => {
-      clearTimeout(timeout);
-      container.removeEventListener("scroll", updateGradients);
-      window.removeEventListener("resize", updateGradients);
-    };
-  }, []);
+    if (tabsRef.current) {
+      const activeButton = tabsRef.current.querySelector(`[data-tab="${activeTab}"]`);
+      if (activeButton) {
+        activeButton.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      }
+    }
+  }, [activeTab]);
 
   return (
-    <div className="min-h-screen bg-gradient-hero pb-20">
+    <div className="min-h-screen bg-background pb-24">
       <MainHeader />
 
-      <main className="container mx-auto px-3 sm:px-4 py-6 max-w-5xl w-full overflow-x-hidden">
-        <Tabs defaultValue={goalId ? "goals" : "dua"} className="w-full">
-          <div className="relative mb-6 w-full overflow-hidden">
-            {showLeftGradient && (
-              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-white via-white/80 to-transparent z-10" />
-            )}
-            {showRightGradient && (
-              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white via-white/80 to-transparent z-10" />
-            )}
+      <main className="container mx-auto px-4 py-6 max-w-lg">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold">Зикры</h1>
+          <p className="text-sm text-muted-foreground">
+            Дуа, азкары и поминания
+          </p>
+        </div>
 
-            <div
-              ref={tabsListRef}
-              className="flex items-center overflow-x-auto overflow-y-hidden scroll-smooth no-scrollbar w-full -mx-2 px-2"
-              style={{
-                WebkitOverflowScrolling: "touch",
-                touchAction: "pan-x",
-                overscrollBehaviorX: "contain",
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
-              }}
+        {/* Category Tabs */}
+        <div
+          ref={tabsRef}
+          className="flex gap-2 mb-6 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              data-tab={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex items-center gap-2 px-5 py-3 rounded-full whitespace-nowrap transition-all flex-shrink-0",
+                activeTab === tab.id
+                  ? `${tab.color} text-white shadow-lg`
+                  : "bg-muted hover:bg-muted/80"
+              )}
             >
-              <TabsList
-                className={cn(
-                  "inline-flex items-center gap-1",
-                  "bg-white rounded-full border border-border/40 shadow-sm",
-                  "px-1 py-1 min-w-max h-12"
-                )}
-              >
-                {[
-                  { value: "dua", label: "Дуа" },
-                  { value: "adhkar", label: "Азкары" },
-                  { value: "salawat", label: "Салаваты" },
-                  { value: "kalima", label: "Калимы" },
-                  { value: "goals", label: "Из целей" },
-                ].map((tab) => (
-                  <TabsTrigger
-                    key={tab.value}
-                    value={tab.value}
-                    className={cn(
-                      "px-4 py-1.5 text-sm font-medium rounded-full",
-                      "text-foreground/70 transition-all whitespace-nowrap",
-                      "data-[state=active]:bg-primary data-[state=active]:text-white",
-                      "data-[state=active]:shadow-sm"
-                    )}
-                  >
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-          </div>
+              {tab.icon}
+              <span className="font-medium">{tab.label}</span>
+            </button>
+          ))}
+        </div>
 
-          <TabsContent value="goals" className="mt-0">
-            <SmartTasbihV2 goalId={goalId || undefined} />
-          </TabsContent>
-
-          <TabsContent value="dua" className="mt-0">
-            <DuaSectionV2 />
-          </TabsContent>
-
-          <TabsContent value="adhkar" className="mt-0">
-            <AdhkarSectionV2 />
-          </TabsContent>
-
-          <TabsContent value="salawat" className="mt-0">
-            <SalawatSection />
-          </TabsContent>
-
-          <TabsContent value="kalima" className="mt-0">
-            <KalimaSection />
-          </TabsContent>
-        </Tabs>
+        {/* Content */}
+        <div className="min-h-[60vh]">
+          {activeTab === "dua" && <DuaSectionV2 />}
+          {activeTab === "adhkar" && <AdhkarSectionV2 />}
+          {activeTab === "salawat" && <SalawatSection />}
+          {activeTab === "kalima" && <KalimaSection />}
+        </div>
       </main>
 
       <BottomNav />
