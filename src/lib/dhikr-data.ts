@@ -454,67 +454,8 @@ export async function getDhikrItemById(
 export async function getAvailableItemsByCategory(
   category: "dua" | "adhkar" | "salawat" | "kalima"
 ): Promise<DhikrItem[]> {
-  try {
-    switch (category) {
-      case "dua": {
-        // Получаем из e-Replika API
-        const duas = await eReplikaAPI.getDuas();
-        return duas.map(dua => ({
-          id: dua.id,
-          arabic: dua.arabic,
-          transcription: dua.transcription,
-          russianTranscription: dua.russianTranscription,
-          translation: dua.translation,
-          reference: dua.reference,
-          audioUrl: dua.audioUrl,
-        }));
-      }
-      case "salawat": {
-        // Получаем из e-Replika API
-        const salawat = await eReplikaAPI.getSalawat();
-        return salawat.map(item => ({
-          id: item.id,
-          arabic: item.arabic,
-          transcription: item.transcription,
-          russianTranscription: item.russianTranscription,
-          translation: item.translation,
-          reference: item.reference,
-          audioUrl: item.audioUrl,
-        }));
-      }
-      case "kalima": {
-        // Получаем из e-Replika API
-        const kalimas = await eReplikaAPI.getKalimas();
-        return kalimas.map(item => ({
-          id: item.id,
-          arabic: item.arabic,
-          transcription: item.transcription,
-          russianTranscription: item.russianTranscription,
-          translation: item.translation,
-          reference: item.reference,
-          audioUrl: item.audioUrl,
-        }));
-      }
-      case "adhkar": {
-        // Получаем из e-Replika API
-        const adhkar = await eReplikaAPI.getAdhkar();
-        return adhkar.map(item => ({
-          id: item.id,
-          title: item.title,
-          arabic: item.arabic,
-          transcription: item.transcription,
-          russianTranscription: item.russianTranscription,
-          translation: item.translation,
-          count: item.count,
-          audioUrl: item.audioUrl,
-        }));
-      }
-      default:
-        return [];
-    }
-  } catch (error) {
-    console.error("Error fetching items by category from e-Replika API:", error);
-    // Fallback на локальные данные
+  // Локальные данные как fallback
+  const getLocalData = () => {
     switch (category) {
       case "dua":
         return Object.values(duasData);
@@ -527,6 +468,77 @@ export async function getAvailableItemsByCategory(
       default:
         return [];
     }
+  };
+
+  try {
+    let items: DhikrItem[] = [];
+    
+    switch (category) {
+      case "dua": {
+        const duas = await eReplikaAPI.getDuas();
+        items = duas.map(dua => ({
+          id: dua.id,
+          arabic: dua.arabic,
+          transcription: dua.transcription,
+          russianTranscription: dua.russianTranscription,
+          translation: dua.translation,
+          reference: dua.reference,
+          audioUrl: dua.audioUrl,
+        }));
+        break;
+      }
+      case "salawat": {
+        const salawat = await eReplikaAPI.getSalawat();
+        items = salawat.map(item => ({
+          id: item.id,
+          arabic: item.arabic,
+          transcription: item.transcription,
+          russianTranscription: item.russianTranscription,
+          translation: item.translation,
+          reference: item.reference,
+          audioUrl: item.audioUrl,
+        }));
+        break;
+      }
+      case "kalima": {
+        const kalimas = await eReplikaAPI.getKalimas();
+        items = kalimas.map(item => ({
+          id: item.id,
+          arabic: item.arabic,
+          transcription: item.transcription,
+          russianTranscription: item.russianTranscription,
+          translation: item.translation,
+          reference: item.reference,
+          audioUrl: item.audioUrl,
+        }));
+        break;
+      }
+      case "adhkar": {
+        const adhkar = await eReplikaAPI.getAdhkar();
+        items = adhkar.map(item => ({
+          id: item.id,
+          title: item.title,
+          arabic: item.arabic,
+          transcription: item.transcription,
+          russianTranscription: item.russianTranscription,
+          translation: item.translation,
+          count: item.count,
+          audioUrl: item.audioUrl,
+        }));
+        break;
+      }
+    }
+
+    // Если API вернул пустой массив, используем локальные данные
+    if (items.length === 0) {
+      console.log(`API returned empty for ${category}, using local data`);
+      return getLocalData();
+    }
+
+    return items;
+  } catch (error) {
+    console.error("Error fetching items by category from e-Replika API:", error);
+    return getLocalData();
   }
 }
 
@@ -550,20 +562,65 @@ export async function getAyahs(surahNumber?: number): Promise<DhikrItem[]> {
   }
 }
 
+// Локальные данные сур (первые 10 для fallback)
+const localSurahs: DhikrItem[] = [
+  { id: "surah-1", arabic: "الفاتحة", transcription: "Al-Fatiha", translation: "Открывающая", number: 1 },
+  { id: "surah-2", arabic: "البقرة", transcription: "Al-Baqara", translation: "Корова", number: 2 },
+  { id: "surah-3", arabic: "آل عمران", transcription: "Ali 'Imran", translation: "Семейство Имрана", number: 3 },
+  { id: "surah-36", arabic: "يس", transcription: "Ya-Sin", translation: "Йа Син", number: 36 },
+  { id: "surah-55", arabic: "الرحمن", transcription: "Ar-Rahman", translation: "Милостивый", number: 55 },
+  { id: "surah-67", arabic: "الملك", transcription: "Al-Mulk", translation: "Власть", number: 67 },
+  { id: "surah-112", arabic: "الإخلاص", transcription: "Al-Ikhlas", translation: "Искренность", number: 112 },
+  { id: "surah-113", arabic: "الفلق", transcription: "Al-Falaq", translation: "Рассвет", number: 113 },
+  { id: "surah-114", arabic: "الناس", transcription: "An-Nas", translation: "Люди", number: 114 },
+];
+
+// Локальные данные 99 имён Аллаха (первые 20 для fallback)
+const localNamesOfAllah: DhikrItem[] = [
+  { id: "name-1", arabic: "الله", transcription: "Allah", russianTranscription: "Аллах", translation: "Бог", number: 1 },
+  { id: "name-2", arabic: "الرَّحْمَنُ", transcription: "Ar-Rahman", russianTranscription: "Ар-Рахман", translation: "Милостивый", number: 2 },
+  { id: "name-3", arabic: "الرَّحِيمُ", transcription: "Ar-Rahim", russianTranscription: "Ар-Рахим", translation: "Милосердный", number: 3 },
+  { id: "name-4", arabic: "الْمَلِكُ", transcription: "Al-Malik", russianTranscription: "Аль-Малик", translation: "Царь, Владыка", number: 4 },
+  { id: "name-5", arabic: "الْقُدُّوسُ", transcription: "Al-Quddus", russianTranscription: "Аль-Куддус", translation: "Святой", number: 5 },
+  { id: "name-6", arabic: "السَّلَامُ", transcription: "As-Salam", russianTranscription: "Ас-Салям", translation: "Мир", number: 6 },
+  { id: "name-7", arabic: "الْمُؤْمِنُ", transcription: "Al-Mu'min", russianTranscription: "Аль-Мумин", translation: "Оберегающий", number: 7 },
+  { id: "name-8", arabic: "الْمُهَيْمِنُ", transcription: "Al-Muhaymin", russianTranscription: "Аль-Мухаймин", translation: "Хранитель", number: 8 },
+  { id: "name-9", arabic: "الْعَزِيزُ", transcription: "Al-Aziz", russianTranscription: "Аль-Азиз", translation: "Могущественный", number: 9 },
+  { id: "name-10", arabic: "الْجَبَّارُ", transcription: "Al-Jabbar", russianTranscription: "Аль-Джаббар", translation: "Могучий", number: 10 },
+  { id: "name-11", arabic: "الْمُتَكَبِّرُ", transcription: "Al-Mutakabbir", russianTranscription: "Аль-Мутакаббир", translation: "Превосходящий", number: 11 },
+  { id: "name-12", arabic: "الْخَالِقُ", transcription: "Al-Khaliq", russianTranscription: "Аль-Халик", translation: "Творец", number: 12 },
+  { id: "name-13", arabic: "الْبَارِئُ", transcription: "Al-Bari", russianTranscription: "Аль-Бари", translation: "Создатель", number: 13 },
+  { id: "name-14", arabic: "الْمُصَوِّرُ", transcription: "Al-Musawwir", russianTranscription: "Аль-Мусаввир", translation: "Дающий облик", number: 14 },
+  { id: "name-15", arabic: "الْغَفَّارُ", transcription: "Al-Ghaffar", russianTranscription: "Аль-Гаффар", translation: "Прощающий", number: 15 },
+  { id: "name-16", arabic: "الْقَهَّارُ", transcription: "Al-Qahhar", russianTranscription: "Аль-Каххар", translation: "Господствующий", number: 16 },
+  { id: "name-17", arabic: "الْوَهَّابُ", transcription: "Al-Wahhab", russianTranscription: "Аль-Ваххаб", translation: "Дарующий", number: 17 },
+  { id: "name-18", arabic: "الرَّزَّاقُ", transcription: "Ar-Razzaq", russianTranscription: "Ар-Раззак", translation: "Наделяющий", number: 18 },
+  { id: "name-19", arabic: "الْفَتَّاحُ", transcription: "Al-Fattah", russianTranscription: "Аль-Фаттах", translation: "Открывающий", number: 19 },
+  { id: "name-20", arabic: "اَلْعَلِيْمُ", transcription: "Al-Alim", russianTranscription: "Аль-Алим", translation: "Всезнающий", number: 20 },
+];
+
 // Функция для получения сур (из e-Replika API)
 export async function getSurahs(): Promise<DhikrItem[]> {
   try {
     const surahs = await eReplikaAPI.getSurahs();
-    return surahs.map(item => ({
+    const items = surahs.map(item => ({
       id: item.id,
       arabic: item.nameArabic,
       transcription: item.nameTransliteration,
       translation: item.name,
       number: item.number,
     }));
+    
+    // Если API вернул пустой массив, используем локальные данные
+    if (items.length === 0) {
+      console.log("API returned empty for surahs, using local data");
+      return localSurahs;
+    }
+    
+    return items;
   } catch (error) {
     console.error("Error fetching surahs from e-Replika API:", error);
-    return [];
+    return localSurahs;
   }
 }
 
@@ -571,7 +628,7 @@ export async function getSurahs(): Promise<DhikrItem[]> {
 export async function getNamesOfAllah(): Promise<DhikrItem[]> {
   try {
     const names = await eReplikaAPI.getNamesOfAllah();
-    return names.map(item => ({
+    const items = names.map(item => ({
       id: item.id,
       arabic: item.arabic,
       transcription: item.transcription,
@@ -580,9 +637,17 @@ export async function getNamesOfAllah(): Promise<DhikrItem[]> {
       number: item.number,
       audioUrl: item.audioUrl,
     }));
+    
+    // Если API вернул пустой массив, используем локальные данные
+    if (items.length === 0) {
+      console.log("API returned empty for names of Allah, using local data");
+      return localNamesOfAllah;
+    }
+    
+    return items;
   } catch (error) {
     console.error("Error fetching names of Allah from e-Replika API:", error);
-    return [];
+    return localNamesOfAllah;
   }
 }
 
