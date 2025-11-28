@@ -25,10 +25,14 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale/ru";
 
-// TODO: Получить тариф пользователя из API или контекста
+// Получить тариф пользователя из localStorage
 const getUserTier = (): "muslim" | "mutahsin" | "sahib_al_waqf" => {
-  // В реальном приложении это должно приходить из API
-  return "sahib_al_waqf"; // Для тестирования
+  const storedTier = localStorage.getItem("user_tier");
+  if (storedTier === "muslim" || storedTier === "mutahsin" || storedTier === "sahib_al_waqf") {
+    return storedTier;
+  }
+  // По умолчанию - базовый тариф
+  return "muslim";
 };
 
 export const AIReports = () => {
