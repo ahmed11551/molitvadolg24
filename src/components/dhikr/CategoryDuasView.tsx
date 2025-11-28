@@ -7,6 +7,7 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { DuaCard } from "./DuaCard";
 import { DuaCardV2 } from "./DuaCardV2";
 import { eReplikaAPI } from "@/lib/api";
+import { getAvailableItemsByCategory, type DhikrItem } from "@/lib/dhikr-data";
 
 interface Dua {
   id: string;
@@ -47,22 +48,52 @@ export const CategoryDuasView = ({ categoryId, categoryName, onBack }: CategoryD
   const loadCategoryDuas = useCallback(async () => {
     setLoading(true);
     try {
-      const allDuas = await eReplikaAPI.getDuas();
-      const categoryDuas = (allDuas as RemoteDuaRecord[])
-        .filter((dua) => {
-          const catId = dua.category_id || dua.category || "general";
-          return catId === categoryId;
-        })
-        .map((dua, index: number) => ({
-          id: dua.id,
-          arabic: dua.arabic || dua.text_arabic || "",
-          transcription: dua.transcription || dua.text_transcription || "",
-          russianTranscription: dua.russian_transcription || dua.russianTranscription,
-          translation: dua.translation || dua.text_translation || dua.name_english || "",
-          reference: dua.reference || dua.hadith_reference,
-          audioUrl: dua.audio_url ?? dua.audioUrl ?? dua.audio ?? null,
-          number: index + 1,
-        }));
+      let categoryDuas: Dua[] = [];
+      
+      // Сначала пробуем API
+      try {
+        const allDuas = await eReplikaAPI.getDuas();
+        if (allDuas && allDuas.length > 0) {
+          categoryDuas = (allDuas as RemoteDuaRecord[])
+            .filter((dua) => {
+              const catId = dua.category_id || dua.category || "general";
+              return catId === categoryId;
+            })
+            .map((dua, index: number) => ({
+              id: dua.id,
+              arabic: dua.arabic || dua.text_arabic || "",
+              transcription: dua.transcription || dua.text_transcription || "",
+              russianTranscription: dua.russian_transcription || dua.russianTranscription,
+              translation: dua.translation || dua.text_translation || dua.name_english || "",
+              reference: dua.reference || dua.hadith_reference,
+              audioUrl: dua.audio_url ?? dua.audioUrl ?? dua.audio ?? null,
+              number: index + 1,
+            }));
+        }
+      } catch {
+        // API недоступен
+      }
+
+      // Если API вернул пустой результат - используем fallback
+      if (categoryDuas.length === 0) {
+        console.log("Using fallback data for category:", categoryId);
+        const fallbackData = await getAvailableItemsByCategory("dua");
+        categoryDuas = fallbackData
+          .filter((item: DhikrItem) => {
+            const catId = item.category || "general";
+            return catId === categoryId || categoryId === "general";
+          })
+          .map((item: DhikrItem, index: number) => ({
+            id: item.id,
+            arabic: item.arabic || "",
+            transcription: item.transcription || "",
+            russianTranscription: item.russianTranscription,
+            translation: item.translation || "",
+            reference: item.reference,
+            audioUrl: item.audioUrl || null,
+            number: index + 1,
+          }));
+      }
 
       setDuas(categoryDuas);
     } catch (error) {
