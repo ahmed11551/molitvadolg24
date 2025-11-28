@@ -29,6 +29,9 @@ import {
   Trophy,
   TrendingUp,
   BarChart3,
+  Lightbulb,
+  Clock,
+  Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { spiritualPathAPI } from "@/lib/api";
@@ -39,6 +42,59 @@ import { SmartGoalTemplates } from "@/components/spiritual-path/SmartGoalTemplat
 import { useNavigate } from "react-router-dom";
 
 // Иконки для разных категорий целей
+// Исламские советы дня (Life Hacks как в Goal app)
+const ISLAMIC_TIPS = [
+  {
+    title: "Лучшее время для дуа",
+    description: "Последняя треть ночи — время, когда Аллах спускается на нижнее небо и отвечает на мольбы.",
+    icon: Moon,
+    color: "from-indigo-400 to-purple-500",
+  },
+  {
+    title: "Сила истигфара",
+    description: "Кто много делает истигфар, тому Аллах откроет выход из каждой трудности.",
+    icon: Heart,
+    color: "from-pink-400 to-rose-500",
+  },
+  {
+    title: "Награда за тасбих",
+    description: "33 раза 'СубханАллах', 33 раза 'Альхамдулиллах', 34 раза 'Аллаху Акбар' после намаза — великая награда!",
+    icon: Sparkles,
+    color: "from-amber-400 to-orange-500",
+  },
+  {
+    title: "Время между азаном",
+    description: "Дуа между азаном и икаматом не отвергается. Используйте это время!",
+    icon: Clock,
+    color: "from-emerald-400 to-teal-500",
+  },
+  {
+    title: "Благословенная пятница",
+    description: "В пятницу есть час, когда любая дуа принимается. Увеличьте поминание Аллаха!",
+    icon: Sun,
+    color: "from-yellow-400 to-amber-500",
+  },
+  {
+    title: "Сила Корана",
+    description: "Чтение суры 'Аль-Мульк' каждую ночь защищает от мучений в могиле.",
+    icon: BookOpen,
+    color: "from-cyan-400 to-blue-500",
+  },
+  {
+    title: "Салават пророку ﷺ",
+    description: "Кто один раз благословит пророка ﷺ, того Аллах благословит 10 раз.",
+    icon: Star,
+    color: "from-green-400 to-emerald-500",
+  },
+];
+
+// Получить совет дня (меняется каждый день)
+const getTodayTip = () => {
+  const today = new Date();
+  const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+  return ISLAMIC_TIPS[dayOfYear % ISLAMIC_TIPS.length];
+};
+
 const getCategoryIcon = (category: string, title: string) => {
   const lowerTitle = title.toLowerCase();
   if (lowerTitle.includes("утренн") || lowerTitle.includes("фаджр")) {
@@ -341,16 +397,36 @@ const Goals = () => {
       <MainHeader />
 
       <main className="container mx-auto px-4 py-4 max-w-lg">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">Сегодня</h1>
-          <button
-            onClick={() => navigate("/statistics")}
-            className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors"
-          >
-            <BarChart3 className="w-5 h-5 text-gray-600" />
-          </button>
-        </div>
+        {/* Header с персональным приветствием */}
+        {(() => {
+          const hour = new Date().getHours();
+          let greeting = "Доброе утро";
+          let emoji = "🌅";
+          if (hour >= 12 && hour < 17) {
+            greeting = "Добрый день";
+            emoji = "☀️";
+          } else if (hour >= 17 && hour < 21) {
+            greeting = "Добрый вечер";
+            emoji = "🌇";
+          } else if (hour >= 21 || hour < 5) {
+            greeting = "Доброй ночи";
+            emoji = "🌙";
+          }
+          return (
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm text-gray-500 mb-0.5">{greeting} {emoji}</p>
+                <h1 className="text-2xl font-bold text-gray-900">Ваши цели</h1>
+              </div>
+              <button
+                onClick={() => navigate("/statistics")}
+                className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                <BarChart3 className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Горизонтальный календарь - как на скриншоте */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
@@ -493,6 +569,88 @@ const Goals = () => {
             <p className="text-[9px] text-gray-400 font-medium">БЕЙДЖЕЙ</p>
           </button>
         </div>
+
+        {/* Daily Summary - как в Goal app */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-md">
+              <Zap className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Итоги дня</h3>
+              <p className="text-xs text-gray-500">
+                {new Date().toLocaleDateString("ru", { weekday: "long", day: "numeric", month: "long" })}
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            {activeGoals > 0 ? (
+              <>
+                <div className="flex items-center justify-between py-2 px-3 bg-emerald-50 rounded-xl">
+                  <span className="text-sm text-emerald-700">Осталось выполнить</span>
+                  <span className="font-bold text-emerald-600">{activeGoals} {activeGoals === 1 ? "цель" : activeGoals < 5 ? "цели" : "целей"}</span>
+                </div>
+                {completedGoals > 0 && (
+                  <div className="flex items-center justify-between py-2 px-3 bg-blue-50 rounded-xl">
+                    <span className="text-sm text-blue-700">Уже выполнено</span>
+                    <span className="font-bold text-blue-600">{completedGoals} ✓</span>
+                  </div>
+                )}
+                <p className="text-xs text-gray-500 text-center pt-1">
+                  {currentStreak > 0 
+                    ? `🔥 ${currentStreak} дней подряд! Продолжайте!` 
+                    : "Начните сегодня свою серию!"}
+                </p>
+              </>
+            ) : (
+              <div className="text-center py-3">
+                <p className="text-gray-500 text-sm mb-2">У вас пока нет активных целей</p>
+                <button 
+                  onClick={() => setCreateDialogOpen(true)}
+                  className="text-emerald-600 font-medium text-sm hover:underline"
+                >
+                  + Создать первую цель
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Islamic Life Hack - совет дня как в Goal app */}
+        {(() => {
+          const tip = getTodayTip();
+          const TipIcon = tip.icon;
+          return (
+            <div className={cn(
+              "bg-gradient-to-br rounded-2xl p-4 shadow-lg mb-6 relative overflow-hidden",
+              tip.color
+            )}>
+              {/* Декоративный фон */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                    <Lightbulb className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-white/80 text-xs font-medium uppercase tracking-wider">Совет дня</span>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <TipIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-white font-bold mb-1">{tip.title}</h4>
+                    <p className="text-white/90 text-sm leading-relaxed">{tip.description}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Search */}
         <div className="relative mb-4">
