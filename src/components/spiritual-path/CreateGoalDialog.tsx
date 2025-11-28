@@ -76,6 +76,7 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
   const dialogOpen = isControlled ? open : internalOpen;
   const setDialogOpen = isControlled ? onOpenChange! : setInternalOpen;
   const [loading, setLoading] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<GoalCategory | "">("");
@@ -165,10 +166,25 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
   };
 
   const handleSubmit = async () => {
-    if (!title || !category || !targetValue) {
+    setShowErrors(true);
+    
+    // Детальная валидация с указанием конкретного поля
+    const missingFields: string[] = [];
+    
+    if (!title.trim()) {
+      missingFields.push("Название цели");
+    }
+    if (!category) {
+      missingFields.push("Категория");
+    }
+    if (!targetValue || targetValue <= 0) {
+      missingFields.push("Целевое значение");
+    }
+    
+    if (missingFields.length > 0) {
       toast({
-        title: "Ошибка",
-        description: "Заполните все обязательные поля",
+        title: "Заполните обязательные поля",
+        description: missingFields.join(", "),
         variant: "destructive",
       });
       return;
@@ -236,6 +252,11 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
       setStartDate(new Date());
       setEndDate(undefined);
       setLinkedCounterType("");
+      setShowErrors(false);
+      setIsLearning(false);
+      setSelectedItemId("");
+      setSelectedItemType(undefined);
+      setSelectedItemData(null);
 
       onOpenChange(false);
       onGoalCreated?.();
@@ -270,12 +291,15 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
         <div className="space-y-6 py-4">
           {/* Название цели */}
           <div className="space-y-2">
-            <Label htmlFor="title">Название цели *</Label>
+            <Label htmlFor="title" className={cn(showErrors && !title.trim() && "text-red-500")}>
+              Название цели *
+            </Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Например: Прочитать весь Коран"
+              className={cn(showErrors && !title.trim() && "border-red-300 bg-red-50")}
             />
           </div>
 
@@ -293,15 +317,23 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
 
           {/* Категория */}
           <div className="space-y-2">
-            <Label>Категория *</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <Label className={cn(showErrors && !category && "text-red-500")}>
+              Категория * {showErrors && !category && <span className="text-red-500 text-xs ml-1">(выберите)</span>}
+            </Label>
+            <div className={cn(
+              "grid grid-cols-3 gap-2 p-2 rounded-lg transition-colors",
+              showErrors && !category && "bg-red-50 border-2 border-red-300"
+            )}>
               {CATEGORIES.map((cat) => (
                 <Button
                   key={cat.value}
                   type="button"
                   variant={category === cat.value ? "default" : "outline"}
                   onClick={() => setCategory(cat.value)}
-                  className="h-auto py-3 flex flex-col gap-1"
+                  className={cn(
+                    "h-auto py-3 flex flex-col gap-1",
+                    category === cat.value && "ring-2 ring-emerald-500"
+                  )}
                 >
                   <span className="text-2xl">{cat.icon}</span>
                   <span className="text-xs">{cat.label}</span>
