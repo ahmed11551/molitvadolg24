@@ -82,7 +82,7 @@ const Index = () => {
 
         {/* Content */}
         <div className="min-h-[60vh]">
-          {activeTab === "overview" && <OverviewDashboard />}
+          {activeTab === "overview" && <OverviewDashboard onNavigateToCalculator={handleNavigateToCalculator} />}
           {activeTab === "calculator" && <CalculatorSection />}
           {activeTab === "plan" && <RepaymentPlanSection />}
           {activeTab === "progress" && <ProgressSection />}

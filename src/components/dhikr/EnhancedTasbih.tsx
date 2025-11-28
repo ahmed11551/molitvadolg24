@@ -1,6 +1,6 @@
 // Тасбих в стиле Goal app - чистый минималистичный интерфейс
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +114,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
   const [availableItems, setAvailableItems] = useState<DhikrItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Quran specific state
   const [surahs, setSurahs] = useState<DhikrItem[]>([]);
@@ -308,6 +309,51 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
     }
     return null;
   }, [selectedGoal, selectedItem]);
+
+  // Audio playback handler
+  const handleAudioToggle = useCallback(() => {
+    if (!content?.audioUrl) return;
+
+    if (isPlaying) {
+      // Pause audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      setIsPlaying(false);
+    } else {
+      // Play audio
+      if (!audioRef.current) {
+        audioRef.current = new Audio(content.audioUrl);
+        audioRef.current.onended = () => setIsPlaying(false);
+        audioRef.current.onerror = () => {
+          setIsPlaying(false);
+          toast({
+            title: "Ошибка воспроизведения",
+            description: "Не удалось загрузить аудио",
+            variant: "destructive",
+          });
+        };
+      }
+      
+      audioRef.current.src = content.audioUrl;
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch((error) => {
+        console.error("Audio play error:", error);
+        setIsPlaying(false);
+      });
+    }
+  }, [content?.audioUrl, isPlaying, toast]);
+
+  // Cleanup audio on unmount or when content changes
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [content?.audioUrl]);
 
   const targetValue = selectedGoal?.target_value || selectedItem?.count || 33;
   const progress = (currentCount / targetValue) * 100;
@@ -543,7 +589,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                 variant="outline"
                 size="icon"
                 className="rounded-full w-12 h-12"
-                onClick={() => setIsPlaying(!isPlaying)}
+                onClick={handleAudioToggle}
               >
                 {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
               </Button>

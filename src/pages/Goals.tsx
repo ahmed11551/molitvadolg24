@@ -23,7 +23,10 @@ import {
   Heart,
   Check,
   ChevronRight,
+  Minus,
+  Trash2,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { spiritualPathAPI } from "@/lib/api";
 import type { Goal } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
@@ -150,12 +153,15 @@ const GoalCard = ({
 
 const Goals = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "active" | "completed">("active");
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [goalDetailOpen, setGoalDetailOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -189,6 +195,65 @@ const Goals = () => {
   const handleGoalClick = (goal: Goal) => {
     if (goal.category === "zikr" || goal.category === "quran" || goal.linked_counter_type) {
       navigate(`/tasbih?goal=${goal.id}`);
+    } else {
+      // Открываем детали для всех остальных целей
+      setSelectedGoal(goal);
+      setGoalDetailOpen(true);
+    }
+  };
+
+  const handleAddProgress = async (amount: number) => {
+    if (!selectedGoal) return;
+    
+    try {
+      await spiritualPathAPI.addProgress(selectedGoal.id, amount);
+      
+      // Обновляем локальное состояние
+      const newValue = Math.max(0, selectedGoal.current_value + amount);
+      setSelectedGoal({ ...selectedGoal, current_value: newValue });
+      
+      // Обновляем список целей
+      setGoals(goals.map(g => 
+        g.id === selectedGoal.id 
+          ? { ...g, current_value: newValue }
+          : g
+      ));
+
+      if (newValue >= selectedGoal.target_value && amount > 0) {
+        toast({
+          title: "🎉 Цель достигнута!",
+          description: "Ма ша Аллах! Поздравляем!",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating progress:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить прогресс",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteGoal = async () => {
+    if (!selectedGoal) return;
+    
+    try {
+      await spiritualPathAPI.deleteGoal(selectedGoal.id);
+      setGoals(goals.filter(g => g.id !== selectedGoal.id));
+      setGoalDetailOpen(false);
+      setSelectedGoal(null);
+      toast({
+        title: "Цель удалена",
+        description: "Цель успешно удалена",
+      });
+    } catch (error) {
+      console.error("Error deleting goal:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить цель",
+        variant: "destructive",
+      });
     }
   };
 
@@ -325,6 +390,106 @@ const Goals = () => {
               loadData();
             }} />
           </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      {/* Goal Detail Sheet */}
+      <Sheet open={goalDetailOpen} onOpenChange={setGoalDetailOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl">
+          <SheetHeader>
+            <SheetTitle>{selectedGoal?.title}</SheetTitle>
+          </SheetHeader>
+          
+          {selectedGoal && (
+            <div className="mt-6 space-y-6">
+              {/* Прогресс */}
+              <div className="text-center">
+                <div className="w-32 h-32 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4 relative">
+                  <svg className="w-32 h-32 -rotate-90 absolute">
+                    <circle
+                      cx="64"
+                      cy="64"
+                      r="56"
+                      stroke="#d1fae5"
+                      strokeWidth="12"
+                      fill="none"
+                    />
+                    <circle
+                      cx="64"
+                      cy="64"
+                      r="56"
+                      stroke="#059669"
+                      strokeWidth="12"
+                      fill="none"
+                      strokeDasharray={`${Math.min((selectedGoal.current_value / selectedGoal.target_value) * 351.86, 351.86)} 351.86`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-gray-900">{selectedGoal.current_value}</p>
+                    <p className="text-sm text-gray-500">из {selectedGoal.target_value}</p>
+                  </div>
+                </div>
+
+                {selectedGoal.description && (
+                  <p className="text-sm text-gray-600 mb-4">{selectedGoal.description}</p>
+                )}
+              </div>
+
+              {/* Кнопки управления прогрессом */}
+              <div className="flex items-center justify-center gap-4">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="rounded-full w-14 h-14"
+                  onClick={() => handleAddProgress(-1)}
+                  disabled={selectedGoal.current_value <= 0}
+                >
+                  <Minus className="w-6 h-6" />
+                </Button>
+
+                <Button
+                  size="lg"
+                  className="rounded-full w-20 h-20 bg-emerald-500 hover:bg-emerald-600 text-white text-2xl font-bold"
+                  onClick={() => handleAddProgress(1)}
+                >
+                  +1
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="rounded-full w-14 h-14"
+                  onClick={() => handleAddProgress(5)}
+                >
+                  +5
+                </Button>
+              </div>
+
+              {/* Действия */}
+              <div className="flex gap-3 pt-4">
+                {(selectedGoal.category === "zikr" || selectedGoal.category === "quran") && (
+                  <Button
+                    variant="outline"
+                    className="flex-1 rounded-xl"
+                    onClick={() => {
+                      setGoalDetailOpen(false);
+                      navigate(`/tasbih?goal=${selectedGoal.id}`);
+                    }}
+                  >
+                    Открыть в Тасбих
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  className="rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={handleDeleteGoal}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
 

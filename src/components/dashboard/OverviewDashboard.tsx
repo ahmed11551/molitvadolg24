@@ -133,7 +133,11 @@ const GoalCard = ({ goal, onClick }: { goal: Goal; onClick: () => void }) => {
   );
 };
 
-export const OverviewDashboard = () => {
+interface OverviewDashboardProps {
+  onNavigateToCalculator?: () => void;
+}
+
+export const OverviewDashboard = ({ onNavigateToCalculator }: OverviewDashboardProps) => {
   const navigate = useNavigate();
   const { userData, loading } = useUserData();
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -250,13 +254,17 @@ export const OverviewDashboard = () => {
           <p className="text-xs text-gray-500">Целей</p>
         </button>
 
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
+        <button
+          onClick={() => navigate("/goals")}
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md transition-all"
+          title="Серия дней без пропусков"
+        >
           <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center mx-auto mb-2">
             <Flame className="w-5 h-5 text-orange-500" />
           </div>
           <p className="text-xl font-bold text-gray-900">{currentStreak}</p>
           <p className="text-xs text-gray-500">Дней</p>
-        </div>
+        </button>
 
         <button
           onClick={() => navigate("/tasbih")}
@@ -327,7 +335,10 @@ export const OverviewDashboard = () => {
             Рассчитайте долги или создайте первую цель
           </p>
           <div className="flex gap-2 justify-center">
-            <button className="px-4 py-2 bg-emerald-500 text-white rounded-full text-sm font-medium hover:bg-emerald-600 transition-colors">
+            <button 
+              onClick={onNavigateToCalculator}
+              className="px-4 py-2 bg-emerald-500 text-white rounded-full text-sm font-medium hover:bg-emerald-600 transition-colors"
+            >
               Калькулятор
             </button>
             <button 
