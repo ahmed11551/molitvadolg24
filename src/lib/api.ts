@@ -12,15 +12,16 @@ const INTERNAL_API_URL = import.meta.env.VITE_INTERNAL_API_URL || "/api";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://fvxkywczuqincnjilgzd.supabase.co";
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2eGt5d2N6dXFpbmNuamlsZ3pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNDgwNTYsImV4cCI6MjA3NzkyNDA1Nn0.jBvLDl0T2u-slvf4Uu4oZj7yRWMQCKmiln0mXRU0q54";
 const SUPABASE_FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
-const USE_SUPABASE_PROXY = import.meta.env.VITE_USE_SUPABASE_PROXY !== "false";
+// Прямое подключение к e-Replika API (прокси отключен - возвращает 404)
+const USE_SUPABASE_PROXY = import.meta.env.VITE_USE_SUPABASE_PROXY === "true";
 const EREPLIKA_PROXY_URL =
   import.meta.env.VITE_EREPLIKA_PROXY_URL ||
   (USE_SUPABASE_PROXY ? `${SUPABASE_FUNCTIONS_URL}/ereplika-proxy` : "");
 
+// Используем прямой API e-Replika: https://bot.e-replika.ru/docs
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  EREPLIKA_PROXY_URL ||
-  DEFAULT_EREPLIKA_API_BASE;
+  (EREPLIKA_PROXY_URL || DEFAULT_EREPLIKA_API_BASE);
 
 // Получение токена авторизации из Telegram или env
 function getAuthToken(): string | null {
