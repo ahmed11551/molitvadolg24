@@ -169,6 +169,81 @@ const Statistics = () => {
           </div>
         </div>
 
+        {/* Monthly Calendar */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-gray-900">
+              {format(new Date(), "LLLL yyyy", { locale: ru })}
+            </h2>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <div className="w-3 h-3 rounded-full bg-emerald-500" />
+              <span>Активный день</span>
+            </div>
+          </div>
+          
+          {/* Days of week header */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => (
+              <div key={d} className="text-center text-xs text-gray-400 font-medium py-1">
+                {d}
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {(() => {
+              const today = new Date();
+              const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+              const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+              const startPadding = (firstDay.getDay() + 6) % 7; // Monday = 0
+              const days = [];
+              
+              // Пустые ячейки до начала месяца
+              for (let i = 0; i < startPadding; i++) {
+                days.push(<div key={`empty-${i}`} className="aspect-square" />);
+              }
+              
+              // Дни месяца
+              for (let d = 1; d <= lastDay.getDate(); d++) {
+                const isToday = d === today.getDate();
+                // Простая логика: активные дни на основе streak
+                const isActive = d <= today.getDate() && (today.getDate() - d) < currentStreak;
+                
+                days.push(
+                  <div
+                    key={d}
+                    className={cn(
+                      "aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors",
+                      isToday && "ring-2 ring-emerald-500",
+                      isActive && "bg-emerald-500 text-white",
+                      !isActive && d <= today.getDate() && "bg-gray-100 text-gray-400",
+                      d > today.getDate() && "text-gray-300"
+                    )}
+                  >
+                    {d}
+                  </div>
+                );
+              }
+              
+              return days;
+            })()}
+          </div>
+          
+          {/* Legend */}
+          <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-gray-100">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-emerald-600">{currentStreak}</p>
+              <p className="text-xs text-gray-500">дней подряд</p>
+            </div>
+            <div className="w-px h-8 bg-gray-200" />
+            <div className="text-center">
+              <p className="text-2xl font-bold text-gray-700">{longestStreak}</p>
+              <p className="text-xs text-gray-500">рекорд</p>
+            </div>
+          </div>
+        </div>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">

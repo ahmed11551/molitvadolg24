@@ -68,6 +68,8 @@ interface DisplaySettings {
   transcriptionType: "latin" | "cyrillic";
   enableSound: boolean;
   enableVibration: boolean;
+  autoMode: boolean;
+  autoInterval: number; // в миллисекундах (1000-5000)
 }
 
 type CategoryType = "goals" | "dhikr" | "quran" | "names";
@@ -109,8 +111,12 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
     transcriptionType: "cyrillic",
     enableSound: true,
     enableVibration: true,
+    autoMode: false,
+    autoInterval: 2000, // 2 секунды по умолчанию
   });
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isAutoRunning, setIsAutoRunning] = useState(false);
+  const autoIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [availableItems, setAvailableItems] = useState<DhikrItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
@@ -224,9 +230,21 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
     setIsPulsing(true);
     setTimeout(() => setIsPulsing(false), 200);
 
-    // Vibration feedback
+    const newCount = currentCount + 1;
+
+    // Enhanced vibration feedback
     if (displaySettings.enableVibration && navigator.vibrate) {
-      navigator.vibrate(10);
+      // Особая вибрация на важных числах
+      if (newCount === 33 || newCount === 66 || newCount === 99) {
+        // Длинная вибрация на 33, 66, 99
+        navigator.vibrate([100, 50, 100, 50, 100]);
+      } else if (newCount % 10 === 0) {
+        // Двойная вибрация каждые 10
+        navigator.vibrate([30, 30, 30]);
+      } else {
+        // Обычная короткая вибрация
+        navigator.vibrate(15);
+      }
     }
 
     if (selectedGoal) {
@@ -272,9 +290,28 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
     }
   };
 
+  // stopAutoMode должна быть объявлена первой
+  const stopAutoMode = useCallback(() => {
+    if (autoIntervalRef.current) {
+      clearInterval(autoIntervalRef.current);
+      autoIntervalRef.current = null;
+    }
+    setIsAutoRunning(false);
+  }, []);
+
   const handleReset = () => {
     setCurrentCount(0);
+    stopAutoMode();
   };
+
+  // Cleanup при размонтировании
+  useEffect(() => {
+    return () => {
+      if (autoIntervalRef.current) {
+        clearInterval(autoIntervalRef.current);
+      }
+    };
+  }, []);
 
   const content = useMemo<TasbihContent | null>(() => {
     if (selectedGoal) {
@@ -359,6 +396,56 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
   const progress = (currentCount / targetValue) * 100;
   const isComplete = currentCount >= targetValue;
   const isLearningGoal = selectedGoal?.is_learning || selectedGoal?.title.toLowerCase().includes("выучить");
+
+  // Auto-mode функции (после isComplete)
+  const startAutoMode = useCallback(() => {
+    if (isAutoRunning || isComplete) return;
+    
+    setIsAutoRunning(true);
+    autoIntervalRef.current = setInterval(() => {
+      setCurrentCount(prev => {
+        const newVal = prev + 1;
+        // Vibration feedback
+        if (displaySettings.enableVibration && navigator.vibrate) {
+          if (newVal === 33 || newVal === 66 || newVal === 99) {
+            navigator.vibrate([100, 50, 100, 50, 100]);
+          } else if (newVal % 10 === 0) {
+            navigator.vibrate([30, 30, 30]);
+          } else {
+            navigator.vibrate(15);
+          }
+        }
+        return newVal;
+      });
+    }, displaySettings.autoInterval);
+    
+    toast({
+      title: "▶️ Авто-зикр запущен",
+      description: `Интервал: ${displaySettings.autoInterval / 1000} сек`,
+    });
+  }, [isAutoRunning, isComplete, displaySettings.autoInterval, displaySettings.enableVibration, toast]);
+
+  const toggleAutoMode = useCallback(() => {
+    if (isAutoRunning) {
+      stopAutoMode();
+      toast({
+        title: "⏸️ Авто-зикр остановлен",
+      });
+    } else {
+      startAutoMode();
+    }
+  }, [isAutoRunning, startAutoMode, stopAutoMode, toast]);
+
+  // Остановка авто-режима при завершении цели
+  useEffect(() => {
+    if (isComplete && isAutoRunning) {
+      stopAutoMode();
+      toast({
+        title: "🎉 Цель достигнута!",
+        description: "Авто-зикр остановлен",
+      });
+    }
+  }, [isComplete, isAutoRunning, stopAutoMode, toast]);
 
   const filteredItems = useMemo(() => {
     if (!searchQuery) return availableItems;
@@ -473,7 +560,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                       }
                     />
                   </div>
-                          <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between">
                     <Label>Вибрация</Label>
                     <Switch
                       checked={displaySettings.enableVibration}
@@ -481,10 +568,48 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                         setDisplaySettings({ ...displaySettings, enableVibration: checked })
                       }
                     />
-                              </div>
-                            </div>
-                          </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-muted-foreground">Авто-зикр</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Включить авто-режим</Label>
+                    <Switch
+                      checked={displaySettings.autoMode}
+                      onCheckedChange={(checked) => {
+                        setDisplaySettings({ ...displaySettings, autoMode: checked });
+                        if (!checked && isAutoRunning) {
+                          stopAutoMode();
+                        }
+                      }}
+                    />
+                  </div>
+                  {displaySettings.autoMode && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">
+                        Интервал: {displaySettings.autoInterval / 1000} сек
+                      </Label>
+                      <div className="flex gap-2">
+                        {[1000, 2000, 3000, 5000].map((interval) => (
+                          <Button
+                            key={interval}
+                            variant={displaySettings.autoInterval === interval ? "default" : "outline"}
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => setDisplaySettings({ ...displaySettings, autoInterval: interval })}
+                          >
+                            {interval / 1000}с
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </SheetContent>
         </Sheet>
               </div>
@@ -584,6 +709,21 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
               <RotateCcw className="w-5 h-5" />
             </Button>
             
+            {/* Auto-mode button */}
+            {displaySettings.autoMode && !isComplete && (
+              <Button
+                variant={isAutoRunning ? "default" : "outline"}
+                size="icon"
+                className={cn(
+                  "rounded-full w-12 h-12 transition-all",
+                  isAutoRunning && "bg-emerald-500 hover:bg-emerald-600 animate-pulse"
+                )}
+                onClick={toggleAutoMode}
+              >
+                {isAutoRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              </Button>
+            )}
+
             {content.audioUrl && (
               <Button
                 variant="outline"
@@ -603,7 +743,7 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                 <CheckCircle2 className="w-4 h-4 mr-2" />
                 Выучил
               </Button>
-                              )}
+            )}
                             </div>
                   </div>
                 ) : (
