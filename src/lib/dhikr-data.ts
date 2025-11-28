@@ -484,6 +484,7 @@ export async function getAvailableItemsByCategory(
           translation: dua.translation,
           reference: dua.reference,
           audioUrl: dua.audioUrl,
+          category: dua.category || "general",
         }));
         break;
       }
@@ -524,6 +525,7 @@ export async function getAvailableItemsByCategory(
           translation: item.translation,
           count: item.count,
           audioUrl: item.audioUrl,
+          category: item.category || "general",
         }));
         break;
       }

@@ -81,39 +81,33 @@ export const DuaSectionV2 = () => {
     try {
       let data: Dua[] = [];
       
+      // Сначала пробуем API
       try {
         const apiData = await eReplikaAPI.getDuas();
         if (apiData && apiData.length > 0) {
-          data = apiData;
-        } else {
-          const fallbackData = await getAvailableItemsByCategory("dua");
-          if (fallbackData && fallbackData.length > 0) {
-            data = fallbackData.map((item: DhikrItem): Dua => ({
-              id: item.id,
-              arabic: item.arabic || "",
-              transcription: item.transcription || "",
-              russianTranscription: item.russianTranscription,
-              translation: item.translation || "",
-              reference: item.reference,
-              audioUrl: item.audioUrl || null,
-              category: "general",
-            }));
-          }
-        }
-      } catch {
-        const fallbackData = await getAvailableItemsByCategory("dua");
-        if (fallbackData && fallbackData.length > 0) {
-          data = fallbackData.map((item: DhikrItem): Dua => ({
-            id: item.id,
-            arabic: item.arabic || "",
-            transcription: item.transcription || "",
-            russianTranscription: item.russianTranscription,
-            translation: item.translation || "",
-            reference: item.reference,
-            audioUrl: item.audioUrl || null,
-            category: "general",
+          data = apiData.map((item: any) => ({
+            ...item,
+            category: item.category_id || item.category || "general",
           }));
         }
+      } catch (e) {
+        console.log("API error, using fallback:", e);
+      }
+      
+      // Если API не вернул данные - используем локальные
+      if (data.length === 0) {
+        console.log("Using local dua data");
+        const fallbackData = await getAvailableItemsByCategory("dua");
+        data = fallbackData.map((item: DhikrItem): Dua => ({
+          id: item.id,
+          arabic: item.arabic || "",
+          transcription: item.transcription || "",
+          russianTranscription: item.russianTranscription,
+          translation: item.translation || "",
+          reference: item.reference,
+          audioUrl: item.audioUrl || null,
+          category: item.category || "general",
+        }));
       }
 
       setDuas(data);

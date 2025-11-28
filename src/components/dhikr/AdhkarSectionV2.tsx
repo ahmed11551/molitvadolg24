@@ -70,41 +70,34 @@ export const AdhkarSectionV2 = () => {
     try {
       let data: Adhkar[] = [];
       
+      // Сначала пробуем API
       try {
         const apiData = await eReplikaAPI.getAdhkar();
         if (apiData && apiData.length > 0) {
-          data = apiData;
-        } else {
-          const fallbackData = await getAvailableItemsByCategory("adhkar");
-          if (fallbackData && fallbackData.length > 0) {
-            data = fallbackData.map((item: DhikrItem): Adhkar => ({
-              id: item.id,
-              title: item.title || "",
-              arabic: item.arabic || "",
-              transcription: item.transcription || "",
-              russianTranscription: item.russianTranscription,
-              translation: item.translation || "",
-              count: item.count || 33,
-              category: item.category || "general",
-              audioUrl: item.audioUrl || null,
-            }));
-          }
-        }
-      } catch {
-        const fallbackData = await getAvailableItemsByCategory("adhkar");
-        if (fallbackData && fallbackData.length > 0) {
-          data = fallbackData.map((item: DhikrItem): Adhkar => ({
-            id: item.id,
-            title: item.title || "",
-            arabic: item.arabic || "",
-            transcription: item.transcription || "",
-            russianTranscription: item.russianTranscription,
-            translation: item.translation || "",
-            count: item.count || 33,
-            category: item.category || "general",
-            audioUrl: item.audioUrl || null,
+          data = apiData.map((item: any) => ({
+            ...item,
+            category: item.category_id || item.category || "general",
           }));
         }
+      } catch (e) {
+        console.log("API error, using fallback:", e);
+      }
+      
+      // Если API не вернул данные - используем локальные
+      if (data.length === 0) {
+        console.log("Using local adhkar data");
+        const fallbackData = await getAvailableItemsByCategory("adhkar");
+        data = fallbackData.map((item: DhikrItem): Adhkar => ({
+          id: item.id,
+          title: item.title || "",
+          arabic: item.arabic || "",
+          transcription: item.transcription || "",
+          russianTranscription: item.russianTranscription,
+          translation: item.translation || "",
+          count: item.count || 33,
+          category: item.category || "general",
+          audioUrl: item.audioUrl || null,
+        }));
       }
 
       setAdhkar(data);
