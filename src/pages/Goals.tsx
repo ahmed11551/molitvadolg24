@@ -25,10 +25,14 @@ import {
   ChevronRight,
   Minus,
   Trash2,
+  Flame,
+  Trophy,
+  TrendingUp,
+  BarChart3,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { spiritualPathAPI } from "@/lib/api";
-import type { Goal } from "@/types/spiritual-path";
+import type { Goal, Streak, Badge } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
 import { CreateGoalDialog } from "@/components/spiritual-path/CreateGoalDialog";
 import { SmartGoalTemplates } from "@/components/spiritual-path/SmartGoalTemplates";
@@ -155,6 +159,8 @@ const Goals = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [streaks, setStreaks] = useState<Streak[]>([]);
+  const [badges, setBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -170,14 +176,26 @@ const Goals = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const goalsData = await spiritualPathAPI.getGoals("all");
+      const [goalsData, streaksData, badgesData] = await Promise.all([
+        spiritualPathAPI.getGoals("all"),
+        spiritualPathAPI.getStreaks(),
+        spiritualPathAPI.getBadges(),
+      ]);
       setGoals(goalsData);
+      setStreaks(streaksData);
+      setBadges(badgesData);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Вычисляем статистику
+  const currentStreak = streaks.find(s => s.streak_type === "daily_all")?.current_streak || 0;
+  const completedGoals = goals.filter(g => g.status === "completed").length;
+  const activeGoals = goals.filter(g => g.status === "active").length;
+  const totalBadges = badges.length;
 
   const filteredGoals = goals.filter((goal) => {
     const matchesSearch = 
@@ -275,14 +293,50 @@ const Goals = () => {
 
       <main className="container mx-auto px-4 py-6 max-w-lg">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-gray-900">Цели и привычки</h1>
           <button
-            onClick={() => setFilter(filter === "all" ? "active" : "all")}
-            className="text-emerald-600 font-medium text-sm"
+            onClick={() => navigate("/statistics")}
+            className="text-emerald-600 font-medium text-sm flex items-center gap-1"
           >
-            {filter === "all" ? "Активные" : "Все"}
+            <BarChart3 className="w-4 h-4" />
+            Статистика
           </button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-4 gap-2 mb-6">
+          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center mx-auto mb-1">
+              <Flame className="w-4 h-4 text-orange-500" />
+            </div>
+            <p className="text-lg font-bold text-gray-900">{currentStreak}</p>
+            <p className="text-[10px] text-gray-500">Дней</p>
+          </div>
+          
+          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center mx-auto mb-1">
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
+            </div>
+            <p className="text-lg font-bold text-gray-900">{activeGoals}</p>
+            <p className="text-[10px] text-gray-500">Активных</p>
+          </div>
+          
+          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center mx-auto mb-1">
+              <Check className="w-4 h-4 text-blue-500" />
+            </div>
+            <p className="text-lg font-bold text-gray-900">{completedGoals}</p>
+            <p className="text-[10px] text-gray-500">Выполнено</p>
+          </div>
+          
+          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
+            <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center mx-auto mb-1">
+              <Trophy className="w-4 h-4 text-yellow-500" />
+            </div>
+            <p className="text-lg font-bold text-gray-900">{totalBadges}</p>
+            <p className="text-[10px] text-gray-500">Бейджей</p>
+          </div>
         </div>
 
         {/* Search */}

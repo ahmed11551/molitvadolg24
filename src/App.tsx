@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Goals from "./pages/Goals";
 import Dhikr from "./pages/Dhikr";
 import Tasbih from "./pages/Tasbih";
+import Statistics from "./pages/Statistics";
 import NotFound from "./pages/NotFound";
 import { initTelegramWebApp } from "./lib/telegram";
 import { ConsentDialog } from "./components/qaza/ConsentDialog";
@@ -32,6 +33,7 @@ const App = () => {
             <Route path="/goals" element={<Goals />} />
             <Route path="/dhikr" element={<Dhikr />} />
             <Route path="/tasbih" element={<Tasbih />} />
+            <Route path="/statistics" element={<Statistics />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
