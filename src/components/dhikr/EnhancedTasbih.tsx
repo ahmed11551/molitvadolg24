@@ -905,9 +905,11 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
                     Нет активных целей
-              </div>
+                  </div>
                 )}
-            </div>
+                  </div>
+                </div>
+              </div>
             ) : selectedCategory === "quran" ? (
       <div className="space-y-2">
                 {selectedSurah ? (
@@ -950,8 +952,8 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                 </div>
                     </button>
                   ))
-      )}
-    </div>
+                )}
+              </div>
             ) : (
               <div className="space-y-2">
                 {filteredItems.length > 0 ? (
@@ -985,10 +987,10 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
                     Ничего не найдено
-          </div>
-        )}
-          </div>
-        )}
+                  </div>
+                )}
+              </div>
+            )}
           </ScrollArea>
         </SheetContent>
       </Sheet>
