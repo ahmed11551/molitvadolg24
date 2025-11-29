@@ -1294,13 +1294,28 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
             {/* Счетчик */}
             <div className="text-center">
               <div
+                role="button"
+                aria-label={
+                  isCountdownMode
+                    ? `Счетчик азкаров: осталось ${displayCount} из ${activeGoal.target_count}`
+                    : `Счетчик зикров: ${displayCount} из ${activeGoal.target_count}`
+                }
+                aria-live="polite"
+                aria-atomic="true"
+                tabIndex={0}
                 className={cn(
-                  "inline-flex items-center justify-center w-32 h-32 rounded-full border-4 transition-all duration-300 cursor-pointer",
+                  "inline-flex items-center justify-center w-32 h-32 rounded-full border-4 transition-all duration-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
                   isComplete
                     ? "border-primary bg-primary/10 shadow-glow"
                     : "border-border/30 bg-secondary/30 hover:border-primary/50"
                 )}
                 onClick={() => handleTap()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleTap();
+                  }
+                }}
               >
                 <div className="text-center">
                   <div className={cn(
@@ -1310,7 +1325,7 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
                     {displayCount}
                   </div>
                   {!isCountdownMode && (
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-muted-foreground" aria-hidden="true">
                       / {activeGoal.target_count}
                     </div>
                   )}

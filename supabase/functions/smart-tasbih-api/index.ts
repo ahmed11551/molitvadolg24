@@ -187,6 +187,13 @@ async function handleBootstrap(supabase: SupabaseClient, userId: string) {
       azkar = newAzkar;
     }
 
+    // Получаем пользователя для locale, madhab, tz
+    const { data: user } = await supabase
+      .from("users")
+      .select("locale, madhab, tz")
+      .eq("id", userId)
+      .single();
+
     // Получаем последние элементы (можно расширить)
     const recentItems: RecentItem[] = [];
 
@@ -194,9 +201,9 @@ async function handleBootstrap(supabase: SupabaseClient, userId: string) {
       JSON.stringify({
         user: {
           id: userId,
-          locale: "ru",
-          madhab: "hanafi",
-          tz: "Europe/Moscow",
+          locale: user?.locale || "ru",
+          madhab: user?.madhab || "hanafi",
+          tz: user?.tz || "UTC",
         },
         active_goal: activeGoal || null,
         daily_azkar: azkar || null,
@@ -316,6 +323,15 @@ async function handleCounterTap(body: CounterTapBody, supabase: SupabaseClient, 
   try {
     const { session_id, delta, event_type, offline_id, prayer_segment } = body;
 
+    // Получаем пользователя для часового пояса
+    const { data: user } = await supabase
+      .from("users")
+      .select("tz")
+      .eq("id", userId)
+      .single();
+    
+    const userTz = user?.tz || "UTC";
+
     // Получаем сессию
     const { data: session } = await supabase
       .from("tasbih_sessions")
@@ -326,6 +342,18 @@ async function handleCounterTap(body: CounterTapBody, supabase: SupabaseClient, 
     if (!session) {
       throw new Error("Session not found");
     }
+
+    // Анти-чит проверка: проверяем количество тапов за последнюю секунду
+    const oneSecondAgo = new Date(Date.now() - 1000).toISOString();
+    const { data: recentTaps } = await supabase
+      .from("dhikr_log")
+      .select("delta")
+      .eq("user_id", userId)
+      .gte("at_ts", oneSecondAgo)
+      .eq("event_type", "tap");
+    
+    const tapCount = recentTaps?.reduce((sum, log) => sum + Math.abs(log.delta || 0), 0) || 0;
+    const suspected = tapCount + Math.abs(delta) > 100;
 
     // Получаем цель, если есть
     let goal = null;
@@ -399,9 +427,9 @@ async function handleCounterTap(body: CounterTapBody, supabase: SupabaseClient, 
       value_after: valueAfter,
       prayer_segment: prayer_segment || "none",
       at_ts: new Date().toISOString(),
-      tz: "Europe/Moscow", // TODO: получать из users.tz
+      tz: userTz,
       offline_id: offline_id || null,
-      suspected: false, // TODO: проверка на аномальную активность
+      suspected: suspected,
     });
 
     return new Response(
