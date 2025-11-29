@@ -1,6 +1,7 @@
 // Страница "Мой Духовный Путь"
 
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoalFeed } from "@/components/spiritual-path/GoalFeed";
 import { GoalsByCategory } from "@/components/spiritual-path/GoalsByCategory";
@@ -23,13 +24,29 @@ import { cn } from "@/lib/utils";
 import { Target, Trophy, TrendingUp, BarChart3, Users, Calculator, Bell } from "lucide-react";
 
 export default function SpiritualPath() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("goals");
+  const tabFromUrl = searchParams.get("tab") || "goals";
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
   const tabsListRef = useRef<HTMLDivElement>(null);
   const [showLeftGradient, setShowLeftGradient] = useState(false);
   const [showRightGradient, setShowRightGradient] = useState(true);
+
+  // Обновляем активную вкладку при изменении URL
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams, activeTab]);
+
+  // Обновляем URL при изменении активной вкладки
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
 
   // Проверка возможности прокрутки при загрузке
   useEffect(() => {
@@ -155,7 +172,7 @@ export default function SpiritualPath() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           {/* Навигация с правильной горизонтальной прокруткой */}
           <div className="relative mb-6 w-full overflow-hidden">
             {/* Градиентные индикаторы прокрутки */}

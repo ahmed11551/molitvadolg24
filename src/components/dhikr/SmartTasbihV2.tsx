@@ -273,6 +273,30 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
         if (!goalId && bootstrap.active_goal) {
           setActiveGoal(bootstrap.active_goal);
           await startSessionForGoal(bootstrap.active_goal);
+        } else if (!goalId && !bootstrap.active_goal) {
+          // Создаем дефолтную сессию для быстрого доступа к ТАПу
+          try {
+            const defaultSession = await smartTasbihAPI.startSession({
+              goal_id: null,
+              category: "dua",
+              item_id: null,
+              prayer_segment: "none",
+            });
+            setActiveSession(defaultSession);
+            setCurrentCount(0);
+            // Устанавливаем дефолтный элемент для отображения
+            const defaultItem: DhikrItem = {
+              id: "default",
+              arabic: "سُبْحَانَ اللَّهِ",
+              transcription: "SubhanAllah",
+              russianTranscription: "СубханАллах",
+              translation: "Слава Аллаху",
+              category: "dua",
+            };
+            setSelectedItem(defaultItem);
+          } catch (error) {
+            console.error("Error creating default session:", error);
+          }
         }
         setDailyAzkar(bootstrap.daily_azkar || null);
       } catch (error) {
@@ -472,12 +496,33 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
       }
 
       if (!activeSession) {
-        toast({
-          title: "Ошибка",
-          description: "Сессия не начата",
-          variant: "destructive",
-        });
-        return;
+        // Если нет сессии, создаем дефолтную
+        try {
+          const defaultSession = await smartTasbihAPI.startSession({
+            goal_id: null,
+            category: "dua",
+            item_id: null,
+            prayer_segment: "none",
+          });
+          setActiveSession(defaultSession);
+          setCurrentCount(0);
+          const defaultItem: DhikrItem = {
+            id: "default",
+            arabic: "سُبْحَانَ اللَّهِ",
+            transcription: "SubhanAllah",
+            russianTranscription: "СубханАллах",
+            translation: "Слава Аллаху",
+            category: "dua",
+          };
+          setSelectedItem(defaultItem);
+        } catch (error) {
+          toast({
+            title: "Ошибка",
+            description: "Не удалось начать сессию",
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
       const newCount = currentCount + delta;
@@ -860,8 +905,10 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
   };
 
   const isCountdownMode = activeGoal?.prayer_segment !== "none" && activeGoal?.category === "azkar";
-  const displayCount = isCountdownMode 
-    ? Math.max(0, activeGoal.target_count - currentCount)
+  const displayCount = activeGoal
+    ? (isCountdownMode 
+        ? Math.max(0, activeGoal.target_count - currentCount)
+        : currentCount)
     : currentCount;
 
   const isComplete = activeGoal && (
@@ -1247,12 +1294,12 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
       )}
 
       {/* Главный экран (активная сессия) */}
-      {activeGoal && activeSession && (
+      {activeSession && (
         <Card className="bg-gradient-card border-primary/20 shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl">
-                {activeGoal.category === "azkar" && activeGoal.prayer_segment !== "none"
+                {activeGoal && activeGoal.category === "azkar" && activeGoal.prayer_segment !== "none"
                   ? `Азкары ${PRAYER_SEGMENTS.find(s => s.value === activeGoal.prayer_segment)?.label}`
                   : selectedItem?.translation || "Тасбих"}
               </CardTitle>
@@ -1264,7 +1311,7 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Контент */}
+            {/* Контент - КАРТОЧКА НАД ТАПОМ */}
             {selectedItem && (
               <div className="space-y-4">
                 {selectedItem.arabic && (
@@ -1291,14 +1338,16 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
               </div>
             )}
 
-            {/* Счетчик */}
+            {/* Счетчик - ТАП */}
             <div className="text-center">
               <div
                 role="button"
                 aria-label={
-                  isCountdownMode
+                  activeGoal && isCountdownMode
                     ? `Счетчик азкаров: осталось ${displayCount} из ${activeGoal.target_count}`
-                    : `Счетчик зикров: ${displayCount} из ${activeGoal.target_count}`
+                    : activeGoal
+                    ? `Счетчик зикров: ${displayCount} из ${activeGoal.target_count}`
+                    : `Счетчик зикров: ${displayCount}`
                 }
                 aria-live="polite"
                 aria-atomic="true"
@@ -1324,7 +1373,7 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
                   )}>
                     {displayCount}
                   </div>
-                  {!isCountdownMode && (
+                  {activeGoal && !isCountdownMode && (
                     <div className="text-sm text-muted-foreground" aria-hidden="true">
                       / {activeGoal.target_count}
                     </div>
@@ -1334,14 +1383,16 @@ export const SmartTasbihV2 = ({ goalId }: SmartTasbihV2Props) => {
             </div>
 
             {/* Прогресс */}
-            <Progress
-              value={
-                isCountdownMode
-                  ? ((activeGoal.target_count - displayCount) / activeGoal.target_count) * 100
-                  : (currentCount / activeGoal.target_count) * 100
-              }
-              className="h-3"
-            />
+            {activeGoal && (
+              <Progress
+                value={
+                  isCountdownMode
+                    ? ((activeGoal.target_count - displayCount) / activeGoal.target_count) * 100
+                    : (currentCount / activeGoal.target_count) * 100
+                }
+                className="h-3"
+              />
+            )}
 
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="space-y-2">

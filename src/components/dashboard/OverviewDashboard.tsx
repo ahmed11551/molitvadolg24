@@ -284,7 +284,7 @@ export const OverviewDashboard = ({ onNavigateToCalculator }: OverviewDashboardP
 
       {/* AI Coach Widget - как в Goal app */}
       <button
-        onClick={() => navigate("/statistics")}
+        onClick={() => navigate("/spiritual-path?tab=reports")}
         className="w-full bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 rounded-2xl p-4 shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all"
       >
         <div className="flex items-center gap-4">

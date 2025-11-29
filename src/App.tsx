@@ -42,6 +42,17 @@ const App = () => {
   useEffect(() => {
     // Инициализация Telegram WebApp при загрузке
     initTelegramWebApp();
+    
+    // Закрываем все уведомления при открытии приложения
+    if ("serviceWorker" in navigator && "Notification" in window) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.getNotifications().then((notifications) => {
+          notifications.forEach((notification) => {
+            notification.close();
+          });
+        });
+      });
+    }
   }, []);
 
   return (
