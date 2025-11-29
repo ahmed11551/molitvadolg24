@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # Frontend приложение
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-https://bot.e-replika.ru/api}
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+        - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+        - VITE_API_TOKEN=${VITE_API_TOKEN}
+        - VITE_USE_SUPABASE_PROXY=${VITE_USE_SUPABASE_PROXY:-false}
+    ports:
+      - "${PORT:-3000}:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prayer-tracker.rule=Host(`prayer.example.com`)"
+      - "traefik.http.services.prayer-tracker.loadbalancer.server.port=80"
+    networks:
+      - prayer-network
+
+  # Опциональный: локальный PostgreSQL для разработки
+  # Supabase Cloud используется в продакшене
+  # postgres:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     POSTGRES_USER: ${POSTGRES_USER:-prayer}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prayer_secret}
+  #     POSTGRES_DB: ${POSTGRES_DB:-prayer_db}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
+  #   ports:
+  #     - "5432:5432"
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prayer}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - prayer-network
+
+networks:
+  prayer-network:
+    driver: bridge
+
+# volumes:
+#   postgres_data:
+

@@ -1,9 +1,19 @@
 // API сервис для интеграции с e-Replika API и внутренними эндпоинтами
 // Документация: https://bot.e-replika.ru/docs#/
+// Интеграция: см. API-INTEGRATION.md и API-REQUIREMENTS.md
 
 import type { UserPrayerDebt, MissedPrayers } from "@/types/prayer-debt";
 import type { Goal } from "@/types/spiritual-path";
 import type { TasbihGoal, TasbihSession } from "@/types/smart-tasbih";
+import { 
+  APIError, 
+  APIErrorCode, 
+  parseAPIError, 
+  handleFetchError, 
+  fetchWithErrorHandling,
+  logError,
+  getErrorMessage 
+} from "./error-handler";
 
 const DEFAULT_EREPLIKA_API_BASE = "https://bot.e-replika.ru/api";
 const INTERNAL_API_URL = import.meta.env.VITE_INTERNAL_API_URL || "/api";
@@ -66,6 +76,108 @@ function getSupabaseHeaders(): HeadersInit {
     "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
     "apikey": SUPABASE_ANON_KEY,
   };
+}
+
+/**
+ * Обёртка для API-запросов с улучшенной обработкой ошибок
+ * @param url - URL запроса
+ * @param options - опции fetch
+ * @param context - контекст для логирования
+ * @returns Promise с JSON-ответом
+ */
+async function apiRequest<T>(
+  url: string,
+  options: RequestInit & { timeout?: number } = {},
+  context?: string
+): Promise<T> {
+  const { timeout = 30000, ...fetchOptions } = options;
+  
+  // Проверяем онлайн-статус
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    throw new APIError(
+      "Нет подключения к интернету",
+      APIErrorCode.OFFLINE
+    );
+  }
+
+  // Создаём AbortController для таймаута
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const error = await parseAPIError(response);
+      logError(error, context);
+      throw error;
+    }
+
+    // Проверяем, есть ли контент
+    const contentType = response.headers.get("content-type");
+    if (contentType?.includes("application/json")) {
+      return await response.json();
+    }
+    
+    // Для не-JSON ответов возвращаем пустой объект
+    return {} as T;
+  } catch (error) {
+    if (error instanceof APIError) {
+      throw error;
+    }
+    const apiError = handleFetchError(error);
+    logError(apiError, context);
+    throw apiError;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Обёртка для Supabase API-запросов
+ */
+async function supabaseRequest<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  context?: string
+): Promise<T> {
+  const url = `${SUPABASE_FUNCTIONS_URL}${endpoint}`;
+  return apiRequest<T>(
+    url,
+    {
+      ...options,
+      headers: {
+        ...getSupabaseHeaders(),
+        ...(options.headers || {}),
+      },
+    },
+    context || `Supabase:${endpoint}`
+  );
+}
+
+/**
+ * Обёртка для e-Replika API-запросов
+ */
+async function eReplikaRequest<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  context?: string
+): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+  return apiRequest<T>(
+    url,
+    {
+      ...options,
+      headers: {
+        ...getAuthHeaders(),
+        ...(options.headers || {}),
+      },
+    },
+    context || `eReplika:${endpoint}`
+  );
 }
 
 // Типы для сырых данных из API
