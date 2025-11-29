@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
+import { IPhoneCalendar } from "@/components/ui/iphone-calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Target, Sparkles, Check } from "lucide-react";
 import { format } from "date-fns";
@@ -570,7 +571,7 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar
+                      <IPhoneCalendar
                         mode="single"
                         selected={endDate}
                         onSelect={setEndDate}
@@ -643,7 +644,7 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar
+                  <IPhoneCalendar
                     mode="single"
                     selected={endDate}
                     onSelect={setEndDate}
@@ -710,7 +711,7 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar
+                  <IPhoneCalendar
                     mode="single"
                     selected={startDate}
                     onSelect={handleStartDateChange}

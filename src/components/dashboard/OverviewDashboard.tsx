@@ -282,40 +282,6 @@ export const OverviewDashboard = ({ onNavigateToCalculator }: OverviewDashboardP
       {/* Компактный календарь событий */}
       <GoalsCalendar goals={goals} />
 
-      {/* 99 имен Аллаха */}
-      <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl p-6 shadow-sm border border-amber-200">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Star className="w-5 h-5 text-amber-600" />
-            <h2 className="text-lg font-bold text-gray-900">99 имен Аллаха</h2>
-          </div>
-          <button
-            onClick={() => navigate("/spiritual-path?category=names_of_allah")}
-            className="text-amber-700 text-sm font-medium flex items-center gap-1 hover:text-amber-800"
-          >
-            Изучить
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-        <p className="text-sm text-gray-700 mb-4">
-          Изучайте и запоминайте прекрасные имена Аллаха для духовного роста
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          <div className="bg-white/60 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-amber-700">99</p>
-            <p className="text-xs text-gray-600">Имен</p>
-          </div>
-          <div className="bg-white/60 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-amber-700">∞</p>
-            <p className="text-xs text-gray-600">Возможностей</p>
-          </div>
-          <div className="bg-white/60 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-amber-700">✨</p>
-            <p className="text-xs text-gray-600">Баракат</p>
-          </div>
-        </div>
-      </div>
-
       {/* AI Coach Widget - как в Goal app */}
       <button
         onClick={() => navigate("/statistics")}
