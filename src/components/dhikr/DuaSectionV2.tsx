@@ -11,6 +11,7 @@ import { eReplikaAPI } from "@/lib/api";
 import { getAvailableItemsByCategory, type DhikrItem } from "@/lib/dhikr-data";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const BOOKMARKS_KEY = "prayer_debt_bookmarks";
 
@@ -59,6 +60,7 @@ export const DuaSectionV2 = () => {
   const [activeTab, setActiveTab] = useState<"categories" | "favorites">("categories");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const getCategoryName = useCallback((categoryId: string): string => {
     const categoryNames: Record<string, string> = {
@@ -200,13 +202,15 @@ export const DuaSectionV2 = () => {
     return favorites.some((f) => f.id === dua.id);
   };
 
-  // Поиск
-  const filteredDuas = searchQuery
-    ? duas.filter(d => 
-        d.translation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.transcription.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
+  // Поиск с debounce
+  const filteredDuas = useMemo(() => {
+    if (!debouncedSearchQuery) return [];
+    const query = debouncedSearchQuery.toLowerCase();
+    return duas.filter(d => 
+      d.translation.toLowerCase().includes(query) ||
+      d.transcription.toLowerCase().includes(query)
+    );
+  }, [duas, debouncedSearchQuery]);
 
   if (loading) {
     return (
