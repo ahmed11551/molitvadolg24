@@ -655,24 +655,6 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
             </div>
           )}
 
-          {/* Период (только для фиксированного срока, если не custom) */}
-          {type === "fixed_term" && period !== "custom" && (
-            <div className="space-y-2">
-              <Label>Период</Label>
-              <Select value={period} onValueChange={handlePeriodChange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PERIODS.filter(p => p.value !== "infinite" && p.value !== "recurring_weekly" && p.value !== "recurring_monthly").map((p) => (
-                    <SelectItem key={p.value} value={p.value}>
-                      {p.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           {/* Метрика */}
           <div className="space-y-2">
