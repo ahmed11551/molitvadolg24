@@ -1,312 +1,395 @@
 // Компонент для отображения целей по категориям (компактный список)
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { 
-  Target, 
+  ChevronRight, 
   Plus, 
-  ChevronRight,
+  Target,
   BookOpen,
   Prayer,
   Sparkles,
   Heart,
-  AlertCircle,
-  CheckCircle2
+  GraduationCap,
+  Star,
+  ArrowUp,
+  CheckCircle2,
+  Clock,
+  AlertCircle
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { spiritualPathAPI } from "@/lib/api";
-import type { Goal } from "@/types/spiritual-path";
-import { format } from "date-fns";
-import { CreateGoalDialog } from "./CreateGoalDialog";
-import { GoalCard } from "./GoalCard";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import type { Goal, GoalCategory } from "@/types/spiritual-path";
+import { format } from "date-fns";
+import { ru } from "date-fns/locale/ru";
+import { GoalCard } from "./GoalCard";
+import { CreateGoalDialog } from "./CreateGoalDialog";
+import { useSubscription } from "@/hooks/useSubscription";
+import { hasFeature } from "@/types/subscription";
+import { SubscriptionGate } from "./SubscriptionGate";
+import { Link } from "react-router-dom";
 
-const CATEGORIES = [
-  { id: "quran", label: "Коран", icon: BookOpen, color: "text-blue-600" },
-  { id: "prayer", label: "Намазы", icon: Prayer, color: "text-green-600" },
-  { id: "zikr", label: "Зикры", icon: Sparkles, color: "text-purple-600" },
-  { id: "sadaqa", label: "Садака", icon: Heart, color: "text-pink-600" },
-  { id: "names_of_allah", label: "99 имен Аллаха", icon: Target, color: "text-yellow-600" },
-];
+interface GoalsByCategoryProps {
+  goals: Goal[];
+  onRefresh: () => void;
+}
 
-const MAX_FREE_GOALS = 5;
+type ViewMode = "categories" | "category-goals" | "goal-detail";
 
-export const GoalsByCategory = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+const CATEGORY_INFO: Record<GoalCategory, { label: string; icon: React.ReactNode; color: string }> = {
+  prayer: { 
+    label: "Намазы", 
+    icon: <Prayer className="w-5 h-5" />,
+    color: "text-emerald-600 bg-emerald-50"
+  },
+  quran: { 
+    label: "Коран", 
+    icon: <BookOpen className="w-5 h-5" />,
+    color: "text-blue-600 bg-blue-50"
+  },
+  zikr: { 
+    label: "Зикры", 
+    icon: <Sparkles className="w-5 h-5" />,
+    color: "text-purple-600 bg-purple-50"
+  },
+  sadaqa: { 
+    label: "Садака", 
+    icon: <Heart className="w-5 h-5" />,
+    color: "text-pink-600 bg-pink-50"
+  },
+  knowledge: { 
+    label: "Знания", 
+    icon: <GraduationCap className="w-5 h-5" />,
+    color: "text-orange-600 bg-orange-50"
+  },
+  names_of_allah: { 
+    label: "99 имен Аллаха", 
+    icon: <Star className="w-5 h-5" />,
+    color: "text-amber-600 bg-amber-50"
+  },
+};
+
+export const GoalsByCategory = ({ goals, onRefresh }: GoalsByCategoryProps) => {
+  const [viewMode, setViewMode] = useState<ViewMode>("categories");
+  const [selectedCategory, setSelectedCategory] = useState<GoalCategory | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const { tier } = useSubscription();
 
-  useEffect(() => {
-    loadGoals();
-  }, []);
+  // Группируем цели по категориям
+  const goalsByCategory = useMemo(() => {
+    const grouped: Record<GoalCategory, Goal[]> = {
+      prayer: [],
+      quran: [],
+      zikr: [],
+      sadaqa: [],
+      knowledge: [],
+      names_of_allah: [],
+    };
 
-  const loadGoals = async () => {
-    setLoading(true);
-    try {
-      const allGoals = await spiritualPathAPI.getGoals();
-      setGoals(allGoals);
-    } catch (error) {
-      console.error("Error loading goals:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить цели",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    goals.forEach(goal => {
+      if (goal.category in grouped) {
+        grouped[goal.category as GoalCategory].push(goal);
+      }
+    });
 
-  const getGoalsByCategory = (categoryId: string) => {
-    return goals.filter(g => g.category === categoryId && g.status === "active");
-  };
+    return grouped;
+  }, [goals]);
 
-  const canAddMoreGoals = goals.filter(g => g.status === "active").length < MAX_FREE_GOALS;
+  // Подсчитываем количество целей по категориям
+  const categoryCounts = useMemo(() => {
+    const counts: Record<GoalCategory, number> = {
+      prayer: 0,
+      quran: 0,
+      zikr: 0,
+      sadaqa: 0,
+      knowledge: 0,
+      names_of_allah: 0,
+    };
 
-  const handleCategoryClick = (categoryId: string) => {
-    const categoryGoals = getGoalsByCategory(categoryId);
-    if (categoryGoals.length === 0) {
-      // Если нет целей в категории, открываем диалог создания с предвыбранной категорией
-      setCreateDialogOpen(true);
-      // TODO: передать категорию в диалог
-    } else {
-      setSelectedCategory(categoryId);
-    }
+    Object.keys(goalsByCategory).forEach(cat => {
+      counts[cat as GoalCategory] = goalsByCategory[cat as GoalCategory].length;
+    });
+
+    return counts;
+  }, [goalsByCategory]);
+
+  // Проверяем ограничение на количество целей
+  const maxGoals = hasFeature(tier, "unlimited_goals") ? Infinity : 7;
+  const canAddGoal = goals.length < maxGoals;
+
+  const handleCategoryClick = (category: GoalCategory) => {
+    setSelectedCategory(category);
+    setViewMode("category-goals");
   };
 
   const handleGoalClick = (goal: Goal) => {
     setSelectedGoal(goal);
+    setViewMode("goal-detail");
   };
 
   const handleBack = () => {
-    if (selectedGoal) {
+    if (viewMode === "goal-detail") {
+      setViewMode("category-goals");
       setSelectedGoal(null);
-    } else if (selectedCategory) {
+    } else {
+      setViewMode("categories");
       setSelectedCategory(null);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-muted-foreground">Загрузка целей...</div>
-      </div>
-    );
-  }
-
-  // Если выбранная цель - показываем карточку цели
-  if (selectedGoal) {
-    return (
-      <GoalCard 
-        goal={selectedGoal} 
-        onBack={handleBack}
-        onUpdate={loadGoals}
-      />
-    );
-  }
-
-  // Если выбрана категория - показываем список целей в категории
-  if (selectedCategory) {
-    const categoryGoals = getGoalsByCategory(selectedCategory);
-    const category = CATEGORIES.find(c => c.id === selectedCategory);
-
+  // Экран категорий
+  if (viewMode === "categories") {
     return (
       <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
-            <ChevronRight className="w-5 h-5 rotate-180" />
-          </Button>
+        {/* Заголовок с кнопкой добавления */}
+        <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            {category && <category.icon className={cn("w-6 h-6", category.color)} />}
-            {category?.label}
+            <Target className="w-6 h-6 text-primary" />
+            Цели
           </h2>
+          {canAddGoal ? (
+            <CreateGoalDialog
+              open={createDialogOpen}
+              onOpenChange={setCreateDialogOpen}
+              onGoalCreated={onRefresh}
+            >
+              <Button size="sm" className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Добавить цель
+              </Button>
+            </CreateGoalDialog>
+          ) : (
+            <SubscriptionGate
+              feature="unlimited_goals"
+              requiredTier="mutahsin"
+              featureName="Неограниченное количество целей"
+              description={`У вас ${goals.length} целей. Для добавления большего количества перейдите на PRO версию.`}
+            >
+              <Button size="sm" variant="outline" disabled>
+                <Plus className="w-4 h-4 mr-2" />
+                Лимит достигнут
+              </Button>
+            </SubscriptionGate>
+          )}
         </div>
 
-        {categoryGoals.length > 0 ? (
-          <div className="space-y-2">
-            {categoryGoals.map((goal, index) => (
-              <Card 
-                key={goal.id} 
-                className="cursor-pointer hover:bg-secondary/50 transition-colors"
-                onClick={() => handleGoalClick(goal)}
+        {/* Блок пропущенных намазов */}
+        <Card className="border-2 border-emerald-200 bg-emerald-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
+                  <Prayer className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Пропущенные намазы</h3>
+                  <p className="text-sm text-gray-600">Рассчитайте и восполните пропущенные намазы</p>
+                </div>
+              </div>
+              <Link to="/">
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                  Посчитать намазы
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Список категорий */}
+        <div className="space-y-2">
+          {(Object.keys(CATEGORY_INFO) as GoalCategory[]).map((category) => {
+            const count = categoryCounts[category];
+            const info = CATEGORY_INFO[category];
+            
+            if (count === 0) return null;
+
+            return (
+              <Card
+                key={category}
+                className="cursor-pointer hover:shadow-md transition-all"
+                onClick={() => handleCategoryClick(category)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm text-muted-foreground">{index + 1}.</span>
-                        <h3 className="font-semibold">{goal.title}</h3>
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", info.color)}>
+                        {info.icon}
                       </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="text-muted-foreground">
-                          {goal.current_value} / {goal.target_value}
-                        </span>
-                        <Progress 
-                          value={(goal.current_value / goal.target_value) * 100} 
-                          className="flex-1 h-2"
-                        />
-                        <span className="text-muted-foreground">
-                          {Math.round((goal.current_value / goal.target_value) * 100)}%
-                        </span>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{info.label}</h3>
+                        <p className="text-sm text-gray-500">
+                          {count} {count === 1 ? "цель" : count < 5 ? "цели" : "целей"}
+                        </p>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="bg-secondary/50">
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <p className="text-muted-foreground mb-4">
-                  Нет целей в этой категории
-                </p>
-                <Button onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Создать цель
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            );
+          })}
+        </div>
+
+        {/* Кнопка быстрого возврата наверх */}
+        <div className="fixed bottom-20 right-4 z-10">
+          <Button
+            size="icon"
+            variant="outline"
+            className="rounded-full shadow-lg"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          >
+            <ArrowUp className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
     );
   }
 
-  // Главный экран - категории
-  const activeGoalsCount = goals.filter(g => g.status === "active").length;
+  // Экран списка целей в категории
+  if (viewMode === "category-goals" && selectedCategory) {
+    const categoryGoals = goalsByCategory[selectedCategory];
+    const info = CATEGORY_INFO[selectedCategory];
 
-  return (
-    <div className="space-y-6">
-      {/* Заголовок и кнопка добавления */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Target className="w-6 h-6 text-primary" />
-          Цели
-        </h2>
-        <Button 
-          onClick={() => setCreateDialogOpen(true)}
-          disabled={!canAddMoreGoals}
-          size="sm"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить цель
-        </Button>
-      </div>
-
-      {/* Ограничение для бесплатных пользователей */}
-      {!canAddMoreGoals && (
-        <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold mb-1">Достигнут лимит бесплатных целей</p>
-                <p className="text-sm text-muted-foreground">
-                  Перейдите на PRO версию для неограниченного количества целей
-                </p>
-              </div>
-              <Button variant="outline" size="sm">
-                Перейти на PRO
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Блок пропущенных намазов */}
-      <Card className="bg-gradient-card border-border/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Prayer className="w-5 h-5 text-primary" />
-            Пропущенные намазы
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => navigate("/")}
-          >
-            Посчитать намазы
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Категории целей */}
+    return (
       <div className="space-y-4">
-        {CATEGORIES.map((category) => {
-          const categoryGoals = getGoalsByCategory(category.id);
-          const totalProgress = categoryGoals.reduce((sum, g) => {
-            return sum + (g.current_value / g.target_value) * 100;
-          }, 0);
-          const avgProgress = categoryGoals.length > 0 ? totalProgress / categoryGoals.length : 0;
-
-          return (
-            <Card 
-              key={category.id}
-              className="cursor-pointer hover:bg-secondary/50 transition-colors"
-              onClick={() => handleCategoryClick(category.id)}
+        {/* Заголовок с кнопкой назад */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBack}
+            className="flex-shrink-0"
+          >
+            <ChevronRight className="w-5 h-5 rotate-180" />
+          </Button>
+          <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", info.color)}>
+            {info.icon}
+          </div>
+          <h2 className="text-2xl font-bold flex-1">{info.label}</h2>
+          {canAddGoal && (
+            <CreateGoalDialog
+              open={createDialogOpen}
+              onOpenChange={setCreateDialogOpen}
+              onGoalCreated={onRefresh}
             >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className={cn("p-2 rounded-lg bg-primary/10", category.color)}>
-                      <category.icon className={cn("w-5 h-5", category.color)} />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{category.label}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {categoryGoals.length} {categoryGoals.length === 1 ? "цель" : "целей"}
-                        {categoryGoals.length > 0 && (
-                          <span className="ml-2">
-                            • {Math.round(avgProgress)}% выполнено
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                </div>
+              <Button size="sm" variant="outline">
+                <Plus className="w-4 h-4 mr-2" />
+                Добавить
+              </Button>
+            </CreateGoalDialog>
+          )}
+        </div>
+
+        {/* Список целей */}
+        <div className="space-y-2">
+          {categoryGoals.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Target className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                <p className="text-gray-500">Нет целей в этой категории</p>
               </CardContent>
             </Card>
-          );
-        })}
+          ) : (
+            categoryGoals.map((goal, index) => {
+              const progressPercent = goal.target_value > 0 
+                ? Math.min(100, (goal.current_value / goal.target_value) * 100) 
+                : 0;
+              
+              const daysRemaining = goal.end_date 
+                ? Math.max(0, Math.ceil((new Date(goal.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+                : null;
+              
+              const isOverdue = goal.end_date && new Date(goal.end_date) < new Date() && goal.status === "active";
+              const isUrgent = daysRemaining !== null && daysRemaining <= 3 && daysRemaining > 0;
+
+              return (
+                <Card
+                  key={goal.id}
+                  className={cn(
+                    "cursor-pointer hover:shadow-md transition-all",
+                    isOverdue && "border-red-300 bg-red-50",
+                    isUrgent && !isOverdue && "border-yellow-300 bg-yellow-50"
+                  )}
+                  onClick={() => handleGoalClick(goal)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h3 className="font-semibold text-gray-900 line-clamp-1">{goal.title}</h3>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {isOverdue && (
+                              <Badge variant="destructive" className="text-xs">
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Просрочено
+                              </Badge>
+                            )}
+                            {isUrgent && !isOverdue && (
+                              <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-700">
+                                <Clock className="w-3 h-3 mr-1" />
+                                Срочно
+                              </Badge>
+                            )}
+                            {goal.status === "completed" && (
+                              <Badge variant="default" className="text-xs bg-green-500">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Выполнено
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        {goal.description && (
+                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">{goal.description}</p>
+                        )}
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <span>
+                            {goal.current_value} / {goal.target_value}
+                          </span>
+                          {daysRemaining !== null && (
+                            <span>
+                              {daysRemaining === 0 ? "Сегодня" : `Осталось ${daysRemaining} ${daysRemaining === 1 ? "день" : daysRemaining < 5 ? "дня" : "дней"}`}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-2">
+                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className={cn(
+                                "h-full transition-all",
+                                progressPercent >= 100 ? "bg-green-500" : "bg-primary"
+                              )}
+                              style={{ width: `${progressPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
       </div>
+    );
+  }
 
-      {/* Пустое состояние */}
-      {goals.length === 0 && (
-        <Card className="bg-gradient-card border-border/50">
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <Target className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground mb-4">
-                У вас пока нет целей
-              </p>
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Создать первую цель
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <CreateGoalDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        onGoalCreated={loadGoals}
+  // Экран детальной карточки цели
+  if (viewMode === "goal-detail" && selectedGoal) {
+    return (
+      <GoalCard
+        goal={selectedGoal}
+        onBack={handleBack}
+        onUpdate={onRefresh}
       />
-    </div>
-  );
-};
+    );
+  }
 
+  return null;
+};

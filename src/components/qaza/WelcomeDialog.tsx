@@ -63,23 +63,31 @@ export const WelcomeDialog = ({ onNavigateToCalculator }: WelcomeDialogProps) =>
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 pt-4">
-          <Button
-            onClick={handleYes}
-            size="lg"
-            className="w-full bg-primary hover:opacity-90"
-          >
-            <Calculator className="w-5 h-5 mr-2" />
-            Да, помочь посчитать
-          </Button>
-          <Button
-            onClick={handleNo}
-            variant="outline"
-            size="lg"
-            className="w-full"
-          >
-            Нет, спасибо
-          </Button>
+        <div className="space-y-3 pt-2">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-xs text-blue-800 text-center">
+              Для расчета нам понадобятся: дата рождения, пол, и дополнительная информация (для женщин и путешествий)
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={handleYes}
+              size="lg"
+              className="w-full bg-primary hover:opacity-90"
+            >
+              <Calculator className="w-5 h-5 mr-2" />
+              Да, помочь посчитать
+            </Button>
+            <Button
+              onClick={handleNo}
+              variant="outline"
+              size="lg"
+              className="w-full"
+            >
+              Нет, спасибо
+            </Button>
+          </div>
         </div>
 
         <p className="text-xs text-center text-muted-foreground pt-2">

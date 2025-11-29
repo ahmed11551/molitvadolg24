@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoalFeed } from "@/components/spiritual-path/GoalFeed";
+import { GoalsByCategory } from "@/components/spiritual-path/GoalsByCategory";
+import { GoalsCalendar } from "@/components/spiritual-path/GoalsCalendar";
 import { CreateGoalDialog } from "@/components/spiritual-path/CreateGoalDialog";
 import { SmartGoalTemplates } from "@/components/spiritual-path/SmartGoalTemplates";
 import { StreaksDisplay } from "@/components/spiritual-path/StreaksDisplay";
@@ -143,26 +145,14 @@ export default function SpiritualPath() {
       <MainHeader />
       
       <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-5xl pb-24 sm:pb-6 w-full overflow-x-hidden">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2 mb-2">
-              <Target className="w-8 h-8 text-primary" />
-              Мой Духовный Путь
-            </h1>
-            <p className="text-muted-foreground">
-              Отслеживайте цели, анализируйте прогресс и развивайтесь духовно
-            </p>
-          </div>
-          <CreateGoalDialog
-            open={createDialogOpen}
-            onOpenChange={setCreateDialogOpen}
-            onGoalCreated={loadGoals}
-          >
-            <Button className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Добавить цель
-            </Button>
-          </CreateGoalDialog>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold flex items-center gap-2 mb-2">
+            <Target className="w-8 h-8 text-primary" />
+            Мой Духовный Путь
+          </h1>
+          <p className="text-muted-foreground">
+            Отслеживайте цели, анализируйте прогресс и развивайтесь духовно
+          </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -251,7 +241,7 @@ export default function SpiritualPath() {
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="feed">
-                  <GoalFeed goals={goals} onRefresh={loadGoals} />
+                  <GoalsByCategory goals={goals} onRefresh={loadGoals} />
                 </TabsContent>
                 <TabsContent value="templates">
                   <SmartGoalTemplates onTemplateSelected={loadGoals} />

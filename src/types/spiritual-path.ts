@@ -8,6 +8,10 @@ export type GoalCategory =
   | "knowledge" // Знания
   | "names_of_allah"; // 99 имен Аллаха
 
+export type PrayerSubcategory = 
+  | "regular" // Обычные намазы
+  | "qaza"; // Восполнение (Каза)
+
 export type GoalType = 
   | "one_time" // Одноразовая
   | "recurring" // Повторяющаяся (автоматически возобновляется)
@@ -54,6 +58,7 @@ export interface Goal {
   description?: string;
   category: GoalCategory;
   knowledge_subcategory?: KnowledgeSubcategory; // Для категории "knowledge"
+  prayer_subcategory?: PrayerSubcategory; // Для категории "prayer"
   type: GoalType;
   period: GoalPeriod;
   metric: GoalMetric;

@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { spiritualPathAPI } from "@/lib/api";
 import { ItemSelector } from "./ItemSelector";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { Goal, GoalCategory, GoalType, GoalPeriod, GoalMetric, KnowledgeSubcategory, LinkedCounterType } from "@/types/spiritual-path";
+import type { Goal, GoalCategory, GoalType, GoalPeriod, GoalMetric, KnowledgeSubcategory, PrayerSubcategory, LinkedCounterType } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
 
 interface CreateGoalDialogProps {
@@ -38,6 +38,11 @@ const KNOWLEDGE_SUBCATEGORIES: Array<{ value: KnowledgeSubcategory; label: strin
   { value: "book", label: "Книга" },
   { value: "alifba", label: "Уроки алифба" },
   { value: "tajwid", label: "Таджвид" },
+];
+
+const PRAYER_SUBCATEGORIES: Array<{ value: PrayerSubcategory; label: string; description?: string }> = [
+  { value: "regular", label: "Обычные намазы", description: "Ежедневные обязательные намазы" },
+  { value: "qaza", label: "Восполнение (Каза)", description: "Восполнение пропущенных намазов" },
 ];
 
 const GOAL_TYPES: Array<{ value: GoalType; label: string; description?: string }> = [
@@ -81,6 +86,7 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<GoalCategory | "">("");
   const [knowledgeSubcategory, setKnowledgeSubcategory] = useState<KnowledgeSubcategory | "">("");
+  const [prayerSubcategory, setPrayerSubcategory] = useState<PrayerSubcategory | "">("");
   const [type, setType] = useState<GoalType>("fixed_term");
   const [period, setPeriod] = useState<GoalPeriod>("month");
   const [metric, setMetric] = useState<GoalMetric>("count");
@@ -199,6 +205,15 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
       return;
     }
 
+    if (category === "prayer" && !prayerSubcategory) {
+      toast({
+        title: "Ошибка",
+        description: "Выберите тип намазов",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const finalEndDate = period === "custom" ? endDate : calculateEndDate(period, startDate);
@@ -221,6 +236,7 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
         description: description || selectedItemData?.translation || undefined,
         category: category as GoalCategory,
         knowledge_subcategory: category === "knowledge" ? (knowledgeSubcategory as KnowledgeSubcategory) : undefined,
+        prayer_subcategory: category === "prayer" ? (prayerSubcategory as PrayerSubcategory) : undefined,
         type,
         period,
         metric,
@@ -248,6 +264,7 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
       setDescription("");
       setCategory("");
       setKnowledgeSubcategory("");
+      setPrayerSubcategory("");
       setTargetValue(30);
       setStartDate(new Date());
       setEndDate(undefined);
@@ -354,6 +371,30 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
                   {KNOWLEDGE_SUBCATEGORIES.map((sub) => (
                     <SelectItem key={sub.value} value={sub.value}>
                       {sub.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Подкатегория для намазов */}
+          {category === "prayer" && (
+            <div className="space-y-2">
+              <Label>Тип намазов</Label>
+              <Select value={prayerSubcategory} onValueChange={(v) => setPrayerSubcategory(v as PrayerSubcategory)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите тип намазов" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRAYER_SUBCATEGORIES.map((sub) => (
+                    <SelectItem key={sub.value} value={sub.value}>
+                      <div>
+                        <div className="font-medium">{sub.label}</div>
+                        {sub.description && (
+                          <div className="text-xs text-muted-foreground">{sub.description}</div>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

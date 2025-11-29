@@ -21,6 +21,9 @@ import { useToast } from "@/hooks/use-toast";
 import { spiritualPathAPI } from "@/lib/api";
 import type { AIInsight, Goal, Streak, Badge as BadgeType } from "@/types/spiritual-path";
 import { cn } from "@/lib/utils";
+import { useSubscription } from "@/hooks/useSubscription";
+import { hasFeature } from "@/types/subscription";
+import { SubscriptionGate } from "./SubscriptionGate";
 import { 
   analyzeGoals, 
   generateInsights, 
@@ -30,6 +33,7 @@ import {
 
 export const AIReports = () => {
   const { toast } = useToast();
+  const { tier } = useSubscription();
   const [loading, setLoading] = useState(false);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [streaks, setStreaks] = useState<Streak[]>([]);
@@ -207,16 +211,22 @@ export const AIReports = () => {
         </Card>
       )}
 
-      {/* Рекомендации */}
-      {recommendations.length > 0 && (
-        <Card className="border-gray-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Target className="w-5 h-5 text-emerald-500" />
-              Рекомендации
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+      {/* Рекомендации - только для PRO и Premium */}
+      <SubscriptionGate
+        feature="ai_reports_advanced"
+        requiredTier="mutahsin"
+        featureName="Персонализированные рекомендации"
+        description="Расширенные AI-рекомендации доступны в тарифе Мутахсин"
+      >
+        {recommendations.length > 0 && (
+          <Card className="border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Target className="w-5 h-5 text-emerald-500" />
+                Рекомендации
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
             {recommendations.map((recommendation, index) => (
               <div
                 key={index}
@@ -232,34 +242,41 @@ export const AIReports = () => {
         </Card>
       )}
 
-      {/* Прогнозы */}
-      {predictions.length > 0 && (
-        <Card className="border-gray-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-500" />
-              Прогнозы
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {predictions.map((prediction, index) => (
-              <div
-                key={index}
-                className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-semibold text-gray-900">{prediction.metric}</h4>
-                  <Badge variant="outline" className="text-xs">
-                    {prediction.confidence}% уверенность
-                  </Badge>
+      {/* Прогнозы - только для Premium */}
+      <SubscriptionGate
+        feature="ai_reports_premium"
+        requiredTier="sahib_al_waqf"
+        featureName="Прогнозная аналитика"
+        description="Глубинные прогнозы и инсайты доступны в тарифе Сахиб аль-Вакф"
+      >
+        {predictions.length > 0 && (
+          <Card className="border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-blue-500" />
+                Прогнозы
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {predictions.map((prediction, index) => (
+                <div
+                  key={index}
+                  className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-semibold text-gray-900">{prediction.metric}</h4>
+                    <Badge variant="outline" className="text-xs">
+                      {prediction.confidence}% уверенность
+                    </Badge>
+                  </div>
+                  <p className="text-lg font-bold text-blue-700 mb-1">{prediction.predicted_value}</p>
+                  <p className="text-xs text-gray-500">{prediction.timeframe}</p>
                 </div>
-                <p className="text-lg font-bold text-blue-700 mb-1">{prediction.predicted_value}</p>
-                <p className="text-xs text-gray-500">{prediction.timeframe}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              ))}
+            </CardContent>
+          </Card>
+        )}
+      </SubscriptionGate>
 
       {/* Если нет данных */}
       {goals.length === 0 && (

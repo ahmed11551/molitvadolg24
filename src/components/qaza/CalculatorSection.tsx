@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, Calendar, User, Plane, AlertCircle, BookOpen, CheckSquare, HelpCircle, ChevronRight } from "lucide-react";
+import { Calculator, Calendar, User, Plane, AlertCircle, BookOpen, CheckSquare, HelpCircle, ChevronRight, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { calculateBulughDate, calculatePrayerDebt, validateCalculationData } from "@/lib/prayer-calculator";
 import { prayerDebtAPI, localStorageAPI } from "@/lib/api";
@@ -16,12 +16,19 @@ import { logCalculation } from "@/lib/audit-log";
 import type { Gender, Madhab, TravelPeriod } from "@/types/prayer-debt";
 import { TravelPeriodsDialog } from "./TravelPeriodsDialog";
 import { ManualInputSection } from "./ManualInputSection";
+import { TermsDictionary } from "./TermsDictionary";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useSubscription } from "@/hooks/useSubscription";
+import { hasFeature } from "@/types/subscription";
+import { SubscriptionUpgradeDialog } from "@/components/spiritual-path/SubscriptionGate";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type CalculatorMode = "choice" | "manual" | "calculator";
 
 export const CalculatorSection = () => {
   const { toast } = useToast();
+  const { tier } = useSubscription();
   const [mode, setMode] = useState<CalculatorMode>("choice");
   const [gender, setGender] = useState<Gender>("male");
   const [madhab, setMadhab] = useState<Madhab>("hanafi");
@@ -39,6 +46,7 @@ export const CalculatorSection = () => {
   const [travelDays, setTravelDays] = useState(0);
   const [travelPeriods, setTravelPeriods] = useState<TravelPeriod[]>([]);
   const [travelPeriodsDialogOpen, setTravelPeriodsDialogOpen] = useState(false);
+  const [termsDialogOpen, setTermsDialogOpen] = useState(false);
 
   const handleCalculate = async () => {
     setErrors([]);
@@ -163,19 +171,59 @@ export const CalculatorSection = () => {
           <ChevronRight className="w-5 h-5 text-gray-400" />
         </button>
 
-        <button
-          onClick={() => setMode("calculator")}
-          className="w-full bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 text-left"
-        >
-          <div className="w-14 h-14 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700">
-            <Calculator className="w-7 h-7" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">Помощь посчитать</h3>
-            <p className="text-sm text-gray-500 mt-1">Автоматический расчёт по дате рождения</p>
-          </div>
-          <ChevronRight className="w-5 h-5 text-gray-400" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => {
+              if (hasFeature(tier, "intelligent_qaza_calculator")) {
+                setMode("calculator");
+              } else {
+                toast({
+                  title: "Премиум функция",
+                  description: "Интеллектуальный калькулятор доступен в тарифе Мутахсин",
+                  variant: "default",
+                });
+              }
+            }}
+            className={cn(
+              "w-full bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 text-left",
+              !hasFeature(tier, "intelligent_qaza_calculator") && "opacity-75"
+            )}
+          >
+            <div className="w-14 h-14 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700">
+              <Calculator className="w-7 h-7" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-gray-900">Помощь посчитать</h3>
+                {!hasFeature(tier, "intelligent_qaza_calculator") && (
+                  <Lock className="w-4 h-4 text-amber-500" />
+                )}
+              </div>
+              <p className="text-sm text-gray-500 mt-1">Автоматический расчёт по дате рождения</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          </button>
+          {!hasFeature(tier, "intelligent_qaza_calculator") && (
+            <div className="absolute -top-2 -right-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="h-6 text-xs px-2">
+                    PRO
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Интеллектуальный калькулятор</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Эта функция доступна в тарифе Мутахсин (PRO). Автоматический расчет на основе даты рождения, пола и других параметров.
+                  </p>
+                  <SubscriptionUpgradeDialog requiredTier="mutahsin" />
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -198,12 +246,28 @@ export const CalculatorSection = () => {
   // Режим калькулятора
   return (
     <div className="space-y-6">
-      <button
-        onClick={() => setMode("choice")}
-        className="flex items-center gap-2 text-emerald-600 font-medium"
-      >
-        ← Назад
-      </button>
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setMode("choice")}
+          className="flex items-center gap-2 text-emerald-600 font-medium"
+        >
+          ← Назад
+        </button>
+        <Dialog open={termsDialogOpen} onOpenChange={setTermsDialogOpen}>
+          <DialogTrigger asChild>
+            <button className="flex items-center gap-2 text-emerald-600 font-medium hover:text-emerald-700">
+              <BookOpen className="w-4 h-4" />
+              <span className="text-sm">Словарик</span>
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Словарик терминов</DialogTitle>
+            </DialogHeader>
+            <TermsDictionary />
+          </DialogContent>
+        </Dialog>
+      </div>
 
       {/* Ошибки */}
       {errors.length > 0 && (
@@ -356,6 +420,22 @@ export const CalculatorSection = () => {
           <h3 className="font-semibold text-gray-900">Путешествия (сафар)</h3>
         </div>
 
+        {/* Официальная позиция ДУМ */}
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <div className="flex items-start gap-3">
+            <HelpCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h4 className="font-semibold text-blue-900 text-sm mb-2">Официальная позиция ДУМ РФ</h4>
+              <p className="text-xs text-blue-800 leading-relaxed">
+                Согласно позиции Духовного управления мусульман Российской Федерации, 
+                путешествием (сафар) считается поездка на расстояние не менее 88 км от места постоянного проживания. 
+                В дни путешествия четырёхракаатные намазы (Зухр, Аср, Иша) сокращаются до двух ракаатов. 
+                Фаджр, Магриб и Витр не сокращаются.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="space-y-4">
           <div>
             <Label className="text-sm text-gray-600">Общее количество дней в пути</Label>
@@ -366,6 +446,9 @@ export const CalculatorSection = () => {
               min={0}
               className="mt-1 h-12 rounded-xl border-gray-200"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Если не помните точное количество, можете указать приблизительно
+            </p>
           </div>
 
           <TravelPeriodsDialog

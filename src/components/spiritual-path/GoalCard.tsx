@@ -23,6 +23,7 @@ import { spiritualPathAPI } from "@/lib/api";
 import type { Goal } from "@/types/spiritual-path";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { EditGoalDialog } from "./EditGoalDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,6 +54,7 @@ export const GoalCard = ({ goal, onBack, onUpdate }: GoalCardProps) => {
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const progressPercent = goal.target_value > 0 
     ? Math.min(100, (goal.current_value / goal.target_value) * 100) 
@@ -136,6 +138,13 @@ export const GoalCard = ({ goal, onBack, onUpdate }: GoalCardProps) => {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => setEditDialogOpen(true)}
+            >
+              <Edit className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setDeleteDialogOpen(true)}
             >
               <Trash2 className="w-5 h-5 text-destructive" />
@@ -166,6 +175,22 @@ export const GoalCard = ({ goal, onBack, onUpdate }: GoalCardProps) => {
                 <CardTitle className="text-2xl mb-2 break-words">{goal.title}</CardTitle>
                 {goal.description && (
                   <p className="text-muted-foreground break-words">{goal.description}</p>
+                )}
+                {/* Отображение текста выбранного элемента (для зикров, аятов, дуа) */}
+                {goal.item_data && goal.item_data.text && goal.category !== "quran" && (
+                  <div className="mt-4 p-4 rounded-lg bg-gray-50 border border-gray-200">
+                    <div className="text-right mb-2">
+                      <p className="text-2xl font-arabic leading-relaxed text-gray-900">
+                        {goal.item_data.text}
+                      </p>
+                    </div>
+                    {goal.item_data.translation && (
+                      <p className="text-sm text-gray-600 mt-2">{goal.item_data.translation}</p>
+                    )}
+                    {goal.item_data.transcription && (
+                      <p className="text-sm text-gray-500 italic mt-1">{goal.item_data.transcription}</p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -276,7 +301,7 @@ export const GoalCard = ({ goal, onBack, onUpdate }: GoalCardProps) => {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => {/* TODO: открыть диалог редактирования */}}
+                  onClick={() => setEditDialogOpen(true)}
                   className="min-w-0"
                 >
                   <Edit className="w-4 h-4 mr-2 shrink-0" />
@@ -323,6 +348,17 @@ export const GoalCard = ({ goal, onBack, onUpdate }: GoalCardProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Диалог редактирования */}
+      <EditGoalDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        goal={goal}
+        onGoalUpdated={() => {
+          setEditDialogOpen(false);
+          onUpdate();
+        }}
+      />
     </>
   );
 };

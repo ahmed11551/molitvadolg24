@@ -44,12 +44,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale/ru";
 
-// TODO: Получить тариф пользователя из API или контекста
-// Пока используем заглушку
-const getUserTier = (): "muslim" | "mutahsin" | "sahib_al_waqf" => {
-  // В реальном приложении это должно приходить из API
-  return "sahib_al_waqf"; // Для тестирования
-};
+import { useSubscription } from "@/hooks/useSubscription";
+import { hasFeature } from "@/types/subscription";
 
 interface GroupGoalsProps {
   goals?: Goal[];
@@ -58,6 +54,7 @@ interface GroupGoalsProps {
 
 export const GroupGoals = ({ goals = [], onRefresh }: GroupGoalsProps) => {
   const { toast } = useToast();
+  const { tier, loading: subscriptionLoading } = useSubscription();
   const [groups, setGroups] = useState<GoalGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -68,8 +65,7 @@ export const GroupGoals = ({ goals = [], onRefresh }: GroupGoalsProps) => {
   const [inviteCode, setInviteCode] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  const userTier = getUserTier();
-  const isPremium = userTier === "sahib_al_waqf";
+  const isPremium = hasFeature(tier, "group_goals");
 
   useEffect(() => {
     if (isPremium) {

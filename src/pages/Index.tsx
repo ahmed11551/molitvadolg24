@@ -7,6 +7,7 @@ import { CalculatorSection } from "@/components/qaza/CalculatorSection";
 import { ProgressSection } from "@/components/qaza/ProgressSection";
 import { ReportsSection } from "@/components/qaza/ReportsSection";
 import { RepaymentPlanSection } from "@/components/qaza/RepaymentPlanSection";
+import { TravelPrayersSection } from "@/components/qaza/TravelPrayersSection";
 import { OverviewDashboard } from "@/components/dashboard/OverviewDashboard";
 import { WelcomeDialog } from "@/components/qaza/WelcomeDialog";
 import { cn } from "@/lib/utils";
@@ -16,15 +17,17 @@ import {
   TrendingUp,
   Calendar,
   BarChart3,
+  Plane,
 } from "lucide-react";
 
-type TabType = "overview" | "calculator" | "plan" | "progress" | "reports";
+type TabType = "overview" | "calculator" | "plan" | "progress" | "travel" | "reports";
 
 const TABS: { id: TabType; label: string; icon: React.ReactNode }[] = [
   { id: "overview", label: "Обзор", icon: <LayoutDashboard className="w-4 h-4" /> },
   { id: "calculator", label: "Расчёт", icon: <Calculator className="w-4 h-4" /> },
   { id: "plan", label: "План", icon: <Calendar className="w-4 h-4" /> },
   { id: "progress", label: "Прогресс", icon: <TrendingUp className="w-4 h-4" /> },
+  { id: "travel", label: "Сафар", icon: <Plane className="w-4 h-4" /> },
   { id: "reports", label: "Отчёты", icon: <BarChart3 className="w-4 h-4" /> },
 ];
 
@@ -86,6 +89,7 @@ const Index = () => {
           {activeTab === "calculator" && <CalculatorSection />}
           {activeTab === "plan" && <RepaymentPlanSection />}
           {activeTab === "progress" && <ProgressSection />}
+          {activeTab === "travel" && <TravelPrayersSection />}
           {activeTab === "reports" && <ReportsSection />}
         </div>
       </main>

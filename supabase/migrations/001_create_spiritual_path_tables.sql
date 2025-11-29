@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS goals (
   description TEXT,
   category TEXT NOT NULL CHECK (category IN ('prayer', 'quran', 'zikr', 'sadaqa', 'knowledge', 'names_of_allah')),
   knowledge_subcategory TEXT CHECK (knowledge_subcategory IN ('book', 'alifba', 'tajwid')),
+  prayer_subcategory TEXT CHECK (prayer_subcategory IN ('regular', 'qaza')),
   type TEXT NOT NULL CHECK (type IN ('one_time', 'recurring', 'fixed_term')),
   period TEXT NOT NULL CHECK (period IN ('week', 'month', 'forty_days', 'year', 'custom')),
   metric TEXT NOT NULL CHECK (metric IN ('count', 'regularity')),

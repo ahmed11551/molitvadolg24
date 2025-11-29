@@ -814,9 +814,66 @@ export const EnhancedTasbih = ({ goalId }: EnhancedTasbihProps) => {
                 <div className="animate-pulse text-muted-foreground">Загрузка...</div>
                   </div>
             ) : selectedCategory === "goals" ? (
-              <div className="space-y-2">
-                {filteredGoals.length > 0 ? (
-                  filteredGoals.map((goal) => (
+              <div className="space-y-4">
+                {/* Ближайшие цели */}
+                {goals.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2 px-1">
+                      Ближайшие цели
+                    </h3>
+                    <div className="space-y-2 mb-4">
+                      {goals
+                        .filter(g => {
+                          if (!g.end_date) return false;
+                          const daysRemaining = Math.ceil((new Date(g.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                          return daysRemaining >= 0 && daysRemaining <= 7;
+                        })
+                        .slice(0, 3)
+                        .map((goal) => {
+                          const daysRemaining = goal.end_date 
+                            ? Math.ceil((new Date(goal.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                            : null;
+                          const isUrgent = daysRemaining !== null && daysRemaining <= 3;
+                          
+                          return (
+                            <button
+                              key={goal.id}
+                              onClick={() => handleGoalSelect(goal.id)}
+                              className={cn(
+                                "w-full p-3 rounded-xl text-left transition-all",
+                                "bg-gradient-to-r from-emerald-50 to-emerald-100 hover:from-emerald-100 hover:to-emerald-200 border",
+                                isUrgent ? "border-yellow-400" : "border-emerald-200",
+                                selectedGoal?.id === goal.id && "ring-2 ring-emerald-500"
+                              )}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm truncate">{goal.title}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {daysRemaining === 0 ? "Сегодня" : `Осталось ${daysRemaining} ${daysRemaining === 1 ? "день" : daysRemaining < 5 ? "дня" : "дней"}`}
+                                  </p>
+                                </div>
+                                <div className="ml-3">
+                                  <Badge variant={isUrgent ? "default" : "secondary"} className="text-xs">
+                                    {isUrgent ? "Срочно" : "Активно"}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Все цели */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-2 px-1">
+                    Все цели
+                  </h3>
+                  <div className="space-y-2">
+                    {filteredGoals.length > 0 ? (
+                      filteredGoals.map((goal) => (
                     <button
                       key={goal.id}
                       onClick={() => handleGoalSelect(goal.id)}

@@ -121,6 +121,9 @@ export const ItemSelector = ({
               "istighfar": { id: "istighfar", title: "Истигфар", description: "Намаз покаяния" },
               "sunnah": { id: "sunnah", title: "Сунна намаз", description: "Дополнительный намаз" },
               "fard": { id: "fard", title: "Фард намаз", description: "Обязательный намаз" },
+              "witr": { id: "witr", title: "Витр", description: "Нечетный намаз" },
+              "duha": { id: "duha", title: "Духа", description: "Утренний намаз" },
+              "tarawih": { id: "tarawih", title: "Таравих", description: "Намаз в Рамадан" },
             };
             const prayer = prayerTypes[value];
             if (prayer) {
@@ -139,6 +142,9 @@ export const ItemSelector = ({
             <SelectItem value="istighfar">Истигфар (Намаз покаяния)</SelectItem>
             <SelectItem value="sunnah">Сунна намаз</SelectItem>
             <SelectItem value="fard">Фард намаз</SelectItem>
+            <SelectItem value="witr">Витр (Нечетный намаз)</SelectItem>
+            <SelectItem value="duha">Духа (Утренний намаз)</SelectItem>
+            <SelectItem value="tarawih">Таравих (Намаз в Рамадан)</SelectItem>
           </SelectContent>
         </Select>
       </div>
