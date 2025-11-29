@@ -1,6 +1,6 @@
 // Компонент для отображения целей по категориям (компактный список)
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,10 @@ import { CreateGoalDialog } from "./CreateGoalDialog";
 import { useSubscription } from "@/hooks/useSubscription";
 import { hasFeature } from "@/types/subscription";
 import { SubscriptionGate } from "./SubscriptionGate";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { loadPendingTasbih, removePendingTasbih, type PendingTasbihEntry } from "@/lib/tasbih-storage";
+import { Progress } from "@/components/ui/progress";
+import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 interface GoalsByCategoryProps {
   goals: Goal[];
@@ -75,7 +78,32 @@ export const GoalsByCategory = ({ goals, onRefresh }: GoalsByCategoryProps) => {
   const [selectedCategory, setSelectedCategory] = useState<GoalCategory | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [pendingTasbih, setPendingTasbih] = useState<PendingTasbihEntry[]>([]);
   const { tier } = useSubscription();
+  const navigate = useNavigate();
+
+  // Загружаем незавершенные тасбихи
+  useEffect(() => {
+    const loadPending = () => setPendingTasbih(loadPendingTasbih());
+    loadPending();
+    
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<PendingTasbihEntry[]>)?.detail;
+      if (detail) {
+        setPendingTasbih(detail);
+      } else {
+        loadPending();
+      }
+    };
+    
+    window.addEventListener("pendingTasbihUpdated", handler);
+    return () => window.removeEventListener("pendingTasbihUpdated", handler);
+  }, []);
+
+  const handleRemovePendingTasbih = (id: string) => {
+    removePendingTasbih(id);
+    setPendingTasbih(loadPendingTasbih());
+  };
 
   // Группируем цели по категориям
   const goalsByCategory = useMemo(() => {
@@ -193,6 +221,81 @@ export const GoalsByCategory = ({ goals, onRefresh }: GoalsByCategoryProps) => {
                   Посчитать намазы
                 </Button>
               </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Блок незавершенных тасбихов */}
+        {pendingTasbih.length > 0 && (
+          <Card className="border-2 border-primary/30 bg-primary/5">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <CardTitle>Тасбих</CardTitle>
+              </div>
+              <CardDescription>Недавние незавершенные действия</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {pendingTasbih.map((entry) => {
+                const percent = entry.target
+                  ? Math.min(100, Math.round((entry.current / entry.target) * 100))
+                  : 0;
+                return (
+                  <div
+                    key={entry.id}
+                    className="rounded-lg border border-primary/20 bg-background/80 p-3 space-y-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">{entry.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {entry.current}/{entry.target} • обновлено{" "}
+                          {new Date(entry.updatedAt).toLocaleTimeString("ru-RU", { 
+                            hour: "2-digit", 
+                            minute: "2-digit" 
+                          })}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          onClick={() => navigate(`/dhikr?goal=${entry.id}`)}
+                        >
+                          Продолжить
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemovePendingTasbih(entry.id)}
+                        >
+                          Удалить
+                        </Button>
+                      </div>
+                    </div>
+                    <Progress value={percent} className="h-2" />
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Быстрое действие "После намаза" */}
+        <Card className="border-2 border-blue-200 bg-blue-50 cursor-pointer hover:shadow-md transition-all"
+          onClick={() => navigate("/dhikr?tab=adhkar&category=after_prayer")}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                  <Prayer className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">После намаза</h3>
+                  <p className="text-sm text-gray-600">Азкары и дуа после намаза</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
             </div>
           </CardContent>
         </Card>

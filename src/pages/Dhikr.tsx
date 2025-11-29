@@ -1,6 +1,7 @@
 // Страница Зикры - дизайн Goal app
 
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { DuaSectionV2 } from "@/components/dhikr/DuaSectionV2";
@@ -20,7 +21,9 @@ const TABS: { id: TabType; label: string; icon: React.ReactNode }[] = [
 ];
 
 const Dhikr = () => {
-  const [activeTab, setActiveTab] = useState<TabType>("dua");
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab") as TabType | null;
+  const [activeTab, setActiveTab] = useState<TabType>(tabParam && TABS.some(t => t.id === tabParam) ? tabParam : "dua");
   const tabsRef = useRef<HTMLDivElement>(null);
 
   // Автоскролл к активной вкладке

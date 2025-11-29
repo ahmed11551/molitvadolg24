@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Star, Search, ChevronRight, Sun, Moon, Shield, Sparkles } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdhkarCard } from "./AdhkarCard";
 import { eReplikaAPI } from "@/lib/api";
 import { getAvailableItemsByCategory, type DhikrItem } from "@/lib/dhikr-data";
@@ -46,12 +46,14 @@ const getCategoryIcon = (categoryId: string) => {
 export const AdhkarSectionV2 = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [adhkar, setAdhkar] = useState<Adhkar[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [favorites, setFavorites] = useState<Adhkar[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"categories" | "favorites">("categories");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const categoryParam = searchParams.get("category");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam || null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const getCategoryName = useCallback((categoryId: string): string => {
