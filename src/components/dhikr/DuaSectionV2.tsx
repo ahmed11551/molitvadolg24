@@ -1,6 +1,6 @@
 // Раздел Дуа - дизайн Goal app
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Star, Share2, Heart, Search, ChevronRight, ArrowLeft, Sun, Moon, Home, Utensils, Plane, Smile } from "lucide-react";

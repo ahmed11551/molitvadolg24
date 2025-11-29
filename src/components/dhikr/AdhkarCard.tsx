@@ -33,7 +33,7 @@ export const AdhkarCard = memo(({ dhikr }: AdhkarCardProps) => {
     return null;
   };
 
-  const handleClick = async () => {
+  const handleClick = useCallback(async () => {
     if (currentCount < dhikr.count) {
       const newCount = currentCount + 1;
       setCurrentCount(newCount);
@@ -51,12 +51,12 @@ export const AdhkarCard = memo(({ dhikr }: AdhkarCardProps) => {
         }
       }
     }
-  };
+  }, [currentCount, dhikr.count]);
 
-  const handleReset = (e: React.MouseEvent) => {
+  const handleReset = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setCurrentCount(0);
-  };
+  }, []);
 
   const progress = (currentCount / dhikr.count) * 100;
   const isComplete = currentCount === dhikr.count;

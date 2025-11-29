@@ -36,8 +36,23 @@ export default defineConfig({
   build: {
     target: "esnext",
     modulePreload: false,
-    minify: false,
+    minify: "esbuild", // Включаем минификацию для продакшена
     cssCodeSplit: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Разделяем на chunks для лучшей загрузки
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+          "ui-vendor": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+          ],
+          "utils-vendor": ["date-fns", "zod"],
+        },
+      },
+    },
   },
   test: {
     globals: true,

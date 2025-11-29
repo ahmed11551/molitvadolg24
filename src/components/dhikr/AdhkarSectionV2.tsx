@@ -1,6 +1,6 @@
 // Раздел Азкары - дизайн Goal app
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Star, Search, ChevronRight, Sun, Moon, Shield, Sparkles } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -9,6 +9,7 @@ import { eReplikaAPI } from "@/lib/api";
 import { getAvailableItemsByCategory, type DhikrItem } from "@/lib/dhikr-data";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const BOOKMARKS_KEY = "prayer_debt_bookmarks_adhkar";
 
@@ -55,6 +56,7 @@ export const AdhkarSectionV2 = () => {
   const categoryParam = searchParams.get("category");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam || null);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const getCategoryName = useCallback((categoryId: string): string => {
     const categoryNames: Record<string, string> = {
@@ -177,14 +179,16 @@ export const AdhkarSectionV2 = () => {
     }
   };
 
-  // Поиск
-  const filteredAdhkar = searchQuery
-    ? adhkar.filter(a => 
-        a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        a.translation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        a.transcription.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
+  // Поиск с debounce
+  const filteredAdhkar = useMemo(() => {
+    if (!debouncedSearchQuery) return [];
+    const query = debouncedSearchQuery.toLowerCase();
+    return adhkar.filter(a => 
+      a.title.toLowerCase().includes(query) ||
+      a.translation.toLowerCase().includes(query) ||
+      a.transcription.toLowerCase().includes(query)
+    );
+  }, [adhkar, debouncedSearchQuery]);
 
   if (loading) {
     return (
