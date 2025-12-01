@@ -269,6 +269,7 @@ export default function SpiritualPath() {
                   { value: "habits", label: "Привычки", icon: BookOpen },
                   { value: "streaks", label: "Серии", icon: TrendingUp },
                   { value: "badges", label: "Бейджи", icon: Trophy },
+                  { value: "challenges", label: "Челленджи", icon: Target },
                   { value: "analytics", label: "Аналитика", icon: BarChart3 },
                   { value: "groups", label: "Группы", icon: Users },
                   { value: "qaza", label: "Каза", icon: Calculator },
@@ -321,6 +322,12 @@ export default function SpiritualPath() {
           <TabsContent value="badges">
             <Suspense fallback={<TabSkeleton />}>
               <BadgesDisplay />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="challenges">
+            <Suspense fallback={<TabSkeleton />}>
+              <ChallengesSection />
             </Suspense>
           </TabsContent>
 
