@@ -36,27 +36,33 @@ export const InteractiveQazaStats = () => {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Автоматическое обновление при изменении данных
+  // Автоматическое обновление при изменении данных (оптимизировано)
   useEffect(() => {
     if (!autoRefresh) return;
 
+    let timeoutId: NodeJS.Timeout;
     const handleDataUpdate = () => {
-      refreshData();
-      setLastUpdate(new Date());
+      // Debounce обновлений - не чаще раза в секунду
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        refreshData();
+        setLastUpdate(new Date());
+      }, 1000);
     };
 
     // Слушаем события обновления данных
-    window.addEventListener('userDataUpdated', handleDataUpdate);
-    window.addEventListener('prayerAdded', handleDataUpdate);
-    window.addEventListener('goalUpdated', handleDataUpdate);
+    window.addEventListener('userDataUpdated', handleDataUpdate, { passive: true });
+    window.addEventListener('prayerAdded', handleDataUpdate, { passive: true });
+    window.addEventListener('goalUpdated', handleDataUpdate, { passive: true });
 
-    // Периодическое обновление каждые 30 секунд
+    // Периодическое обновление каждые 60 секунд (увеличено для производительности)
     const interval = setInterval(() => {
       refreshData();
       setLastUpdate(new Date());
-    }, 30000);
+    }, 60000);
 
     return () => {
+      clearTimeout(timeoutId);
       window.removeEventListener('userDataUpdated', handleDataUpdate);
       window.removeEventListener('prayerAdded', handleDataUpdate);
       window.removeEventListener('goalUpdated', handleDataUpdate);

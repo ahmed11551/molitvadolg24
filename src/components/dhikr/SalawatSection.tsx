@@ -1,9 +1,12 @@
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart } from "lucide-react";
 import { DuaCard } from "./DuaCard";
+import { getAvailableItemsByCategory } from "@/lib/dhikr-data";
+import { eReplikaAPI } from "@/lib/api";
 
 export const SalawatSection = () => {
-  const salawat = [
+  const [salawat, setSalawat] = useState([
     {
       id: "salawat-1",
       arabic: "اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ كَمَا صَلَّيْتَ عَلَى إِبْرَاهِيمَ وَعَلَى آلِ إِبْرَاهِيمَ إِنَّكَ حَمِيدٌ مَجِيدٌ",
@@ -31,7 +34,44 @@ export const SalawatSection = () => {
       reference: "Традиционная формула",
       audioUrl: null,
     },
-  ];
+  ]);
+
+  useEffect(() => {
+    const loadSalawat = async () => {
+      try {
+        // Пробуем загрузить из API
+        const apiSalawat = await eReplikaAPI.getSalawat();
+        if (apiSalawat && apiSalawat.length > 0) {
+          setSalawat(apiSalawat.map(item => ({
+            id: item.id,
+            arabic: item.arabic,
+            transcription: item.transcription,
+            russianTranscription: item.russianTranscription,
+            translation: item.translation,
+            reference: item.reference,
+            audioUrl: item.audioUrl,
+          })));
+          return;
+        }
+      } catch (error) {
+        console.log("API error, using local data:", error);
+      }
+
+      // Используем локальные данные (включая расширенные)
+      const localSalawat = await getAvailableItemsByCategory("salawat");
+      setSalawat(localSalawat.map(item => ({
+        id: item.id,
+        arabic: item.arabic,
+        transcription: item.transcription,
+        russianTranscription: item.russianTranscription,
+        translation: item.translation,
+        reference: item.reference,
+        audioUrl: item.audioUrl,
+      })));
+    };
+
+    loadSalawat();
+  }, []);
 
   return (
     <div className="space-y-6 animate-in fade-in-50 duration-500">

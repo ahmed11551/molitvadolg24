@@ -18,6 +18,7 @@ import { getPrayersArray, calculateProgressStats, formatNumber } from "@/lib/pra
 import { PrayerProgressCard } from "./PrayerProgressCard";
 import { LastPrayerIndicator } from "./LastPrayerIndicator";
 import { QuickAddPrayerButton } from "./QuickAddPrayerButton";
+import { CompactProgressPanel } from "./CompactProgressPanel";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
@@ -72,88 +73,8 @@ export const QazaOverviewDashboard = ({ onNavigateToCalculator }: QazaOverviewDa
       {/* Индикатор последнего восполненного намаза */}
       <LastPrayerIndicator />
 
-      {/* Главная карточка прогресса */}
-      <Card className="bg-white border-gray-200 shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-bold text-gray-900">Общий прогресс</CardTitle>
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-              {stats.overallProgress}%
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Круговой прогресс */}
-          <div className="flex items-center justify-center py-4">
-            <div className="relative w-32 h-32">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  fill="none"
-                  stroke="#e5f7ed"
-                  strokeWidth="10"
-                />
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  fill="none"
-                  stroke="#10b981"
-                  strokeWidth="10"
-                  strokeLinecap="round"
-                  strokeDasharray={352}
-                  strokeDashoffset={352 - (352 * stats.overallProgress) / 100}
-                  className="transition-all duration-1000"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold text-gray-900">
-                  {stats.overallProgress}%
-                </span>
-                <span className="text-xs text-gray-500">выполнено</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Статистика */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-center p-3 rounded-lg bg-emerald-50">
-              <p className="text-2xl font-bold text-emerald-700">
-                {formatNumber(stats.totalCompleted)}
-              </p>
-              <p className="text-xs text-emerald-600 mt-1">Восполнено</p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-gray-50">
-              <p className="text-2xl font-bold text-gray-700">
-                {formatNumber(stats.remaining)}
-              </p>
-              <p className="text-xs text-gray-600 mt-1">Осталось</p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-blue-50">
-              <p className="text-2xl font-bold text-blue-700">
-                {stats.dailyPace}
-              </p>
-              <p className="text-xs text-blue-600 mt-1">В день</p>
-            </div>
-          </div>
-
-          {/* Прогресс бар */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Прогресс</span>
-              <span className="font-semibold text-gray-900">
-                {formatNumber(stats.totalCompleted)} / {formatNumber(stats.totalMissed)}
-              </span>
-            </div>
-            <Progress 
-              value={stats.overallProgress} 
-              className="h-3 bg-gray-100"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Компактная интерактивная панель прогресса */}
+      <CompactProgressPanel />
 
       {/* Быстрая кнопка добавления */}
       <QuickAddPrayerButton />

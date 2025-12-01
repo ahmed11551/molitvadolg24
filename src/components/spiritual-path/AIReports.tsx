@@ -45,27 +45,37 @@ export const AIReports = () => {
   useEffect(() => {
     loadData();
 
-    // Автоматическое обновление при изменении данных
+    // Автоматическое обновление при изменении данных (оптимизировано)
+    let timeoutId: NodeJS.Timeout;
     const handleDataUpdate = () => {
-      loadData();
+      // Debounce обновлений - не чаще раза в 2 секунды
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        if (!loading) {
+          loadData();
+        }
+      }, 2000);
     };
 
-    window.addEventListener('userDataUpdated', handleDataUpdate);
-    window.addEventListener('goalUpdated', handleDataUpdate);
-    window.addEventListener('prayerAdded', handleDataUpdate);
+    window.addEventListener('userDataUpdated', handleDataUpdate, { passive: true });
+    window.addEventListener('goalUpdated', handleDataUpdate, { passive: true });
+    window.addEventListener('prayerAdded', handleDataUpdate, { passive: true });
 
-    // Периодическое обновление каждые 60 секунд
+    // Периодическое обновление каждые 120 секунд (увеличено для производительности)
     const interval = setInterval(() => {
-      loadData();
-    }, 60000);
+      if (!loading) {
+        loadData();
+      }
+    }, 120000);
 
     return () => {
+      clearTimeout(timeoutId);
       window.removeEventListener('userDataUpdated', handleDataUpdate);
       window.removeEventListener('goalUpdated', handleDataUpdate);
       window.removeEventListener('prayerAdded', handleDataUpdate);
       clearInterval(interval);
     };
-  }, []);
+  }, [loading]);
 
   const loadData = async () => {
     setLoading(true);

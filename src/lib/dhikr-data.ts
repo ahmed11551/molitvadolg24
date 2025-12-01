@@ -22,7 +22,10 @@ export interface DhikrItem {
   number?: number; // Для имен Аллаха, сур
 }
 
-// Данные дуа (из DuaSection)
+// Импортируем расширенную базу данных
+import { extendedDuas, extendedSalawat, extendedAzkars } from "@/data/extended-dhikr-data";
+
+// Данные дуа (из DuaSection + расширенная база)
 const duasData: Record<string, DhikrItem> = {
   "morning-1": {
     id: "morning-1",
@@ -156,6 +159,21 @@ const duasData: Record<string, DhikrItem> = {
     tags: ["спокойствие"],
     audioUrl: null,
   },
+  // Добавляем расширенные дуа
+  ...extendedDuas.reduce((acc, dua) => {
+    acc[dua.id] = {
+      id: dua.id,
+      arabic: dua.arabic,
+      transcription: dua.transcription,
+      russianTranscription: dua.russianTranscription,
+      translation: dua.translation,
+      reference: dua.reference,
+      category: dua.category,
+      tags: dua.tags,
+      audioUrl: null,
+    };
+    return acc;
+  }, {} as Record<string, DhikrItem>),
 };
 
 // Данные салаватов (из SalawatSection)
@@ -303,6 +321,22 @@ const adhkarData: Record<string, DhikrItem> = {
     category: "relief",
     audioUrl: null,
   },
+  // Добавляем расширенные азкары
+  ...extendedAzkars.reduce((acc, azkar) => {
+    acc[azkar.id] = {
+      id: azkar.id,
+      title: azkar.title,
+      arabic: azkar.arabic,
+      transcription: azkar.transcription,
+      russianTranscription: azkar.russianTranscription,
+      translation: azkar.translation,
+      count: azkar.count,
+      category: azkar.category,
+      tags: azkar.tags,
+      audioUrl: null,
+    };
+    return acc;
+  }, {} as Record<string, DhikrItem>),
 };
 
 // Функция для получения данных по ID и типу (асинхронная, использует e-Replika API)
