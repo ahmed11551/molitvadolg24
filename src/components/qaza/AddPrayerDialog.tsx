@@ -121,6 +121,22 @@ export const AddPrayerDialog = ({ open, onOpenChange, onUpdate }: AddPrayerDialo
               logPrayerAdded(userId, prayer, count);
             }
           });
+
+          // Обновляем историю для интерактивной статистики
+          try {
+            const { updateHistoryFromProgress } = await import("@/lib/qaza-history-tracker");
+            updateHistoryFromProgress(
+              userData.repayment_progress.completed_prayers,
+              userData.debt_calculation.missed_prayers
+            );
+          } catch (error) {
+            console.error("Error updating history:", error);
+          }
+
+          // Отправляем событие обновления данных
+          window.dispatchEvent(new CustomEvent('prayerAdded', {
+            detail: { counts, total }
+          }));
         }
       }
 

@@ -10,6 +10,7 @@ import { RepaymentPlanSection } from "@/components/qaza/RepaymentPlanSection";
 import { TravelPrayersSection } from "@/components/qaza/TravelPrayersSection";
 import { OverviewDashboard } from "@/components/dashboard/OverviewDashboard";
 import { QazaOverviewDashboard } from "@/components/qaza/QazaOverviewDashboard";
+import { InteractiveQazaStats } from "@/components/qaza/InteractiveQazaStats";
 import { WelcomeDialog } from "@/components/qaza/WelcomeDialog";
 import { cn } from "@/lib/utils";
 import {
@@ -85,14 +86,14 @@ const Index = () => {
         </div>
 
         {/* Content */}
-        <div className="min-h-[60vh]">
-          {activeTab === "overview" && <QazaOverviewDashboard onNavigateToCalculator={handleNavigateToCalculator} />}
-          {activeTab === "calculator" && <CalculatorSection />}
-          {activeTab === "plan" && <RepaymentPlanSection />}
-          {activeTab === "progress" && <ProgressSection />}
-          {activeTab === "travel" && <TravelPrayersSection />}
-          {activeTab === "reports" && <ReportsSection />}
-        </div>
+            <div className="min-h-[60vh]">
+              {activeTab === "overview" && <QazaOverviewDashboard onNavigateToCalculator={handleNavigateToCalculator} />}
+              {activeTab === "calculator" && <CalculatorSection />}
+              {activeTab === "plan" && <RepaymentPlanSection />}
+              {activeTab === "progress" && <InteractiveQazaStats />}
+              {activeTab === "travel" && <TravelPrayersSection />}
+              {activeTab === "reports" && <ReportsSection />}
+            </div>
       </main>
 
       <BottomNav />

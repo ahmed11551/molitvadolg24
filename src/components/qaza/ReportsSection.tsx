@@ -258,25 +258,66 @@ export const ReportsSection = () => {
         </div>
       </div>
 
-      {/* Weekly Chart */}
+      {/* Weekly Chart - теперь использует реальные данные */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
         <h3 className="font-semibold text-gray-900 mb-4">За неделю</h3>
-        <div className="h-32 flex items-end justify-between gap-2">
-          {[10, 12, 8, 15, 11, 13, 14].map((value, index) => (
-            <div key={index} className="flex-1 flex flex-col items-center gap-2">
-              <div
-                className={cn(
-                  "w-full rounded-lg transition-all duration-300",
-                  value > 10 ? "bg-emerald-500" : "bg-emerald-200"
-                )}
-                style={{ height: `${(value / 15) * 100}%` }}
-              />
-              <span className="text-[10px] text-gray-500">
-                {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"][index]}
-              </span>
+        {(() => {
+          // Получаем реальные данные за неделю
+          const { getHistoryForPeriod } = require("@/lib/qaza-history-tracker");
+          const weekStart = new Date();
+          weekStart.setDate(weekStart.getDate() - 7);
+          const weekHistory = getHistoryForPeriod(weekStart, new Date());
+          
+          // Если нет данных, показываем заглушку
+          if (weekHistory.length === 0) {
+            return (
+              <div className="h-32 flex items-end justify-between gap-2">
+                {[0, 0, 0, 0, 0, 0, 0].map((_, index) => (
+                  <div key={index} className="flex-1 flex flex-col items-center gap-2">
+                    <div className="w-full rounded-lg bg-gray-100" style={{ height: "10%" }} />
+                    <span className="text-[10px] text-gray-400">
+                      {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"][index]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          }
+
+          // Группируем по дням недели
+          const weekData = Array.from({ length: 7 }, (_, i) => {
+            const day = new Date();
+            day.setDate(day.getDate() - (6 - i));
+            const dayKey = day.toISOString().split('T')[0];
+            const entry = weekHistory.find(e => e.date === dayKey);
+            return entry?.completed || 0;
+          });
+
+          const maxValue = Math.max(...weekData, 1);
+
+          return (
+            <div className="h-32 flex items-end justify-between gap-2">
+              {weekData.map((value, index) => (
+                <div key={index} className="flex-1 flex flex-col items-center gap-2 group">
+                  <div
+                    className={cn(
+                      "w-full rounded-lg transition-all duration-300 cursor-pointer",
+                      value > 0 ? "bg-emerald-500 hover:bg-emerald-600" : "bg-gray-100"
+                    )}
+                    style={{ height: `${(value / maxValue) * 100}%`, minHeight: value > 0 ? "4px" : "2px" }}
+                    title={`${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"][index]}: ${value} намазов`}
+                  />
+                  <span className="text-[10px] text-gray-500 hidden group-hover:block">
+                    {value}
+                  </span>
+                  <span className="text-[10px] text-gray-400">
+                    {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"][index]}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          );
+        })()}
       </div>
 
       {/* Stats Cards */}
