@@ -9,6 +9,7 @@ import { ReportsSection } from "@/components/qaza/ReportsSection";
 import { RepaymentPlanSection } from "@/components/qaza/RepaymentPlanSection";
 import { TravelPrayersSection } from "@/components/qaza/TravelPrayersSection";
 import { OverviewDashboard } from "@/components/dashboard/OverviewDashboard";
+import { QazaOverviewDashboard } from "@/components/qaza/QazaOverviewDashboard";
 import { WelcomeDialog } from "@/components/qaza/WelcomeDialog";
 import { cn } from "@/lib/utils";
 import {
@@ -85,7 +86,7 @@ const Index = () => {
 
         {/* Content */}
         <div className="min-h-[60vh]">
-          {activeTab === "overview" && <OverviewDashboard onNavigateToCalculator={handleNavigateToCalculator} />}
+          {activeTab === "overview" && <QazaOverviewDashboard onNavigateToCalculator={handleNavigateToCalculator} />}
           {activeTab === "calculator" && <CalculatorSection />}
           {activeTab === "plan" && <RepaymentPlanSection />}
           {activeTab === "progress" && <ProgressSection />}

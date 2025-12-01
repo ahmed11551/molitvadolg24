@@ -20,27 +20,33 @@ export const PrayerProgressCard = memo(({
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <Card className="bg-gradient-card hover:shadow-medium transition-shadow duration-300 border-border/50">
-      <CardContent className="pt-6">
+    <Card className="bg-white hover:shadow-md transition-all duration-300 border-gray-200">
+      <CardContent className="p-4">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">{emoji}</span>
-              <h3 className="font-semibold text-foreground">{name}</h3>
+              <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                <span className="text-xl">{emoji}</span>
+              </div>
+              <h3 className="font-semibold text-gray-900 text-sm">{name}</h3>
             </div>
-            <div className="text-sm font-bold gradient-text">
+            <div className="text-lg font-bold text-emerald-600">
               {percentage}%
             </div>
           </div>
           
           <Progress 
             value={percentage} 
-            className="h-2"
+            className="h-2.5 bg-gray-100"
           />
           
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{completed.toLocaleString()}</span>
-            <span>{total.toLocaleString()}</span>
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-gray-600 font-medium">
+              {completed.toLocaleString()} из {total.toLocaleString()}
+            </span>
+            <span className="text-emerald-600 font-semibold">
+              Осталось: {Math.max(0, total - completed).toLocaleString()}
+            </span>
           </div>
         </div>
       </CardContent>

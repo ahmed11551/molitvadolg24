@@ -89,6 +89,28 @@ export const AddPrayerDialog = ({ open, onOpenChange, onUpdate }: AddPrayerDialo
           userData.repayment_progress.last_updated = new Date();
           localStorageAPI.saveUserData(userData);
 
+          // Сохраняем в историю для индикатора последнего намаза
+          const historyKey = "qaza_prayer_history";
+          const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+          const now = new Date();
+          
+          Object.entries(counts).forEach(([prayer, count]) => {
+            if (count > 0) {
+              history.push({
+                prayer_type: prayer,
+                count: count,
+                date: now.toISOString(),
+              });
+            }
+          });
+          
+          // Оставляем только последние 100 записей
+          const sortedHistory = history
+            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 100);
+          
+          localStorage.setItem(historyKey, JSON.stringify(sortedHistory));
+
           // Логирование в AuditLog
           const userId = getTelegramUserId() || userData.user_id;
           logProgressUpdate(userId, beforeProgress, userData.repayment_progress.completed_prayers, counts);
