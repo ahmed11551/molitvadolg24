@@ -5,9 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock } from "lucide-react";
 import { useUserData } from "@/hooks/useUserData";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
-import { cn } from "@/lib/utils";
 
 const PRAYER_NAMES: Record<string, { label: string; emoji: string; color: string }> = {
   fajr: { label: "Фаджр", emoji: "🌅", color: "text-orange-500" },

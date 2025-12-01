@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, CheckCircle2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { AddPrayerDialog } from "./AddPrayerDialog";
 import { useUserData } from "@/hooks/useUserData";
 import { cn } from "@/lib/utils";
