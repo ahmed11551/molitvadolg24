@@ -162,9 +162,9 @@ export const LifeHacksWidget = () => {
             )}>
               {currentHack.icon}
             </div>
-            <div className="flex-1">
-              <h4 className="font-semibold text-gray-900 mb-1">{currentHack.title}</h4>
-              <p className="text-sm text-gray-600 leading-relaxed">{currentHack.description}</p>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold text-gray-900 mb-1 break-words">{currentHack.title}</h4>
+              <p className="text-sm text-gray-600 leading-relaxed break-words">{currentHack.description}</p>
               {currentHack.source && (
                 <Badge variant="outline" className="mt-2 text-xs">
                   {currentHack.source}

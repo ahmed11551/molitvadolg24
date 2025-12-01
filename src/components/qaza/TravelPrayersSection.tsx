@@ -54,7 +54,7 @@ export const TravelPrayersSection = () => {
       {/* Info Alert */}
       <Alert className="border-accent/30 bg-accent/5">
         <Info className="h-4 w-4 text-accent" />
-        <AlertDescription>
+        <AlertDescription className="break-words">
           В дни путешествия (сафар) четырёхракаатные намазы (Зухр, Аср, Иша) сокращаются до двух
           ракаатов. Фаджр, Магриб и Витр не сокращаются.
         </AlertDescription>
@@ -67,7 +67,7 @@ export const TravelPrayersSection = () => {
             <Plane className="w-5 h-5 text-primary" />
             <CardTitle>Намазы в путешествии</CardTitle>
           </div>
-          <CardDescription>
+          <CardDescription className="break-words">
             Отслеживайте восполнение сокращённых намазов из периодов сафара
           </CardDescription>
         </CardHeader>
@@ -76,7 +76,7 @@ export const TravelPrayersSection = () => {
       {/* Travel Prayer Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         {travelPrayers.map((prayer) => {
-          const percentage = Math.round((prayer.completed / prayer.total) * 100);
+          const percentage = prayer.total > 0 ? Math.round((prayer.completed / prayer.total) * 100) : 0;
           return (
             <Card
               key={prayer.name}
@@ -84,9 +84,9 @@ export const TravelPrayersSection = () => {
             >
               <CardContent className="pt-6">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{prayer.emoji}</span>
-                    <h3 className="font-semibold text-foreground">{prayer.name}</h3>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-2xl flex-shrink-0">{prayer.emoji}</span>
+                    <h3 className="font-semibold text-foreground break-words flex-1 min-w-0">{prayer.name}</h3>
                   </div>
 
                   <div>
@@ -130,7 +130,7 @@ export const TravelPrayersSection = () => {
               })()}
               %
             </div>
-            <div className="text-sm opacity-90">
+            <div className="text-sm opacity-90 break-words">
               {travelPrayers.reduce((sum, p) => sum + p.completed, 0)} из{" "}
               {travelPrayers.reduce((sum, p) => sum + p.total, 0)} намазов восполнено
             </div>
@@ -142,14 +142,14 @@ export const TravelPrayersSection = () => {
       <Card className="border-muted">
         <CardContent className="pt-6">
           <div className="space-y-3 text-sm text-muted-foreground">
-            <h4 className="font-semibold text-foreground">О сокращении намазов в путешествии:</h4>
-            <ul className="space-y-2 list-disc list-inside">
-              <li>Зухр сокращается с 4 до 2 ракаатов</li>
-              <li>Аср сокращается с 4 до 2 ракаатов</li>
-              <li>Иша сокращается с 4 до 2 ракаатов</li>
-              <li>Фаджр (2 ракаата) не сокращается</li>
-              <li>Магриб (3 ракаата) не сокращается</li>
-              <li>Витр не сокращается</li>
+            <h4 className="font-semibold text-foreground break-words">О сокращении намазов в путешествии:</h4>
+            <ul className="space-y-2 list-disc list-inside break-words">
+              <li className="break-words">Зухр сокращается с 4 до 2 ракаатов</li>
+              <li className="break-words">Аср сокращается с 4 до 2 ракаатов</li>
+              <li className="break-words">Иша сокращается с 4 до 2 ракаатов</li>
+              <li className="break-words">Фаджр (2 ракаата) не сокращается</li>
+              <li className="break-words">Магриб (3 ракаата) не сокращается</li>
+              <li className="break-words">Витр не сокращается</li>
             </ul>
           </div>
         </CardContent>

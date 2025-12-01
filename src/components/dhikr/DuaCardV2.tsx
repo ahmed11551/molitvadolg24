@@ -232,19 +232,19 @@ export const DuaCardV2 = memo(({ dua, number, categoryColor }: DuaCardV2Props) =
         )}
 
         {/* Серый блок с текстом и кнопками */}
-        <div className="bg-gray-100 rounded-2xl mx-4 mb-4 p-4 space-y-4">
+        <div className="bg-gray-100 rounded-2xl mx-4 mb-4 p-4 space-y-4 overflow-hidden">
           {/* Транслитерация */}
           {settings.showTranscription && (
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-hidden">
               {/* Латинская транскрипция */}
               {dua.transcription && (
-                <p className="text-sm text-foreground/90 italic leading-relaxed text-center">
+                <p className="text-sm text-foreground/90 italic leading-relaxed text-center break-words overflow-wrap-anywhere">
                   {dua.transcription}
                 </p>
               )}
               {/* Кириллическая транскрипция */}
               {dua.russianTranscription && (
-                <p className="text-sm text-foreground leading-relaxed text-center font-medium">
+                <p className="text-sm text-foreground leading-relaxed text-center font-medium break-words overflow-wrap-anywhere">
                   {dua.russianTranscription}
                 </p>
               )}
@@ -255,11 +255,12 @@ export const DuaCardV2 = memo(({ dua, number, categoryColor }: DuaCardV2Props) =
           <p 
             className={cn(
               getArabicFontSize(settings.arabicFontSize),
-              "leading-relaxed font-arabic text-foreground text-center"
+              "leading-relaxed font-arabic text-foreground text-center break-words overflow-wrap-anywhere"
             )}
             style={{ 
               fontFamily: "'Amiri', 'Noto Sans Arabic', serif",
               lineHeight: "1.8",
+              wordBreak: "break-word"
             }}
             dir="rtl"
           >

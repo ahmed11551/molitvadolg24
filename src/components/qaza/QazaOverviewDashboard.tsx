@@ -51,8 +51,8 @@ export const QazaOverviewDashboard = ({ onNavigateToCalculator }: QazaOverviewDa
             <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
               <Target className="w-10 h-10 text-emerald-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Начните отслеживать каза</h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-2 break-words">Начните отслеживать каза</h3>
+            <p className="text-sm text-gray-600 mb-6 break-words">
               Рассчитайте количество пропущенных намазов, чтобы начать восполнять их
             </p>
             <Button
@@ -82,7 +82,7 @@ export const QazaOverviewDashboard = ({ onNavigateToCalculator }: QazaOverviewDa
       {/* Прогресс по типам намазов */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">По типам намазов</h3>
+          <h3 className="text-lg font-semibold text-gray-900 break-words">По типам намазов</h3>
           <Button
             variant="ghost"
             size="sm"

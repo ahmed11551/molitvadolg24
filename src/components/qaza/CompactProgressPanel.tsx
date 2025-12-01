@@ -65,8 +65,8 @@ export const CompactProgressPanel = () => {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <Target className="w-5 h-5" />
-                  <span className="text-sm font-medium opacity-90">Прогресс каза</span>
+                  <Target className="w-5 h-5 flex-shrink-0" />
+                  <span className="text-sm font-medium opacity-90 break-words">Прогресс каза</span>
                 </div>
                 <div className="flex items-baseline gap-3">
                   <div className="text-4xl font-bold">{stats.overallProgress}%</div>
@@ -126,12 +126,12 @@ export const CompactProgressPanel = () => {
                   {stats.daysToComplete > 0 && (
                     <div className="p-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
                       <div className="flex items-center gap-2 mb-1">
-                        <TrendingUp className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm font-semibold text-gray-900">
+                        <TrendingUp className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                        <span className="text-sm font-semibold text-gray-900 break-words">
                           При текущем темпе
                         </span>
                       </div>
-                      <div className="text-xs text-gray-600">
+                      <div className="text-xs text-gray-600 break-words">
                         Завершите через {stats.monthsToComplete > 0 
                           ? `${stats.monthsToComplete} мес. ${stats.daysRemaining} дн.`
                           : `${stats.daysToComplete} дн.`

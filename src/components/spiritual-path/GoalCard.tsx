@@ -179,13 +179,13 @@ export const GoalCard = memo(({ goal, onBack, onUpdate }: GoalCardProps) => {
                 {/* Отображение текста выбранного элемента (для зикров, аятов, дуа) */}
                 {goal.item_data && goal.item_data.text && goal.category !== "quran" && (
                   <div className="mt-4 p-4 rounded-lg bg-gray-50 border border-gray-200">
-                    <div className="text-right mb-2">
-                      <p className="text-2xl font-arabic leading-relaxed text-gray-900">
+                    <div className="text-right mb-2 overflow-hidden">
+                      <p className="text-2xl font-arabic leading-relaxed text-gray-900 break-words overflow-wrap-anywhere">
                         {goal.item_data.text}
                       </p>
                     </div>
                     {goal.item_data.translation && (
-                      <p className="text-sm text-gray-600 mt-2">{goal.item_data.translation}</p>
+                      <p className="text-sm text-gray-600 mt-2 break-words">{goal.item_data.translation}</p>
                     )}
                     {goal.item_data.transcription && (
                       <p className="text-sm text-gray-500 italic mt-1">{goal.item_data.transcription}</p>

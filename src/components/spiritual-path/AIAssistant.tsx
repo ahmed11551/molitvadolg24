@@ -216,9 +216,9 @@ export const AIAssistant = () => {
             <div className="bg-white/80 rounded-xl p-4 border-l-4 border-purple-500">
               <div className="flex items-start gap-3">
                 {recommendations[0].icon}
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 mb-1">{recommendations[0].title}</h4>
-                  <p className="text-sm text-gray-600">{recommendations[0].message}</p>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-gray-900 mb-1 break-words">{recommendations[0].title}</h4>
+                  <p className="text-sm text-gray-600 break-words">{recommendations[0].message}</p>
                   {recommendations[0].action && (
                     <Button
                       variant="link"
@@ -270,7 +270,7 @@ export const AIAssistant = () => {
                     )}
                     <div
                       className={cn(
-                        "rounded-lg px-3 py-2 max-w-[80%] text-sm",
+                        "rounded-lg px-3 py-2 max-w-[80%] text-sm break-words overflow-wrap-anywhere",
                         msg.role === "user"
                           ? "bg-purple-500 text-white"
                           : "bg-white border border-gray-200 text-gray-900"
@@ -327,10 +327,10 @@ export const AIAssistant = () => {
               >
                 <div className="flex items-start gap-2">
                   {rec.icon}
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-sm text-gray-900">{rec.title}</h4>
-                    <p className="text-xs text-gray-600 mt-1">{rec.message}</p>
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-sm text-gray-900 break-words">{rec.title}</h4>
+                  <p className="text-xs text-gray-600 mt-1 break-words">{rec.message}</p>
+                </div>
                   {rec.priority === "high" && (
                     <Badge variant="destructive" className="text-xs">Важно</Badge>
                   )}

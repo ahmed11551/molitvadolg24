@@ -24,11 +24,11 @@ export const PrayerProgressCard = memo(({
       <CardContent className="p-4">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
                 <span className="text-xl">{emoji}</span>
               </div>
-              <h3 className="font-semibold text-gray-900 text-sm">{name}</h3>
+              <h3 className="font-semibold text-gray-900 text-sm break-words flex-1 min-w-0">{name}</h3>
             </div>
             <div className="text-lg font-bold text-emerald-600">
               {percentage}%

@@ -622,13 +622,14 @@ export const DuaCard = memo(({ dua, categoryColor }: DuaCardProps) => {
       
       <CardContent className="p-6 sm:p-8 space-y-6 sm:space-y-8">
         {/* Arabic Text - Enhanced typography */}
-        <div className="text-center px-2 sm:px-4">
+        <div className="text-center px-2 sm:px-4 overflow-hidden">
           <p 
-            className="text-3xl sm:text-4xl leading-relaxed font-arabic text-foreground select-none"
+            className="text-3xl sm:text-4xl leading-relaxed font-arabic text-foreground select-none break-words overflow-wrap-anywhere"
             style={{ 
               fontFamily: "'Amiri', 'Noto Sans Arabic', serif",
               lineHeight: "1.8",
-              letterSpacing: "0.02em"
+              letterSpacing: "0.02em",
+              wordBreak: "break-word"
             }}
             dir="rtl"
           >
@@ -637,33 +638,33 @@ export const DuaCard = memo(({ dua, categoryColor }: DuaCardProps) => {
         </div>
 
         {/* Transcription (Latin) - Improved styling */}
-        <div className="bg-gradient-to-br from-secondary/40 to-secondary/20 rounded-2xl p-5 sm:p-6 border border-border/40 shadow-inner backdrop-blur-sm">
-          <p className="text-center text-lg sm:text-xl text-foreground/95 italic leading-relaxed font-medium">
+        <div className="bg-gradient-to-br from-secondary/40 to-secondary/20 rounded-2xl p-5 sm:p-6 border border-border/40 shadow-inner backdrop-blur-sm overflow-hidden">
+          <p className="text-center text-lg sm:text-xl text-foreground/95 italic leading-relaxed font-medium break-words overflow-wrap-anywhere">
             {dua.transcription}
           </p>
         </div>
 
         {/* Russian Transcription - Enhanced design */}
         {dua.russianTranscription && (
-          <div className="bg-gradient-to-br from-accent/15 to-accent/5 rounded-2xl p-5 sm:p-6 border border-accent/30 shadow-inner backdrop-blur-sm">
-            <p className="text-center text-base sm:text-lg text-foreground/95 leading-relaxed font-medium">
+          <div className="bg-gradient-to-br from-accent/15 to-accent/5 rounded-2xl p-5 sm:p-6 border border-accent/30 shadow-inner backdrop-blur-sm overflow-hidden">
+            <p className="text-center text-base sm:text-lg text-foreground/95 leading-relaxed font-medium break-words overflow-wrap-anywhere">
               {dua.russianTranscription}
             </p>
           </div>
         )}
 
         {/* Translation - Professional styling */}
-        <div className="bg-gradient-to-br from-primary/8 to-primary/3 rounded-2xl p-5 sm:p-6 border border-primary/25 shadow-inner backdrop-blur-sm">
-          <p className="text-center text-base sm:text-lg text-foreground leading-relaxed font-normal">
+        <div className="bg-gradient-to-br from-primary/8 to-primary/3 rounded-2xl p-5 sm:p-6 border border-primary/25 shadow-inner backdrop-blur-sm overflow-hidden">
+          <p className="text-center text-base sm:text-lg text-foreground leading-relaxed font-normal break-words overflow-wrap-anywhere">
             {dua.translation}
           </p>
         </div>
 
         {/* Reference - Elegant design */}
-        <div className="flex items-center justify-center gap-3 text-sm sm:text-base text-muted-foreground/80">
-          <div className="w-1.5 h-1.5 rounded-full bg-accent/60" />
-          <span className="font-medium italic">{dua.reference}</span>
-          <div className="w-1.5 h-1.5 rounded-full bg-accent/60" />
+        <div className="flex items-center justify-center gap-3 text-sm sm:text-base text-muted-foreground/80 flex-wrap px-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-accent/60 flex-shrink-0" />
+          <span className="font-medium italic break-words text-center">{dua.reference}</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-accent/60 flex-shrink-0" />
         </div>
 
         {/* Audio Player - Professional design */}

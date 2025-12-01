@@ -135,7 +135,7 @@ export const DailySummaryWidget = () => {
         <div className="p-3 rounded-xl bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100">
           <div className="flex items-start gap-2">
             <TrendingUp className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-gray-700 flex-1">{motivationalMessage}</p>
+            <p className="text-sm text-gray-700 flex-1 break-words">{motivationalMessage}</p>
           </div>
         </div>
 
