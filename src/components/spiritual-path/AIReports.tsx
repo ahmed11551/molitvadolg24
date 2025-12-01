@@ -167,30 +167,42 @@ export const AIReports = () => {
       {/* Основные метрики */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
+          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 hover:shadow-md transition-all cursor-pointer">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-emerald-700">{stats.completedGoals}</div>
               <div className="text-xs text-emerald-600">Выполнено</div>
+              {stats.completedToday > 0 && (
+                <div className="text-xs text-emerald-500 mt-1">+{stats.completedToday} сегодня</div>
+              )}
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-md transition-all cursor-pointer">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-blue-700">{stats.activeGoals}</div>
               <div className="text-xs text-blue-600">Активных</div>
+              {stats.goalsNearCompletion.length > 0 && (
+                <div className="text-xs text-blue-500 mt-1">{stats.goalsNearCompletion.length} близки к завершению</div>
+              )}
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-md transition-all cursor-pointer">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-orange-700 flex items-center justify-center gap-1">
                 {stats.streakDays} <Flame className="w-5 h-5" />
               </div>
               <div className="text-xs text-orange-600">Дней подряд</div>
+              {stats.streakDays > 0 && stats.longestStreak > stats.streakDays && (
+                <div className="text-xs text-orange-500 mt-1">Рекорд: {stats.longestStreak}</div>
+              )}
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-md transition-all cursor-pointer">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-purple-700">{stats.totalActions}</div>
               <div className="text-xs text-purple-600">Действий</div>
+              <div className="text-xs text-purple-500 mt-1">
+                {stats.averageProgress.toFixed(0)}% средний прогресс
+              </div>
             </CardContent>
           </Card>
         </div>
