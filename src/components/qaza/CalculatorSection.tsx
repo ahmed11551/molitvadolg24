@@ -205,22 +205,7 @@ export const CalculatorSection = () => {
           </button>
           {!hasFeature(tier, "intelligent_qaza_calculator") && (
             <div className="absolute -top-2 -right-2">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="h-6 text-xs px-2">
-                    PRO
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Интеллектуальный калькулятор</DialogTitle>
-                  </DialogHeader>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Эта функция доступна в тарифе Мутахсин (PRO). Автоматический расчет на основе даты рождения, пола и других параметров.
-                  </p>
-                  <SubscriptionUpgradeDialog requiredTier="mutahsin" />
-                </DialogContent>
-              </Dialog>
+              <SubscriptionUpgradeDialog requiredTier="mutahsin" />
             </div>
           )}
         </div>
