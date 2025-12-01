@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BadgesDisplayCompact } from "./BadgesDisplayCompact";
 import { DailySummaryWidget } from "./DailySummaryWidget";
+import { LifeHacksWidget } from "./LifeHacksWidget";
 import { cn } from "@/lib/utils";
 import { Target, BookOpen, CheckCircle2, Circle, Plus } from "lucide-react";
 import type { Goal } from "@/types/spiritual-path";
