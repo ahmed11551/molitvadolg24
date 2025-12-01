@@ -18,8 +18,17 @@ export const ProgressSection = () => {
   // Мемоизация статистики
   const stats = useMemo(() => calculateProgressStats(userData), [userData]);
 
+  // Показываем загрузку
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-pulse text-gray-400">Загрузка...</div>
+      </div>
+    );
+  }
+
   // Если данных нет, показываем сообщение
-  if (!userData) {
+  if (!userData || !userData.debt_calculation) {
     return (
       <div className="space-y-6 animate-in fade-in-50 duration-500">
         <Card className="bg-gradient-card shadow-medium border-border/50">
