@@ -83,9 +83,9 @@ export const AdhkarCard = memo(({ dhikr }: AdhkarCardProps) => {
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <dhikr.icon className="w-5 h-5 text-primary" />
             </div>
-            <div>
-              <h3 className="font-semibold text-foreground">{dhikr.title}</h3>
-              <p className="text-xs text-muted-foreground">{dhikr.category}</p>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-foreground break-words">{dhikr.title}</h3>
+              <p className="text-xs text-muted-foreground break-words">{dhikr.category}</p>
             </div>
           </div>
           <Button
@@ -99,8 +99,15 @@ export const AdhkarCard = memo(({ dhikr }: AdhkarCardProps) => {
         </div>
 
         {/* Arabic Text */}
-        <div className="text-center py-4">
-          <p className="text-4xl font-arabic text-foreground" style={{ fontFamily: "'Amiri', serif" }}>
+        <div className="text-center py-4 overflow-hidden">
+          <p 
+            className="text-4xl font-arabic text-foreground break-words overflow-wrap-anywhere" 
+            style={{ 
+              fontFamily: "'Amiri', serif",
+              wordBreak: "break-word"
+            }}
+            dir="rtl"
+          >
             {dhikr.text}
           </p>
         </div>
@@ -108,27 +115,26 @@ export const AdhkarCard = memo(({ dhikr }: AdhkarCardProps) => {
         {/* Transcription */}
         <div className="space-y-3">
           {/* Latin Transcription */}
-          <div className="bg-gradient-to-br from-secondary/40 to-secondary/20 rounded-xl p-4 border border-border/40 shadow-inner backdrop-blur-sm">
-            <p className="text-center text-sm sm:text-base text-foreground/95 italic leading-relaxed">
+          <div className="bg-gradient-to-br from-secondary/40 to-secondary/20 rounded-xl p-4 border border-border/40 shadow-inner backdrop-blur-sm overflow-hidden">
+            <p className="text-center text-sm sm:text-base text-foreground/95 italic leading-relaxed break-words overflow-wrap-anywhere">
               {dhikr.transcription}
             </p>
           </div>
           
           {/* Russian Transcription */}
           {dhikr.russianTranscription && (
-            <div className="bg-gradient-to-br from-accent/15 to-accent/5 rounded-xl p-4 border border-accent/30 shadow-inner backdrop-blur-sm">
-              <p className="text-center text-sm sm:text-base text-foreground/95 leading-relaxed font-medium">
+            <div className="bg-gradient-to-br from-accent/15 to-accent/5 rounded-xl p-4 border border-accent/30 shadow-inner backdrop-blur-sm overflow-hidden">
+              <p className="text-center text-sm sm:text-base text-foreground/95 leading-relaxed font-medium break-words overflow-wrap-anywhere">
                 {dhikr.russianTranscription}
               </p>
             </div>
           )}
           
           {/* Translation */}
-          <div className="bg-gradient-to-br from-primary/8 to-primary/3 rounded-xl p-4 border border-primary/25 shadow-inner backdrop-blur-sm">
-            <p className="text-center text-sm sm:text-base text-foreground leading-relaxed">
+          <div className="bg-gradient-to-br from-primary/8 to-primary/3 rounded-xl p-4 border border-primary/25 shadow-inner backdrop-blur-sm overflow-hidden">
+            <p className="text-center text-sm sm:text-base text-foreground leading-relaxed break-words overflow-wrap-anywhere">
               {dhikr.translation}
             </p>
-          </div>
         </div>
 
         {/* Counter */}

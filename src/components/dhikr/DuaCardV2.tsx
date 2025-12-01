@@ -319,13 +319,13 @@ export const DuaCardV2 = memo(({ dua, number, categoryColor }: DuaCardV2Props) =
                 <span className="text-sm text-muted-foreground">Загрузка перевода...</span>
               </div>
             ) : (
-              <p className="text-base text-foreground leading-relaxed">
+              <p className="text-base text-foreground leading-relaxed break-words overflow-wrap-anywhere">
                 {translation}
               </p>
             )}
             
             {dua.reference && (
-              <p className="text-sm text-muted-foreground italic">
+              <p className="text-sm text-muted-foreground italic break-words">
                 {dua.reference}
               </p>
             )}
