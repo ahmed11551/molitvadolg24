@@ -330,6 +330,12 @@ export default function SpiritualPath() {
             </Suspense>
           </TabsContent>
 
+          <TabsContent value="challenges">
+            <Suspense fallback={<TabSkeleton />}>
+              <ChallengesSection />
+            </Suspense>
+          </TabsContent>
+
           <TabsContent value="groups">
             <Suspense fallback={<TabSkeleton />}>
               <GroupGoals goals={goals} onRefresh={loadGoals} />

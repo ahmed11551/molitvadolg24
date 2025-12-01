@@ -44,6 +44,27 @@ export const AIReports = () => {
 
   useEffect(() => {
     loadData();
+
+    // Автоматическое обновление при изменении данных
+    const handleDataUpdate = () => {
+      loadData();
+    };
+
+    window.addEventListener('userDataUpdated', handleDataUpdate);
+    window.addEventListener('goalUpdated', handleDataUpdate);
+    window.addEventListener('prayerAdded', handleDataUpdate);
+
+    // Периодическое обновление каждые 60 секунд
+    const interval = setInterval(() => {
+      loadData();
+    }, 60000);
+
+    return () => {
+      window.removeEventListener('userDataUpdated', handleDataUpdate);
+      window.removeEventListener('goalUpdated', handleDataUpdate);
+      window.removeEventListener('prayerAdded', handleDataUpdate);
+      clearInterval(interval);
+    };
   }, []);
 
   const loadData = async () => {
