@@ -57,7 +57,7 @@ export const AIReports = () => {
       }, 2000);
     };
 
-    window.addEventListener('userDataUpdated', handleDataUpdate, { passive: true });
+    window.addEventListener('userDataUpdated', handleDataUpdate, { passive: true } as any);
     window.addEventListener('goalUpdated', handleDataUpdate, { passive: true });
     window.addEventListener('prayerAdded', handleDataUpdate, { passive: true });
 
@@ -75,46 +75,67 @@ export const AIReports = () => {
       window.removeEventListener('prayerAdded', handleDataUpdate);
       clearInterval(interval);
     };
-  }, [loading]);
+  }, [loadData, loading]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    if (loading) return; // Предотвращаем множественные одновременные загрузки
+    
     setLoading(true);
     try {
-      const [goalsData, streaksData] = await Promise.all([
+      // Используем Promise.allSettled для более надежной загрузки
+      const [goalsResult, streaksResult] = await Promise.allSettled([
         spiritualPathAPI.getGoals("all"),
         spiritualPathAPI.getStreaks(),
       ]);
       
-      setGoals(goalsData);
-      setStreaks(streaksData);
+      const goalsData = goalsResult.status === "fulfilled" ? goalsResult.value : [];
+      const streaksData = streaksResult.status === "fulfilled" ? streaksResult.value : [];
       
-      // Анализируем данные
-      const analyzedStats = analyzeGoals(goalsData, streaksData);
-      setStats(analyzedStats);
+      // Валидация данных
+      const validGoals = Array.isArray(goalsData) ? goalsData : [];
+      const validStreaks = Array.isArray(streaksData) ? streaksData : [];
       
-      // Генерируем инсайты
-      const generatedInsights = generateInsights(analyzedStats);
-      setInsights(generatedInsights);
+      setGoals(validGoals);
+      setStreaks(validStreaks);
       
-      // Генерируем рекомендации
-      const generatedRecommendations = generateRecommendations(analyzedStats);
-      setRecommendations(generatedRecommendations);
-      
-      // Генерируем прогнозы
-      const generatedPredictions = generatePredictions(analyzedStats);
-      setPredictions(generatedPredictions);
+      // Анализируем данные только если есть валидные данные
+      if (validGoals.length > 0 || validStreaks.length > 0) {
+        const analyzedStats = analyzeGoals(validGoals, validStreaks);
+        setStats(analyzedStats);
+        
+        // Генерируем инсайты
+        const generatedInsights = generateInsights(analyzedStats);
+        setInsights(generatedInsights);
+        
+        // Генерируем рекомендации
+        const generatedRecommendations = generateRecommendations(analyzedStats);
+        setRecommendations(generatedRecommendations);
+        
+        // Генерируем прогнозы
+        const generatedPredictions = generatePredictions(analyzedStats);
+        setPredictions(generatedPredictions);
+      } else {
+        // Если нет данных, сбрасываем состояние
+        setStats(null);
+        setInsights([]);
+        setRecommendations([]);
+        setPredictions([]);
+      }
       
     } catch (error) {
       console.error("Error loading data:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить данные",
-        variant: "destructive",
-      });
+      // Не показываем toast при каждой ошибке, только при критических
+      if (error instanceof Error && !error.message.includes("network")) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить данные",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [loading, toast]);
 
   const getInsightIcon = (type: AIInsight["type"]) => {
     switch (type) {

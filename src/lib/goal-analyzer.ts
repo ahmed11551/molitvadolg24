@@ -21,61 +21,84 @@ interface GoalStats {
  * Анализирует статистику целей
  */
 export function analyzeGoals(goals: Goal[], streaks: Streak[]): GoalStats {
+  // Валидация входных данных
+  const validGoals = Array.isArray(goals) ? goals : [];
+  const validStreaks = Array.isArray(streaks) ? streaks : [];
+  
   const today = new Date().toDateString();
   
-  const activeGoals = goals.filter(g => g.status === "active");
-  const completedGoals = goals.filter(g => g.status === "completed");
+  const activeGoals = validGoals.filter(g => g && g.status === "active");
+  const completedGoals = validGoals.filter(g => g && g.status === "completed");
   
   // Цели, завершённые сегодня (по updated_at)
-  const completedToday = goals.filter(g => {
-    if (g.status !== "completed") return false;
-    const updated = new Date(g.updated_at || g.created_at);
-    return updated.toDateString() === today;
+  const completedToday = validGoals.filter(g => {
+    if (!g || g.status !== "completed") return false;
+    try {
+      const updated = new Date(g.updated_at || g.created_at);
+      return !isNaN(updated.getTime()) && updated.toDateString() === today;
+    } catch {
+      return false;
+    }
   }).length;
   
-  // Средний прогресс активных целей
+  // Средний прогресс активных целей (с защитой от деления на ноль)
   const averageProgress = activeGoals.length > 0
-    ? activeGoals.reduce((sum, g) => sum + (g.current_value / g.target_value) * 100, 0) / activeGoals.length
+    ? activeGoals.reduce((sum, g) => {
+        if (!g || !g.target_value || g.target_value === 0) return sum;
+        return sum + Math.min(100, (g.current_value / g.target_value) * 100);
+      }, 0) / activeGoals.length
     : 0;
   
   // Streak данные
-  const dailyStreak = streaks.find(s => s.streak_type === "daily_all");
+  const dailyStreak = validStreaks.find(s => s && s.streak_type === "daily_all");
   const streakDays = dailyStreak?.current_streak || 0;
   const longestStreak = dailyStreak?.longest_streak || streakDays;
   
-  // Общее количество действий
-  const totalActions = goals.reduce((sum, g) => sum + g.current_value, 0);
+  // Общее количество действий (с защитой от NaN)
+  const totalActions = validGoals.reduce((sum, g) => {
+    if (!g || typeof g.current_value !== "number") return sum;
+    return sum + (isNaN(g.current_value) ? 0 : g.current_value);
+  }, 0);
   
   // Цели близкие к завершению (>80%)
-  const goalsNearCompletion = activeGoals.filter(g => 
-    (g.current_value / g.target_value) >= 0.8
-  );
+  const goalsNearCompletion = activeGoals.filter(g => {
+    if (!g || !g.target_value || g.target_value === 0) return false;
+    return (g.current_value / g.target_value) >= 0.8;
+  });
   
   // Застопорившиеся цели (прогресс < 20% и создана > 3 дней назад)
   const threeDaysAgo = new Date();
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
   
   const stalledGoals = activeGoals.filter(g => {
-    const created = new Date(g.created_at);
-    const progress = g.current_value / g.target_value;
-    return progress < 0.2 && created < threeDaysAgo;
+    if (!g || !g.target_value || g.target_value === 0) return false;
+    try {
+      const created = new Date(g.created_at);
+      if (isNaN(created.getTime())) return false;
+      const progress = g.current_value / g.target_value;
+      return progress < 0.2 && created < threeDaysAgo;
+    } catch {
+      return false;
+    }
   });
   
   // Подсчёт по категориям
   const categoryCounts: Record<string, number> = {};
-  goals.forEach(g => {
-    categoryCounts[g.category] = (categoryCounts[g.category] || 0) + 1;
+  validGoals.forEach(g => {
+    if (g && g.category) {
+      categoryCounts[g.category] = (categoryCounts[g.category] || 0) + 1;
+    }
   });
   
   return {
-    totalGoals: goals.length,
+    totalGoals: validGoals.length,
     activeGoals: activeGoals.length,
     completedGoals: completedGoals.length,
     completedToday,
-    averageProgress,
+    averageProgress: isNaN(averageProgress) ? 0 : averageProgress,
     streakDays,
     longestStreak,
-    totalActions,
+    totalActions: isNaN(totalActions) ? 0 : totalActions,
     goalsNearCompletion,
     stalledGoals,
     categoryCounts,
