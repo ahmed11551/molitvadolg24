@@ -10,7 +10,7 @@ import type { Goal } from "@/types/spiritual-path";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { cn } from "@/lib/utils";
-import { Target, Trophy, TrendingUp, BarChart3, Users, Calculator, Bell, BookOpen } from "lucide-react";
+import { Target, Trophy, TrendingUp, BarChart3, Users, Calculator, Bell, BookOpen, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Lazy loading для тяжелых компонентов
@@ -37,6 +37,11 @@ const AIReports = lazy(() =>
 const ChallengesSection = lazy(() => 
   import("@/components/spiritual-path/ChallengesSection").then(m => ({
     default: m.ChallengesSection
+  }))
+);
+const AIAssistant = lazy(() => 
+  import("@/components/spiritual-path/AIAssistant").then(m => ({
+    default: m.AIAssistant
   }))
 );
 const GroupGoals = lazy(() => 
@@ -272,6 +277,7 @@ export default function SpiritualPath() {
                 {[
                   { value: "goals", label: "Цели", icon: Target },
                   { value: "habits", label: "Привычки", icon: BookOpen },
+                  { value: "ai-assistant", label: "AI-помощник", icon: Sparkles },
                   { value: "streaks", label: "Серии", icon: TrendingUp },
                   { value: "badges", label: "Бейджи", icon: Trophy },
                   { value: "challenges", label: "Челленджи", icon: Target },
@@ -318,6 +324,13 @@ export default function SpiritualPath() {
               <HabitRemindersWithCatalog />
             </Suspense>
           </TabsContent>
+
+          <TabsContent value="ai-assistant">
+            <Suspense fallback={<TabSkeleton />}>
+              <AIAssistant />
+            </Suspense>
+          </TabsContent>
+
           <TabsContent value="streaks">
             <Suspense fallback={<TabSkeleton />}>
               <StreaksDisplay />
