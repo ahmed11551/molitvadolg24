@@ -727,7 +727,7 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
               )}
             </div>
           )}
-
+          </div>
 
           {/* Метрика */}
           <div className="space-y-2">
