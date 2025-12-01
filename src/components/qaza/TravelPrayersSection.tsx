@@ -20,7 +20,7 @@ export const TravelPrayersSection = () => {
     );
   }
 
-  if (!userData) {
+  if (!userData || !userData.debt_calculation) {
     return (
       <div className="space-y-6 animate-in fade-in-50 duration-500">
         <Card className="bg-gradient-card shadow-medium border-border/50">
