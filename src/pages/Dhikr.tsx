@@ -1,15 +1,35 @@
 // Страница Зикры - дизайн Goal app
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense, lazy } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { DuaSectionV2 } from "@/components/dhikr/DuaSectionV2";
-import { AdhkarSectionV2 } from "@/components/dhikr/AdhkarSectionV2";
-import { SalawatSection } from "@/components/dhikr/SalawatSection";
-import { KalimaSection } from "@/components/dhikr/KalimaSection";
 import { cn } from "@/lib/utils";
-import { Heart, Star, Sparkles, BookOpen } from "lucide-react";
+import { Heart, Star, Sparkles, BookOpen, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy loading для разделов зикров для улучшения производительности
+const DuaSectionV2 = lazy(() => 
+  import("@/components/dhikr/DuaSectionV2").then(m => ({ default: m.DuaSectionV2 }))
+);
+const AdhkarSectionV2 = lazy(() => 
+  import("@/components/dhikr/AdhkarSectionV2").then(m => ({ default: m.AdhkarSectionV2 }))
+);
+const SalawatSection = lazy(() => 
+  import("@/components/dhikr/SalawatSection").then(m => ({ default: m.SalawatSection }))
+);
+const KalimaSection = lazy(() => 
+  import("@/components/dhikr/KalimaSection").then(m => ({ default: m.KalimaSection }))
+);
+
+// Компонент загрузки для разделов
+const SectionSkeleton = () => (
+  <div className="space-y-4">
+    <Skeleton className="h-32 w-full" />
+    <Skeleton className="h-24 w-full" />
+    <Skeleton className="h-24 w-full" />
+  </div>
+);
 
 type TabType = "dua" | "adhkar" | "salawat" | "kalima";
 
@@ -67,10 +87,12 @@ const Dhikr = () => {
 
         {/* Content */}
         <div className="min-h-[60vh]">
-          {activeTab === "dua" && <DuaSectionV2 />}
-          {activeTab === "adhkar" && <AdhkarSectionV2 />}
-          {activeTab === "salawat" && <SalawatSection />}
-          {activeTab === "kalima" && <KalimaSection />}
+          <Suspense fallback={<SectionSkeleton />}>
+            {activeTab === "dua" && <DuaSectionV2 />}
+            {activeTab === "adhkar" && <AdhkarSectionV2 />}
+            {activeTab === "salawat" && <SalawatSection />}
+            {activeTab === "kalima" && <KalimaSection />}
+          </Suspense>
         </div>
       </main>
 
