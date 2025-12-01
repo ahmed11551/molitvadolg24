@@ -1,6 +1,6 @@
 // Страница "Мой Духовный Путь"
 
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoalFeed } from "@/components/spiritual-path/GoalFeed";
@@ -215,7 +215,10 @@ export default function SpiritualPath() {
               >
                 {[
                   { value: "goals", label: "Цели", icon: Target },
+<<<<<<< HEAD
                   { value: "habits", label: "Привычки", icon: BookOpen },
+=======
+>>>>>>> f41abf7ec8081a0ee9a44399aff2f3ac5357a617
                   { value: "streaks", label: "Серии", icon: TrendingUp },
                   { value: "badges", label: "Бейджи", icon: Trophy },
                   { value: "analytics", label: "Аналитика", icon: BarChart3 },
@@ -252,6 +255,7 @@ export default function SpiritualPath() {
                 <div className="text-muted-foreground">Загрузка целей...</div>
               </div>
             ) : (
+<<<<<<< HEAD
               <GoalsWithCalendar goals={goals} onRefresh={loadGoals} />
             )}
           </TabsContent>
@@ -260,6 +264,26 @@ export default function SpiritualPath() {
             <HabitRemindersWithCatalog />
           </TabsContent>
 
+=======
+              <Tabs defaultValue="feed" className="w-full">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="feed">Мои цели</TabsTrigger>
+                  <TabsTrigger value="templates">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Умные предложения
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="feed">
+                  <GoalsByCategory goals={goals} onRefresh={loadGoals} />
+                </TabsContent>
+                <TabsContent value="templates">
+                  <SmartGoalTemplates onTemplateSelected={loadGoals} />
+                </TabsContent>
+              </Tabs>
+            )}
+          </TabsContent>
+
+>>>>>>> f41abf7ec8081a0ee9a44399aff2f3ac5357a617
           <TabsContent value="streaks">
             <StreaksDisplay />
           </TabsContent>
