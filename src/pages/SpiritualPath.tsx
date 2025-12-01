@@ -34,6 +34,11 @@ const AIReports = lazy(() =>
     default: m.AIReports
   }))
 );
+const ChallengesSection = lazy(() => 
+  import("@/components/spiritual-path/ChallengesSection").then(m => ({
+    default: m.ChallengesSection
+  }))
+);
 const GroupGoals = lazy(() => 
   import("@/components/spiritual-path/GroupGoals").then(m => ({
     default: m.GroupGoals
