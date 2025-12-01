@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { TrendingUp } from "lucide-react";
 import { PrayerProgressCard } from "./PrayerProgressCard";
-import { AddPrayerDialog } from "./AddPrayerDialog";
 import { LastPrayerIndicator } from "./LastPrayerIndicator";
 import { QuickAddPrayerButton } from "./QuickAddPrayerButton";
 import { useUserData } from "@/hooks/useUserData";

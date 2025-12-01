@@ -122,11 +122,12 @@ export const TravelPrayersSection = () => {
           <div className="text-center space-y-2">
             <div className="text-sm opacity-90">Общий прогресс сафар-намазов</div>
             <div className="text-4xl font-bold">
-              {Math.round(
-                (travelPrayers.reduce((sum, p) => sum + p.completed, 0) /
-                  travelPrayers.reduce((sum, p) => sum + p.total, 0)) *
-                  100
-              )}
+              {(() => {
+                const totalCompleted = travelPrayers.reduce((sum, p) => sum + p.completed, 0);
+                const total = travelPrayers.reduce((sum, p) => sum + p.total, 0);
+                if (total === 0) return 0;
+                return Math.round((totalCompleted / total) * 100);
+              })()}
               %
             </div>
             <div className="text-sm opacity-90">
