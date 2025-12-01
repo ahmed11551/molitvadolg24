@@ -14,13 +14,41 @@ import { Target, Trophy, TrendingUp, BarChart3, Users, Calculator, Bell, BookOpe
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Lazy loading для тяжелых компонентов
-const HabitRemindersWithCatalog = lazy(() => import("@/components/spiritual-path/HabitRemindersWithCatalog").then(m => ({ default: m.HabitRemindersWithCatalog })));
-const StreaksDisplay = lazy(() => import("@/components/spiritual-path/StreaksDisplay").then(m => ({ default: m.StreaksDisplay })));
-const BadgesDisplay = lazy(() => import("@/components/spiritual-path/BadgesDisplay").then(m => ({ default: m.BadgesDisplay })));
-const AIReports = lazy(() => import("@/components/spiritual-path/AIReports").then(m => ({ default: m.AIReports })));
-const GroupGoals = lazy(() => import("@/components/spiritual-path/GroupGoals").then(m => ({ default: m.GroupGoals })));
-const QazaCalculator = lazy(() => import("@/components/spiritual-path/QazaCalculator").then(m => ({ default: m.QazaCalculator })));
-const SmartNotifications = lazy(() => import("@/components/spiritual-path/SmartNotifications").then(m => ({ default: m.SmartNotifications })));
+const HabitRemindersWithCatalog = lazy(() => 
+  import("@/components/spiritual-path/HabitRemindersWithCatalog").then(m => ({
+    default: m.HabitRemindersWithCatalog
+  }))
+);
+const StreaksDisplay = lazy(() => 
+  import("@/components/spiritual-path/StreaksDisplay").then(m => ({
+    default: m.StreaksDisplay
+  }))
+);
+const BadgesDisplay = lazy(() => 
+  import("@/components/spiritual-path/BadgesDisplay").then(m => ({
+    default: m.BadgesDisplay
+  }))
+);
+const AIReports = lazy(() => 
+  import("@/components/spiritual-path/AIReports").then(m => ({
+    default: m.AIReports
+  }))
+);
+const GroupGoals = lazy(() => 
+  import("@/components/spiritual-path/GroupGoals").then(m => ({
+    default: m.GroupGoals
+  }))
+);
+const QazaCalculator = lazy(() => 
+  import("@/components/spiritual-path/QazaCalculator").then(m => ({
+    default: m.QazaCalculator
+  }))
+);
+const SmartNotifications = lazy(() => 
+  import("@/components/spiritual-path/SmartNotifications").then(m => ({
+    default: m.SmartNotifications
+  }))
+);
 
 // Компонент загрузки
 const TabSkeleton = () => (
@@ -238,10 +266,7 @@ export default function SpiritualPath() {
               >
                 {[
                   { value: "goals", label: "Цели", icon: Target },
-<<<<<<< HEAD
                   { value: "habits", label: "Привычки", icon: BookOpen },
-=======
->>>>>>> f41abf7ec8081a0ee9a44399aff2f3ac5357a617
                   { value: "streaks", label: "Серии", icon: TrendingUp },
                   { value: "badges", label: "Бейджи", icon: Trophy },
                   { value: "analytics", label: "Аналитика", icon: BarChart3 },
@@ -278,7 +303,6 @@ export default function SpiritualPath() {
                 <div className="text-muted-foreground">Загрузка целей...</div>
               </div>
             ) : (
-<<<<<<< HEAD
               <GoalsWithCalendar goals={goals} onRefresh={loadGoals} />
             )}
           </TabsContent>
@@ -288,27 +312,6 @@ export default function SpiritualPath() {
               <HabitRemindersWithCatalog />
             </Suspense>
           </TabsContent>
-
-=======
-              <Tabs defaultValue="feed" className="w-full">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="feed">Мои цели</TabsTrigger>
-                  <TabsTrigger value="templates">
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Умные предложения
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="feed">
-                  <GoalsByCategory goals={goals} onRefresh={loadGoals} />
-                </TabsContent>
-                <TabsContent value="templates">
-                  <SmartGoalTemplates onTemplateSelected={loadGoals} />
-                </TabsContent>
-              </Tabs>
-            )}
-          </TabsContent>
-
->>>>>>> f41abf7ec8081a0ee9a44399aff2f3ac5357a617
           <TabsContent value="streaks">
             <Suspense fallback={<TabSkeleton />}>
               <StreaksDisplay />
