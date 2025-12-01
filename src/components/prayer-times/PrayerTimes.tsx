@@ -23,11 +23,15 @@ import {
   Calendar,
   TrendingUp,
   CheckCircle2,
+  Settings,
 } from "lucide-react";
+import { AzanNotificationsManager } from "./AzanNotificationsManager";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format, addDays, differenceInMinutes, isAfter, isBefore } from "date-fns";
 import { ru } from "date-fns/locale/ru";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AzanNotificationsManager } from "./AzanNotificationsManager";
 
 interface PrayerTime {
   name: string;
@@ -87,6 +91,7 @@ export const PrayerTimes = ({ onPrayerCompleted }: PrayerTimesProps) => {
   const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>(MOCK_PRAYER_TIMES);
   const [completedPrayers, setCompletedPrayers] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"schedule" | "notifications">("schedule");
 
   // Получение геолокации
   useEffect(() => {
@@ -222,6 +227,21 @@ export const PrayerTimes = ({ onPrayerCompleted }: PrayerTimesProps) => {
           Календарь
         </Button>
       </div>
+
+      {/* Вкладки */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "schedule" | "notifications")}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="schedule">
+            <Clock className="w-4 h-4 mr-2" />
+            Расписание
+          </TabsTrigger>
+          <TabsTrigger value="notifications">
+            <Bell className="w-4 h-4 mr-2" />
+            Уведомления
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="schedule" className="space-y-6">
 
       {/* Виджет следующего намаза */}
       {nextPrayer && timeUntilNext && (
@@ -426,6 +446,12 @@ export const PrayerTimes = ({ onPrayerCompleted }: PrayerTimesProps) => {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <AzanNotificationsManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
