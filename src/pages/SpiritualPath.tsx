@@ -1,29 +1,35 @@
 // Страница "Мой Духовный Путь"
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GoalFeed } from "@/components/spiritual-path/GoalFeed";
-import { GoalsByCategory } from "@/components/spiritual-path/GoalsByCategory";
 import { GoalsWithCalendar } from "@/components/spiritual-path/GoalsWithCalendar";
-import { GoalsCalendar } from "@/components/spiritual-path/GoalsCalendar";
 import { CreateGoalDialog } from "@/components/spiritual-path/CreateGoalDialog";
-import { SmartGoalTemplates } from "@/components/spiritual-path/SmartGoalTemplates";
-import { StreaksDisplay } from "@/components/spiritual-path/StreaksDisplay";
-import { BadgesDisplay } from "@/components/spiritual-path/BadgesDisplay";
-import { QazaCalculator } from "@/components/spiritual-path/QazaCalculator";
-import { GroupGoals } from "@/components/spiritual-path/GroupGoals";
-import { AIReports } from "@/components/spiritual-path/AIReports";
-import { SmartNotifications } from "@/components/spiritual-path/SmartNotifications";
 import { spiritualPathAPI } from "@/lib/api";
 import type { Goal } from "@/types/spiritual-path";
-import { Plus, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { cn } from "@/lib/utils";
 import { Target, Trophy, TrendingUp, BarChart3, Users, Calculator, Bell, BookOpen } from "lucide-react";
-import { HabitRemindersWithCatalog } from "@/components/spiritual-path/HabitRemindersWithCatalog";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy loading для тяжелых компонентов
+const HabitRemindersWithCatalog = lazy(() => import("@/components/spiritual-path/HabitRemindersWithCatalog").then(m => ({ default: m.HabitRemindersWithCatalog })));
+const StreaksDisplay = lazy(() => import("@/components/spiritual-path/StreaksDisplay").then(m => ({ default: m.StreaksDisplay })));
+const BadgesDisplay = lazy(() => import("@/components/spiritual-path/BadgesDisplay").then(m => ({ default: m.BadgesDisplay })));
+const AIReports = lazy(() => import("@/components/spiritual-path/AIReports").then(m => ({ default: m.AIReports })));
+const GroupGoals = lazy(() => import("@/components/spiritual-path/GroupGoals").then(m => ({ default: m.GroupGoals })));
+const QazaCalculator = lazy(() => import("@/components/spiritual-path/QazaCalculator").then(m => ({ default: m.QazaCalculator })));
+const SmartNotifications = lazy(() => import("@/components/spiritual-path/SmartNotifications").then(m => ({ default: m.SmartNotifications })));
+
+// Компонент загрузки
+const TabSkeleton = () => (
+  <div className="space-y-4">
+    <Skeleton className="h-8 w-48" />
+    <Skeleton className="h-32 w-full" />
+    <Skeleton className="h-64 w-full" />
+  </div>
+);
 
 export default function SpiritualPath() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,11 +50,11 @@ export default function SpiritualPath() {
     }
   }, [searchParams, activeTab]);
 
-  // Обновляем URL при изменении активной вкладки
-  const handleTabChange = (value: string) => {
+  // Мемоизируем обработчик смены таба
+  const handleTabChange = useCallback((value: string) => {
     setActiveTab(value);
-    setSearchParams({ tab: value });
-  };
+    setSearchParams({ tab: value }, { replace: true });
+  }, [setSearchParams]);
 
   // Проверка возможности прокрутки при загрузке
   useEffect(() => {
@@ -68,24 +74,28 @@ export default function SpiritualPath() {
     return () => clearTimeout(timeout);
   }, []);
 
-  useEffect(() => {
-    loadGoals();
-  }, []);
-
-  const loadGoals = async () => {
+  // Мемоизируем функцию загрузки целей
+  const loadGoals = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await spiritualPathAPI.getGoals("active");
-      setGoals(data);
+      // Загружаем все цели, не только активные, чтобы видеть все
+      const data = await spiritualPathAPI.getGoals();
+      // Фильтруем активные для отображения
+      const activeGoals = data.filter(g => g.status === "active");
+      setGoals(activeGoals);
     } catch (error) {
       console.error("Error loading goals:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Проверка возможности прокрутки и обновление градиентов
-  const updateGradients = () => {
+  useEffect(() => {
+    loadGoals();
+  }, [loadGoals]);
+
+  // Мемоизируем функцию обновления градиентов с throttle
+  const updateGradients = useCallback(() => {
     if (tabsListRef.current) {
       const container = tabsListRef.current;
       const { scrollLeft, scrollWidth, clientWidth } = container;
@@ -93,7 +103,17 @@ export default function SpiritualPath() {
       setShowLeftGradient(scrollLeft > 0);
       setShowRightGradient(scrollLeft < scrollWidth - clientWidth - 1);
     }
-  };
+  }, []);
+
+  // Throttle для updateGradients
+  const throttledUpdateGradients = useRef<NodeJS.Timeout | null>(null);
+  const updateGradientsThrottled = useCallback(() => {
+    if (throttledUpdateGradients.current) return;
+    throttledUpdateGradients.current = setTimeout(() => {
+      updateGradients();
+      throttledUpdateGradients.current = null;
+    }, 16); // ~60fps
+  }, [updateGradients]);
 
   // Автоматическая прокрутка к активной вкладке
   useEffect(() => {
@@ -149,13 +169,16 @@ export default function SpiritualPath() {
       updateGradients();
     }, 100);
     
-    container.addEventListener('scroll', updateGradients, { passive: true });
-    window.addEventListener('resize', updateGradients);
+    container.addEventListener('scroll', updateGradientsThrottled, { passive: true });
+    window.addEventListener('resize', updateGradientsThrottled, { passive: true });
 
     return () => {
       clearTimeout(initTimeout);
-      container.removeEventListener('scroll', updateGradients);
-      window.removeEventListener('resize', updateGradients);
+      if (throttledUpdateGradients.current) {
+        clearTimeout(throttledUpdateGradients.current);
+      }
+      container.removeEventListener('scroll', updateGradientsThrottled);
+      window.removeEventListener('resize', updateGradientsThrottled);
     };
   }, []);
 
@@ -261,7 +284,9 @@ export default function SpiritualPath() {
           </TabsContent>
 
           <TabsContent value="habits">
-            <HabitRemindersWithCatalog />
+            <Suspense fallback={<TabSkeleton />}>
+              <HabitRemindersWithCatalog />
+            </Suspense>
           </TabsContent>
 
 =======
@@ -285,27 +310,39 @@ export default function SpiritualPath() {
 
 >>>>>>> f41abf7ec8081a0ee9a44399aff2f3ac5357a617
           <TabsContent value="streaks">
-            <StreaksDisplay />
+            <Suspense fallback={<TabSkeleton />}>
+              <StreaksDisplay />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="badges">
-            <BadgesDisplay />
+            <Suspense fallback={<TabSkeleton />}>
+              <BadgesDisplay />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="analytics">
-            <AIReports />
+            <Suspense fallback={<TabSkeleton />}>
+              <AIReports />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="groups">
-            <GroupGoals goals={goals} onRefresh={loadGoals} />
+            <Suspense fallback={<TabSkeleton />}>
+              <GroupGoals goals={goals} onRefresh={loadGoals} />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="qaza">
-            <QazaCalculator />
+            <Suspense fallback={<TabSkeleton />}>
+              <QazaCalculator />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="notifications">
-            <SmartNotifications />
+            <Suspense fallback={<TabSkeleton />}>
+              <SmartNotifications />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </main>

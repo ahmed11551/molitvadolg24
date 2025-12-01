@@ -1,6 +1,6 @@
 // Компонент целей с календарем и переключателем между целями и привычками
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, memo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,21 +21,19 @@ interface GoalsWithCalendarProps {
 
 const REMINDER_STORAGE_KEY = "habit_reminders";
 
-export const GoalsWithCalendar = ({ goals, onRefresh }: GoalsWithCalendarProps) => {
+export const GoalsWithCalendar = memo(({ goals, onRefresh }: GoalsWithCalendarProps) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeTab, setActiveTab] = useState<"goals" | "habits">("goals");
   const [reminders, setReminders] = useState<HabitReminder[]>([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // Загружаем напоминания
-  useEffect(() => {
-    loadReminders();
-    const handleStorageChange = () => loadReminders();
-    window.addEventListener("reminderAdded", handleStorageChange);
-    return () => window.removeEventListener("reminderAdded", handleStorageChange);
+  // Мемоизируем обработчик смены таба
+  const handleTabChange = useCallback((v: string) => {
+    setActiveTab(v as "goals" | "habits");
   }, []);
 
-  const loadReminders = () => {
+  // Мемоизируем функцию загрузки напоминаний
+  const loadReminders = useCallback(() => {
     try {
       const stored = localStorage.getItem(REMINDER_STORAGE_KEY);
       if (stored) {
@@ -51,7 +49,15 @@ export const GoalsWithCalendar = ({ goals, onRefresh }: GoalsWithCalendarProps) 
     } catch (error) {
       console.error("Error loading reminders:", error);
     }
-  };
+  }, []);
+
+  // Загружаем напоминания
+  useEffect(() => {
+    loadReminders();
+    const handleStorageChange = () => loadReminders();
+    window.addEventListener("reminderAdded", handleStorageChange);
+    return () => window.removeEventListener("reminderAdded", handleStorageChange);
+  }, [loadReminders]);
 
   // Генерируем дни недели (7 дней: 3 назад, сегодня, 3 вперед)
   const weekDays = useMemo(() => {
@@ -73,17 +79,27 @@ export const GoalsWithCalendar = ({ goals, onRefresh }: GoalsWithCalendarProps) 
 
   // Фильтруем цели на выбранную дату
   const goalsForDate = useMemo(() => {
+    if (!goals || goals.length === 0) return [];
+    
     return goals.filter((goal) => {
-      if (!goal.start_date) return false;
-      const startDate = new Date(goal.start_date);
-      const endDate = goal.end_date ? new Date(goal.end_date) : null;
-      
-      // Проверяем, попадает ли выбранная дата в период цели
-      if (isSameDay(startDate, selectedDate)) return true;
-      if (endDate && isSameDay(endDate, selectedDate)) return true;
-      if (startDate <= selectedDate && (!endDate || selectedDate <= endDate)) {
+      // Для бессрочных привычек показываем всегда
+      if (goal.type === "habit" && !goal.end_date) {
         return true;
       }
+      
+      // Для целей с датами проверяем период
+      if (goal.start_date) {
+        const startDate = new Date(goal.start_date);
+        const endDate = goal.end_date ? new Date(goal.end_date) : null;
+        
+        // Проверяем, попадает ли выбранная дата в период цели
+        if (isSameDay(startDate, selectedDate)) return true;
+        if (endDate && isSameDay(endDate, selectedDate)) return true;
+        if (startDate <= selectedDate && (!endDate || selectedDate <= endDate)) {
+          return true;
+        }
+      }
+      
       return false;
     });
   }, [goals, selectedDate]);
@@ -173,8 +189,8 @@ export const GoalsWithCalendar = ({ goals, onRefresh }: GoalsWithCalendarProps) 
     });
   };
 
-  // Отмечаем выполнение привычки
-  const toggleHabitCompletion = (reminder: HabitReminder, date: Date) => {
+  // Мемоизируем функцию отметки выполнения
+  const toggleHabitCompletion = useCallback((reminder: HabitReminder, date: Date) => {
     const historyKey = `habit_completion_${reminder.id}`;
     const completionHistory = JSON.parse(localStorage.getItem(historyKey) || "{}");
     const dayKey = format(date, "yyyy-MM-dd");
@@ -184,7 +200,7 @@ export const GoalsWithCalendar = ({ goals, onRefresh }: GoalsWithCalendarProps) 
     
     // Обновляем список для перерисовки
     loadReminders();
-  };
+  }, [loadReminders]);
 
   return (
     <div className="space-y-4">
@@ -197,7 +213,7 @@ export const GoalsWithCalendar = ({ goals, onRefresh }: GoalsWithCalendarProps) 
       <div className="space-y-4">
         {/* Переключатель Привычки/Цели */}
         <div className="flex items-center justify-between gap-4">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "goals" | "habits")} className="flex-1">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="goals" className="flex items-center gap-2">
                 <Target className="w-4 h-4" />
@@ -213,7 +229,12 @@ export const GoalsWithCalendar = ({ goals, onRefresh }: GoalsWithCalendarProps) 
             <CreateGoalDialog
               open={createDialogOpen}
               onOpenChange={setCreateDialogOpen}
-              onGoalCreated={onRefresh}
+              onGoalCreated={() => {
+                // Обновляем список целей
+                onRefresh();
+                // Закрываем диалог
+                setCreateDialogOpen(false);
+              }}
             >
               <Button size="icon" variant="outline">
                 <Plus className="w-4 h-4" />

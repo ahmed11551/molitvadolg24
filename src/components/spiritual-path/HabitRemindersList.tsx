@@ -1,6 +1,6 @@
 // Список напоминаний о привычках
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,7 @@ interface HabitRemindersListProps {
 
 const REMINDER_STORAGE_KEY = "habit_reminders";
 
-export const HabitRemindersList = ({ onAddReminder, onEditReminder }: HabitRemindersListProps) => {
+export const HabitRemindersList = memo(({ onAddReminder, onEditReminder }: HabitRemindersListProps) => {
   const [reminders, setReminders] = useState<HabitReminder[]>([]);
 
   useEffect(() => {
@@ -61,19 +61,25 @@ export const HabitRemindersList = ({ onAddReminder, onEditReminder }: HabitRemin
     setReminders(updatedReminders);
   };
 
-  const toggleReminder = (id: string) => {
-    const updated = reminders.map((r) =>
-      r.id === id ? { ...r, enabled: !r.enabled, updated_at: new Date() } : r
-    );
-    saveReminders(updated);
-  };
-
-  const deleteReminder = (id: string) => {
-    if (confirm("Удалить это напоминание?")) {
-      const updated = reminders.filter((r) => r.id !== id);
+  const toggleReminder = useCallback((id: string) => {
+    setReminders((prev) => {
+      const updated = prev.map((r) =>
+        r.id === id ? { ...r, enabled: !r.enabled, updated_at: new Date() } : r
+      );
       saveReminders(updated);
+      return updated;
+    });
+  }, []);
+
+  const deleteReminder = useCallback((id: string) => {
+    if (confirm("Удалить это напоминание?")) {
+      setReminders((prev) => {
+        const updated = prev.filter((r) => r.id !== id);
+        saveReminders(updated);
+        return updated;
+      });
     }
-  };
+  }, []);
 
   const getRepeatLabel = (reminder: HabitReminder): string => {
     switch (reminder.repeat) {
@@ -234,5 +240,7 @@ export const HabitRemindersList = ({ onAddReminder, onEditReminder }: HabitRemin
       )}
     </div>
   );
-};
+});
+
+HabitRemindersList.displayName = "HabitRemindersList";
 

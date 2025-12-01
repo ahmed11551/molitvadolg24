@@ -1,5 +1,6 @@
 // Карточка привычки в каталоге
 
+import { memo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -34,7 +35,7 @@ const COLOR_CLASSES: Record<string, string> = {
   yellow: "border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20",
 };
 
-export const HabitCatalogCard = ({ habit, onClick }: HabitCatalogCardProps) => {
+export const HabitCatalogCard = memo(({ habit, onClick }: HabitCatalogCardProps) => {
   const difficulty = DIFFICULTY_LABELS[habit.difficulty];
   const colorClass = COLOR_CLASSES[habit.color] || COLOR_CLASSES.green;
 
@@ -87,5 +88,7 @@ export const HabitCatalogCard = ({ habit, onClick }: HabitCatalogCardProps) => {
       </CardContent>
     </Card>
   );
-};
+});
+
+HabitCatalogCard.displayName = "HabitCatalogCard";
 

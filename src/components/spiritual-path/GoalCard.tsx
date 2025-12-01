@@ -1,6 +1,6 @@
 // Компонент карточки цели (детальный вид)
 
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -50,7 +50,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   names_of_allah: "99 имен Аллаха",
 };
 
-export const GoalCard = ({ goal, onBack, onUpdate }: GoalCardProps) => {
+export const GoalCard = memo(({ goal, onBack, onUpdate }: GoalCardProps) => {
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
@@ -361,5 +361,7 @@ export const GoalCard = ({ goal, onBack, onUpdate }: GoalCardProps) => {
       />
     </>
   );
-};
+});
+
+GoalCard.displayName = "GoalCard";
 

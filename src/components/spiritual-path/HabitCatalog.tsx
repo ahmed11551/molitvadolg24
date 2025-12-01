@@ -1,6 +1,6 @@
 // Каталог привычек с фильтрацией и поиском
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,22 +17,24 @@ import {
 import { cn } from "@/lib/utils";
 import { Search, Plus, Sparkles } from "lucide-react";
 import type { HabitReminder } from "@/types/habit-reminder";
+import { useDebounce } from "@/hooks/useDebounce";
 
-export const HabitCatalog = ({ onReminderCreated }: { onReminderCreated?: (reminder: HabitReminder) => void }) => {
+export const HabitCatalog = memo(({ onReminderCreated }: { onReminderCreated?: (reminder: HabitReminder) => void }) => {
   const [selectedFilter, setSelectedFilter] = useState<HabitFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [selectedHabit, setSelectedHabit] = useState<HabitTemplate | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
-  // Фильтрация привычек
+  // Фильтрация привычек с debounce для поиска
   const filteredHabits = useMemo(() => {
     let habits = selectedFilter === "all" 
       ? HABIT_CATALOG 
       : getHabitsByFilter(selectedFilter);
 
-    // Поиск по названию и описанию
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    // Поиск по названию и описанию (используем debounced значение)
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase();
       habits = habits.filter(
         (habit) =>
           habit.title.toLowerCase().includes(query) ||
@@ -41,7 +43,7 @@ export const HabitCatalog = ({ onReminderCreated }: { onReminderCreated?: (remin
     }
 
     return habits;
-  }, [selectedFilter, searchQuery]);
+  }, [selectedFilter, debouncedSearchQuery]);
 
   // Группировка по категориям
   const habitsByCategory = useMemo(() => {
@@ -60,13 +62,22 @@ export const HabitCatalog = ({ onReminderCreated }: { onReminderCreated?: (remin
     setDetailsDialogOpen(true);
   };
 
-  const handleReminderCreated = (reminder: HabitReminder) => {
+  const handleReminderCreated = useCallback((reminder: HabitReminder) => {
     setDetailsDialogOpen(false);
     setSelectedHabit(null);
     // Отправляем событие для обновления списка напоминаний
     window.dispatchEvent(new Event("reminderAdded"));
     onReminderCreated?.(reminder);
-  };
+  }, [onReminderCreated]);
+
+  const handleHabitClick = useCallback((habit: HabitTemplate) => {
+    setSelectedHabit(habit);
+    setDetailsDialogOpen(true);
+  }, []);
+
+  const handleFilterChange = useCallback((filter: HabitFilter) => {
+    setSelectedFilter(filter);
+  }, []);
 
   const CATEGORY_LABELS: Record<string, string> = {
     prayer: "🕌 Намазы и духовные действия",
@@ -106,7 +117,7 @@ export const HabitCatalog = ({ onReminderCreated }: { onReminderCreated?: (remin
               key={filter.value}
               variant={selectedFilter === filter.value ? "default" : "outline"}
               size="sm"
-              onClick={() => setSelectedFilter(filter.value)}
+              onClick={() => handleFilterChange(filter.value)}
               className={cn(
                 "shrink-0 whitespace-nowrap",
                 selectedFilter === filter.value && "shadow-sm"
@@ -180,5 +191,7 @@ export const HabitCatalog = ({ onReminderCreated }: { onReminderCreated?: (remin
       />
     </div>
   );
-};
+});
+
+HabitCatalog.displayName = "HabitCatalog";
 

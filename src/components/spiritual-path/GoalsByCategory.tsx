@@ -1,6 +1,6 @@
 // Компонент для отображения целей по категориям (компактный список)
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +73,7 @@ const CATEGORY_INFO: Record<GoalCategory, { label: string; icon: React.ReactNode
   },
 };
 
-export const GoalsByCategory = ({ goals, onRefresh }: GoalsByCategoryProps) => {
+export const GoalsByCategory = memo(({ goals, onRefresh }: GoalsByCategoryProps) => {
   const [viewMode, setViewMode] = useState<ViewMode>("categories");
   const [selectedCategory, setSelectedCategory] = useState<GoalCategory | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
@@ -147,25 +147,27 @@ export const GoalsByCategory = ({ goals, onRefresh }: GoalsByCategoryProps) => {
   const maxGoals = hasFeature(tier, "unlimited_goals") ? Infinity : 7;
   const canAddGoal = goals.length < maxGoals;
 
-  const handleCategoryClick = (category: GoalCategory) => {
+  const handleCategoryClick = useCallback((category: GoalCategory) => {
     setSelectedCategory(category);
     setViewMode("category-goals");
-  };
+  }, []);
 
-  const handleGoalClick = (goal: Goal) => {
+  const handleGoalClick = useCallback((goal: Goal) => {
     setSelectedGoal(goal);
     setViewMode("goal-detail");
-  };
+  }, []);
 
-  const handleBack = () => {
-    if (viewMode === "goal-detail") {
-      setViewMode("category-goals");
-      setSelectedGoal(null);
-    } else {
-      setViewMode("categories");
-      setSelectedCategory(null);
-    }
-  };
+  const handleBack = useCallback(() => {
+    setViewMode((prev) => {
+      if (prev === "goal-detail") {
+        setSelectedGoal(null);
+        return "category-goals";
+      } else {
+        setSelectedCategory(null);
+        return "categories";
+      }
+    });
+  }, []);
 
   // Экран категорий
   if (viewMode === "categories") {
@@ -495,4 +497,6 @@ export const GoalsByCategory = ({ goals, onRefresh }: GoalsByCategoryProps) => {
   }
 
   return null;
-};
+});
+
+GoalsByCategory.displayName = "GoalsByCategory";

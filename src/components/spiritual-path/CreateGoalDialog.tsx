@@ -12,6 +12,7 @@ import { IPhoneCalendar } from "@/components/ui/iphone-calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Target, Sparkles, Check } from "lucide-react";
 import { format } from "date-fns";
+import { ru } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { spiritualPathAPI } from "@/lib/api";
 import { ItemSelector } from "./ItemSelector";
@@ -315,7 +316,7 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
 
       toast({
         title: "Цель создана!",
-        description: dailyPlan ? `Рекомендуемый ежедневный план: ${Math.ceil(dailyPlan)}` : undefined,
+        description: dailyPlan ? `Рекомендуемый ежедневный план: ${Math.ceil(dailyPlan)}` : "Цель успешно добавлена",
       });
 
       // Сброс формы
@@ -334,9 +335,18 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
       setSelectedItemType(undefined);
       setSelectedItemData(null);
       setRecurringDays([]);
+      setType("fixed_term");
+      setPeriod("month");
 
       setDialogOpen(false);
-      onGoalCreated?.();
+      
+      // Вызываем callback для обновления списка целей
+      if (onGoalCreated) {
+        // Небольшая задержка для гарантии сохранения
+        setTimeout(() => {
+          onGoalCreated();
+        }, 100);
+      }
     } catch (error) {
       console.error("Error creating goal:", error);
       toast({
@@ -528,91 +538,150 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
             </Select>
           </div>
 
-          {/* Динамические параметры в зависимости от типа цели */}
-          {type === "fixed_term" && (
-            <>
-              {/* Период для фиксированного срока */}
-              <div className="space-y-2">
-                <Label>Период</Label>
-                <Select value={period} onValueChange={handlePeriodChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PERIODS.filter(p => p.value !== "infinite" && p.value !== "recurring_weekly" && p.value !== "recurring_monthly").map((p) => (
-                      <SelectItem key={p.value} value={p.value}>
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {/* Календарь для выбора даты окончания */}
-              {period === "custom" && (
+          {/* Динамические параметры в зависимости от типа цели - красивая карточка */}
+          <div className="space-y-4 p-5 rounded-xl bg-gradient-to-br from-primary/5 via-primary/3 to-background border-2 border-primary/20 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+              <Label className="text-base font-semibold text-foreground">
+                {type === "fixed_term" && "📅 Период и дата"}
+                {type === "recurring" && "🔄 Повторение"}
+                {type === "habit" && "♾️ Бессрочная привычка"}
+                {type === "one_time" && "✅ Одноразовая цель"}
+              </Label>
+            </div>
+            {type === "fixed_term" && (
+              <>
+                {/* Период для фиксированного срока */}
                 <div className="space-y-2">
-                  <Label className="text-sm leading-tight break-words">
+                  <Label className="text-base font-semibold">Период</Label>
+                  <Select value={period} onValueChange={handlePeriodChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PERIODS.filter(p => p.value !== "infinite" && p.value !== "recurring_weekly" && p.value !== "recurring_monthly").map((p) => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Календарь для выбора даты окончания - показывается всегда для фиксированного срока */}
+                <div className="space-y-2">
+                  <Label className="text-base font-semibold">
                     Дата окончания *
                   </Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          "overflow-hidden text-ellipsis whitespace-nowrap",
-                          !endDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
-                        <span className="truncate">
-                          {endDate ? format(endDate, "dd.MM.yyyy") : "Выберите дату"}
+                  {period === "custom" ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal h-12",
+                            "overflow-hidden text-ellipsis whitespace-nowrap",
+                            !endDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-5 w-5 shrink-0" />
+                          <span className="truncate">
+                            {endDate ? format(endDate, "dd.MM.yyyy") : "Выберите дату окончания"}
+                          </span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <IPhoneCalendar
+                          mode="single"
+                          selected={endDate || undefined}
+                          onSelect={(date) => {
+                            if (date) {
+                              setEndDate(date);
+                            }
+                          }}
+                          initialFocus
+                          disabled={(date) => date < startDate}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CalendarIcon className="h-5 w-5 text-primary" />
+                        <span className="font-medium">
+                          {endDate ? format(endDate, "dd.MM.yyyy") : "Автоматически рассчитано"}
                         </span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <IPhoneCalendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        initialFocus
-                        disabled={(date) => date < startDate}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                      </div>
+                      {endDate && (
+                        <p className="text-sm text-muted-foreground">
+                          {Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))} дней до завершения
+                        </p>
+                      )}
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-2 w-full"
+                          >
+                            Изменить дату
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <IPhoneCalendar
+                            mode="single"
+                            selected={endDate || undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                setEndDate(date);
+                              }
+                            }}
+                            initialFocus
+                            disabled={(date) => date < startDate}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
                 </div>
-              )}
-            </>
-          )}
+              </>
+            )}
 
-          {type === "recurring" && (
-            <div className="space-y-2">
-              <Label>Дни недели *</Label>
-              <div className="flex gap-2 flex-wrap">
-                {DAYS_OF_WEEK.map((day) => (
-                  <Button
-                    key={day.value}
-                    type="button"
-                    variant={recurringDays.includes(day.value) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => toggleRecurringDay(day.value)}
-                    className={cn(
-                      "w-12 h-12 rounded-full",
-                      recurringDays.includes(day.value) && "bg-primary text-primary-foreground"
-                    )}
-                  >
-                    {day.label}
-                  </Button>
-                ))}
+            {type === "recurring" && (
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Дни недели *</Label>
+                <div className="flex gap-2 flex-wrap justify-center">
+                  {DAYS_OF_WEEK.map((day) => (
+                    <Button
+                      key={day.value}
+                      type="button"
+                      variant={recurringDays.includes(day.value) ? "default" : "outline"}
+                      size="lg"
+                      onClick={() => toggleRecurringDay(day.value)}
+                      className={cn(
+                        "w-14 h-14 rounded-full text-base font-semibold transition-all",
+                        recurringDays.includes(day.value) 
+                          ? "bg-primary text-primary-foreground shadow-md scale-105" 
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      {day.label}
+                    </Button>
+                  ))}
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    {recurringDays.length === 0 
+                      ? "Выберите дни недели, когда будет выполняться цель"
+                      : `Выбрано: ${recurringDays.length} ${recurringDays.length === 1 ? "день" : recurringDays.length < 5 ? "дня" : "дней"}`
+                    }
+                  </p>
+                  {recurringDays.length === 0 && showErrors && (
+                    <p className="text-xs text-red-500 mt-1">Выберите хотя бы один день</p>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Выберите дни недели, когда будет выполняться цель
-              </p>
-              {recurringDays.length === 0 && showErrors && (
-                <p className="text-xs text-red-500">Выберите хотя бы один день</p>
-              )}
-            </div>
-          )}
+            )}
 
           {type === "habit" && (
             <div className="p-4 rounded-lg bg-muted/50 border border-border">
@@ -623,27 +692,25 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
           )}
 
           {type === "one_time" && (
-            <div className="space-y-2">
-              <Label className="text-sm leading-tight break-words">
-                Дата выполнения *
-              </Label>
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Дата выполнения *</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal h-12",
                       "overflow-hidden text-ellipsis whitespace-nowrap",
                       !endDate && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                    <CalendarIcon className="mr-2 h-5 w-5 shrink-0" />
                     <span className="truncate">
-                      {endDate ? format(endDate, "dd.MM.yyyy") : "Выберите дату"}
+                      {endDate ? format(endDate, "dd.MM.yyyy") : "Выберите дату выполнения"}
                     </span>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <IPhoneCalendar
                     mode="single"
                     selected={endDate}
@@ -653,6 +720,11 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
                   />
                 </PopoverContent>
               </Popover>
+              {endDate && (
+                <p className="text-xs text-muted-foreground">
+                  Цель будет выполнена {format(endDate, "d MMMM yyyy", { locale: ru })}
+                </p>
+              )}
             </div>
           )}
 
