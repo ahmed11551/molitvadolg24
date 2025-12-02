@@ -106,7 +106,19 @@ export const GoalsWithCalendar = memo(({ goals, onRefresh }: GoalsWithCalendarPr
       
       return false;
     });
-  }, [goals, selectedDate]);
+
+    // Применяем поиск
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((goal) =>
+        goal.title.toLowerCase().includes(query) ||
+        goal.description?.toLowerCase().includes(query) ||
+        goal.category.toLowerCase().includes(query)
+      );
+    }
+    
+    return filtered;
+  }, [goals, selectedDate, searchQuery]);
 
   // Фильтруем привычки на выбранную дату
   const habitsForDate = useMemo(() => {

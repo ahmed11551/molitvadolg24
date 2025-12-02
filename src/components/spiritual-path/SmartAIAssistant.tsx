@@ -56,7 +56,7 @@ export const SmartAIAssistant = () => {
     if (isOpen) {
       loadGoals();
     }
-  }, [isOpen]);
+  }, [isOpen, loadGoals]);
 
   // Автоскролл к последнему сообщению
   useEffect(() => {
@@ -90,14 +90,14 @@ export const SmartAIAssistant = () => {
     }
   }, [toast]);
 
-  const loadGoals = async () => {
+  const loadGoals = useCallback(async () => {
     try {
       const data = await spiritualPathAPI.getGoals("all");
       setGoals(data);
     } catch (error) {
       console.error("Error loading goals:", error);
     }
-  };
+  }, []);
 
   const handleVoiceInput = () => {
     if (!recognitionRef.current) {
@@ -157,7 +157,7 @@ export const SmartAIAssistant = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [input, goals]);
+  }, [input, processAIRequest]);
 
   const processAIRequest = async (text: string): Promise<{ message: string; actions?: Message["actions"] }> => {
     const lowerText = text.toLowerCase();
@@ -275,9 +275,9 @@ export const SmartAIAssistant = () => {
       category: categoryMatch ? categoryMatch[1].toLowerCase() : "zikr",
       target,
     };
-  };
+  }, []);
 
-  const findGoalByName = (text: string, goalsList: Goal[]): Goal | null => {
+  const findGoalByName = useCallback((text: string, goalsList: Goal[]): Goal | null => {
     const words = text.toLowerCase().split(/\s+/);
     for (const goal of goalsList) {
       const goalWords = goal.title.toLowerCase().split(/\s+/);
@@ -286,9 +286,9 @@ export const SmartAIAssistant = () => {
       }
     }
     return null;
-  };
+  }, []);
 
-  const createGoal = async (goalData: { title: string; category: string; description?: string; target?: number }) => {
+  const createGoal = useCallback(async (goalData: { title: string; category: string; description?: string; target?: number }) => {
     try {
       const categoryMap: Record<string, "prayer" | "quran" | "zikr" | "sadaqa" | "knowledge" | "names_of_allah"> = {
         намаз: "prayer",
@@ -337,9 +337,9 @@ export const SmartAIAssistant = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [loadGoals, toast, setMessages]);
 
-  const completeGoal = async (goalId: string) => {
+  const completeGoal = useCallback(async (goalId: string) => {
     try {
       await spiritualPathAPI.updateGoal(goalId, { status: "completed" });
       await loadGoals();
@@ -366,7 +366,7 @@ export const SmartAIAssistant = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [loadGoals, toast, goals, setMessages]);
 
   // Плавающая кнопка
   if (!isOpen) {
