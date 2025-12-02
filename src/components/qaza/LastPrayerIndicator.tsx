@@ -75,9 +75,9 @@ export const LastPrayerIndicator = () => {
             <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
               <Clock className="w-6 h-6 text-emerald-600" />
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-700">Начните восполнять каза</p>
-              <p className="text-xs text-gray-500">Отметьте первый восполненный намаз</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-700 break-words">Начните восполнять каза</p>
+              <p className="text-xs text-gray-500 break-words">Отметьте первый восполненный намаз</p>
             </div>
           </div>
         </CardContent>

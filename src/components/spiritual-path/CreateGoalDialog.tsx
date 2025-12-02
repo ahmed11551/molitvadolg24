@@ -386,7 +386,7 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Например: Прочитать весь Коран"
-              className={cn(showErrors && !title.trim() && "border-red-300 bg-red-50")}
+              className={cn(showErrors && !title.trim() && "border-red-300 bg-red-50", "break-words")}
             />
           </div>
 
@@ -399,6 +399,7 @@ export const CreateGoalDialog = ({ open, onOpenChange, onGoalCreated, children }
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Добавьте описание цели..."
               rows={3}
+              className="break-words resize-none"
             />
           </div>
 

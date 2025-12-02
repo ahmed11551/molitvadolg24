@@ -82,8 +82,8 @@ export const QuickAddPrayerButton = ({
           className
         )}
       >
-        <Plus className="w-5 h-5 mr-2" />
-        Отметить восполненные намазы
+        <Plus className="w-5 h-5 mr-2 flex-shrink-0" />
+        <span className="break-words">Отметить восполненные намазы</span>
       </Button>
       <AddPrayerDialog 
         open={dialogOpen} 
