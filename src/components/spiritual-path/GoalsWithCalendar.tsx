@@ -9,7 +9,8 @@ import { BadgesDisplayCompact } from "./BadgesDisplayCompact";
 import { DailySummaryWidget } from "./DailySummaryWidget";
 import { LifeHacksWidget } from "./LifeHacksWidget";
 import { cn } from "@/lib/utils";
-import { Target, BookOpen, CheckCircle2, Circle, Plus } from "lucide-react";
+import { Target, BookOpen, CheckCircle2, Circle, Plus, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import type { Goal } from "@/types/spiritual-path";
 import type { HabitReminder } from "@/types/habit-reminder";
 import { format, isSameDay, startOfWeek, addDays, getDay } from "date-fns";
@@ -28,6 +29,7 @@ export const GoalsWithCalendar = memo(({ goals, onRefresh }: GoalsWithCalendarPr
   const [activeTab, setActiveTab] = useState<"goals" | "habits">("goals");
   const [reminders, setReminders] = useState<HabitReminder[]>([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Мемоизируем обработчик смены таба
   const handleTabChange = useCallback((v: string) => {

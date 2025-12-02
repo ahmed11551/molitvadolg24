@@ -59,6 +59,11 @@ const SmartNotifications = lazy(() =>
     default: m.SmartNotifications
   }))
 );
+const SmartAIAssistant = lazy(() => 
+  import("@/components/spiritual-path/SmartAIAssistant").then(m => ({
+    default: m.SmartAIAssistant
+  }))
+);
 
 // Компонент загрузки
 const TabSkeleton = () => (
@@ -382,6 +387,9 @@ export default function SpiritualPath() {
       </main>
 
       <BottomNav />
+      
+      {/* Полноценный AI помощник */}
+      <SmartAIAssistant />
     </div>
   );
 }
