@@ -76,7 +76,13 @@ export const SmartAIAssistant = () => {
         const transcript = event.results[0][0].transcript;
         setInput(transcript);
         setIsListening(false);
-        handleSendMessage(transcript);
+        // Вызываем handleSendMessage через setTimeout, чтобы избежать проблем с зависимостями
+        setTimeout(() => {
+          const text = transcript.trim();
+          if (text) {
+            handleSendMessage(text);
+          }
+        }, 0);
       };
 
       recognitionRef.current.onerror = () => {
@@ -88,7 +94,7 @@ export const SmartAIAssistant = () => {
         });
       };
     }
-  }, [toast]);
+  }, [toast, handleSendMessage]);
 
   const loadGoals = useCallback(async () => {
     try {
@@ -118,48 +124,117 @@ export const SmartAIAssistant = () => {
     }
   };
 
-  const handleSendMessage = useCallback(async (messageText?: string) => {
-    const text = messageText || input.trim();
-    if (!text) return;
+  const extractGoalData = useCallback((text: string): { title: string; category: string; description?: string; target?: number } | null => {
+    // Простой парсинг для демо
+    const categoryMatch = text.match(/(намаз|коран|зикр|дуа|садака|знания|99 имен)/i);
+    const numberMatch = text.match(/(\d+)/);
+    const target = numberMatch ? parseInt(numberMatch[1]) : undefined;
 
-    setInput("");
-    setIsProcessing(true);
+    // Извлекаем название (все после "создай" или "добавь")
+    const titleMatch = text.match(/(?:создай|создать|добавь|добавить)\s+(.+?)(?:\s+(?:на|за|в)|$)/i);
+    const title = titleMatch ? titleMatch[1].trim() : text.replace(/(?:создай|создать|добавь|добавить)/i, "").trim();
 
-    // Добавляем сообщение пользователя
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: text,
-      timestamp: new Date(),
+    if (!title) return null;
+
+    return {
+      title: title.length > 50 ? title.substring(0, 50) : title,
+      category: categoryMatch ? categoryMatch[1].toLowerCase() : "zikr",
+      target,
     };
-    setMessages((prev) => [...prev, userMessage]);
+  }, []);
 
-    // Обрабатываем запрос AI
-    try {
-      const response = await processAIRequest(text);
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: response.message,
-        timestamp: new Date(),
-        actions: response.actions,
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
-      console.error("Error processing AI request:", error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "Извините, произошла ошибка. Попробуйте еще раз.",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsProcessing(false);
+  const findGoalByName = useCallback((text: string, goalsList: Goal[]): Goal | null => {
+    const words = text.toLowerCase().split(/\s+/);
+    for (const goal of goalsList) {
+      const goalWords = goal.title.toLowerCase().split(/\s+/);
+      if (words.some((w) => goalWords.some((gw) => gw.includes(w) || w.includes(gw)))) {
+        return goal;
+      }
     }
-  }, [input, processAIRequest]);
+    return null;
+  }, []);
 
-  const processAIRequest = async (text: string): Promise<{ message: string; actions?: Message["actions"] }> => {
+  const createGoal = useCallback(async (goalData: { title: string; category: string; description?: string; target?: number }) => {
+    try {
+      const categoryMap: Record<string, "prayer" | "quran" | "zikr" | "sadaqa" | "knowledge" | "names_of_allah"> = {
+        намаз: "prayer",
+        коран: "quran",
+        зикр: "zikr",
+        дуа: "zikr",
+        садака: "sadaqa",
+        знания: "knowledge",
+        "99 имен": "names_of_allah",
+      };
+
+      const category = categoryMap[goalData.category] || "zikr";
+
+      await spiritualPathAPI.createGoal({
+        title: goalData.title,
+        description: goalData.description,
+        category,
+        type: goalData.target ? "fixed_term" : "habit",
+        target_value: goalData.target || 30,
+        current_value: 0,
+        metric: goalData.target ? "count" : "days",
+        status: "active",
+      });
+
+      await loadGoals();
+      toast({
+        title: "Цель создана!",
+        description: `Цель "${goalData.title}" успешно создана`,
+      });
+
+      // Добавляем сообщение об успехе
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: `Отлично! Цель "${goalData.title}" создана. Теперь вы можете отслеживать свой прогресс!`,
+          timestamp: new Date(),
+        },
+      ]);
+    } catch (error) {
+      console.error("Error creating goal:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось создать цель",
+        variant: "destructive",
+      });
+    }
+  }, [loadGoals, toast]);
+
+  const completeGoal = useCallback(async (goalId: string) => {
+    try {
+      await spiritualPathAPI.updateGoal(goalId, { status: "completed" });
+      await loadGoals();
+      toast({
+        title: "Цель выполнена!",
+        description: "Поздравляем с достижением!",
+      });
+
+      const goal = goals.find((g) => g.id === goalId);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: `Поздравляю! Цель "${goal?.title || ""}" отмечена как выполненная. Ма ша Аллах! 🎉`,
+          timestamp: new Date(),
+        },
+      ]);
+    } catch (error) {
+      console.error("Error completing goal:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось завершить цель",
+        variant: "destructive",
+      });
+    }
+  }, [loadGoals, toast, goals]);
+
+  const processAIRequest = useCallback(async (text: string): Promise<{ message: string; actions?: Message["actions"] }> => {
     const lowerText = text.toLowerCase();
 
     // Анализ намерений
@@ -256,117 +331,48 @@ export const SmartAIAssistant = () => {
     return {
       message: `Я ваш AI-помощник! Я могу:\n\n✅ Создать цель (скажите "создай цель читать Коран каждый день")\n✅ Закрыть выполненную цель (скажите "заверши цель...")\n✅ Показать ваши цели (скажите "покажи мои цели")\n✅ Дать совет (скажите "дай совет")\n\nЧто вы хотите сделать?`,
     };
-  };
+  }, [goals, extractGoalData, findGoalByName, createGoal, completeGoal, setIsOpen]);
 
-  const extractGoalData = (text: string): { title: string; category: string; description?: string; target?: number } | null => {
-    // Простой парсинг для демо
-    const categoryMatch = text.match(/(намаз|коран|зикр|дуа|садака|знания|99 имен)/i);
-    const numberMatch = text.match(/(\d+)/);
-    const target = numberMatch ? parseInt(numberMatch[1]) : undefined;
+  const handleSendMessage = useCallback(async (messageText?: string) => {
+    const text = messageText || input.trim();
+    if (!text) return;
 
-    // Извлекаем название (все после "создай" или "добавь")
-    const titleMatch = text.match(/(?:создай|создать|добавь|добавить)\s+(.+?)(?:\s+(?:на|за|в)|$)/i);
-    const title = titleMatch ? titleMatch[1].trim() : text.replace(/(?:создай|создать|добавь|добавить)/i, "").trim();
+    setInput("");
+    setIsProcessing(true);
 
-    if (!title) return null;
-
-    return {
-      title: title.length > 50 ? title.substring(0, 50) : title,
-      category: categoryMatch ? categoryMatch[1].toLowerCase() : "zikr",
-      target,
+    // Добавляем сообщение пользователя
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: text,
+      timestamp: new Date(),
     };
-  }, []);
+    setMessages((prev) => [...prev, userMessage]);
 
-  const findGoalByName = useCallback((text: string, goalsList: Goal[]): Goal | null => {
-    const words = text.toLowerCase().split(/\s+/);
-    for (const goal of goalsList) {
-      const goalWords = goal.title.toLowerCase().split(/\s+/);
-      if (words.some((w) => goalWords.some((gw) => gw.includes(w) || w.includes(gw)))) {
-        return goal;
-      }
-    }
-    return null;
-  }, []);
-
-  const createGoal = useCallback(async (goalData: { title: string; category: string; description?: string; target?: number }) => {
+    // Обрабатываем запрос AI
     try {
-      const categoryMap: Record<string, "prayer" | "quran" | "zikr" | "sadaqa" | "knowledge" | "names_of_allah"> = {
-        намаз: "prayer",
-        коран: "quran",
-        зикр: "zikr",
-        дуа: "zikr",
-        садака: "sadaqa",
-        знания: "knowledge",
-        "99 имен": "names_of_allah",
+      const response = await processAIRequest(text);
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: response.message,
+        timestamp: new Date(),
+        actions: response.actions,
       };
-
-      const category = categoryMap[goalData.category] || "zikr";
-
-      await spiritualPathAPI.createGoal({
-        title: goalData.title,
-        description: goalData.description,
-        category,
-        type: goalData.target ? "fixed_term" : "habit",
-        target_value: goalData.target || 30,
-        current_value: 0,
-        metric: goalData.target ? "count" : "days",
-        status: "active",
-      });
-
-      await loadGoals();
-      toast({
-        title: "Цель создана!",
-        description: `Цель "${goalData.title}" успешно создана`,
-      });
-
-      // Добавляем сообщение об успехе
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          role: "assistant",
-          content: `Отлично! Цель "${goalData.title}" создана. Теперь вы можете отслеживать свой прогресс!`,
-          timestamp: new Date(),
-        },
-      ]);
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error("Error creating goal:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось создать цель",
-        variant: "destructive",
-      });
+      console.error("Error processing AI request:", error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Извините, произошла ошибка. Попробуйте еще раз.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsProcessing(false);
     }
-  }, [loadGoals, toast, setMessages]);
-
-  const completeGoal = useCallback(async (goalId: string) => {
-    try {
-      await spiritualPathAPI.updateGoal(goalId, { status: "completed" });
-      await loadGoals();
-      toast({
-        title: "Цель выполнена!",
-        description: "Поздравляем с достижением!",
-      });
-
-      const goal = goals.find((g) => g.id === goalId);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          role: "assistant",
-          content: `Поздравляю! Цель "${goal?.title || ""}" отмечена как выполненная. Ма ша Аллах! 🎉`,
-          timestamp: new Date(),
-        },
-      ]);
-    } catch (error) {
-      console.error("Error completing goal:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось завершить цель",
-        variant: "destructive",
-      });
-    }
-  }, [loadGoals, toast, goals, setMessages]);
+  }, [input, processAIRequest]);
 
   // Плавающая кнопка
   if (!isOpen) {

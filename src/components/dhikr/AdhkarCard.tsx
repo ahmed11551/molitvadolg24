@@ -1,4 +1,4 @@
-import { useState, memo, useEffect } from "react";
+import { useState, memo, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
@@ -135,6 +135,7 @@ export const AdhkarCard = memo(({ dhikr }: AdhkarCardProps) => {
             <p className="text-center text-sm sm:text-base text-foreground leading-relaxed break-words overflow-wrap-anywhere">
               {dhikr.translation}
             </p>
+          </div>
         </div>
 
         {/* Counter */}
