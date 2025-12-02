@@ -81,11 +81,11 @@ export const GoalsWithCalendar = memo(({ goals, onRefresh }: GoalsWithCalendarPr
     return days;
   }, [selectedDate]);
 
-  // Фильтруем цели на выбранную дату
+  // Фильтруем цели на выбранную дату с учетом поиска
   const goalsForDate = useMemo(() => {
     if (!goals || goals.length === 0) return [];
     
-    return goals.filter((goal) => {
+    let filtered = goals.filter((goal) => {
       // Для бессрочных привычек показываем всегда
       if (goal.type === "habit" && !goal.end_date) {
         return true;
